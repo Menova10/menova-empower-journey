@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -117,7 +118,17 @@ const Chat = () => {
         throw error;
       }
       
-      setMessages(data || []);
+      // Convert database messages to Message type
+      const typedMessages: Message[] = (data || []).map(item => ({
+        id: item.id,
+        sender: item.sender === 'user' || item.sender === 'assistant' 
+          ? (item.sender as 'user' | 'assistant') 
+          : 'assistant', // Default to assistant if invalid
+        message: item.message,
+        timestamp: item.timestamp
+      }));
+      
+      setMessages(typedMessages);
       
       // If no messages, add welcome message
       if (!data || data.length === 0) {

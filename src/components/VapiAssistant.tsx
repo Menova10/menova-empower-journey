@@ -76,7 +76,7 @@ const VapiAssistant = () => {
         setSessionId(data.id);
         
         // Add initial greeting message
-        const initialMessage = {
+        const initialMessage: Message = {
           sender: 'assistant',
           message: 'Hello! I\'m MeNova, your menopause wellness companion. How can I help you today?',
           timestamp: new Date().toISOString()
@@ -87,7 +87,7 @@ const VapiAssistant = () => {
         // Save message to database
         await supabase.from('session_messages').insert({
           session_id: data.id,
-          sender: 'assistant',
+          sender: initialMessage.sender,
           message: initialMessage.message,
           timestamp: initialMessage.timestamp
         });
@@ -110,7 +110,16 @@ const VapiAssistant = () => {
         return;
       }
       
-      setMessages(data || []);
+      // Convert database messages to Message type
+      const typedMessages: Message[] = (data || []).map(item => ({
+        sender: item.sender === 'user' || item.sender === 'assistant' 
+          ? (item.sender as 'user' | 'assistant') 
+          : 'assistant', // Default to assistant if invalid
+        message: item.message,
+        timestamp: item.timestamp
+      }));
+      
+      setMessages(typedMessages);
     } catch (error) {
       console.error('Error loading session messages:', error);
     }
@@ -131,7 +140,7 @@ const VapiAssistant = () => {
       if (!sessionId) await createOrGetActiveSession();
       
       // Add user message to state
-      const userMessageObj = {
+      const userMessageObj: Message = {
         sender: 'user',
         message: message.trim(),
         timestamp: new Date().toISOString()
@@ -142,7 +151,7 @@ const VapiAssistant = () => {
       // Save to database
       await supabase.from('session_messages').insert({
         session_id: sessionId,
-        sender: 'user',
+        sender: userMessageObj.sender,
         message: userMessageObj.message,
         timestamp: userMessageObj.timestamp
       });
@@ -157,7 +166,7 @@ const VapiAssistant = () => {
       setTimeout(async () => {
         const assistantResponse = getAssistantResponse(message);
         
-        const assistantMessageObj = {
+        const assistantMessageObj: Message = {
           sender: 'assistant',
           message: assistantResponse,
           timestamp: new Date().toISOString()
@@ -168,7 +177,7 @@ const VapiAssistant = () => {
         // Save to database
         await supabase.from('session_messages').insert({
           session_id: sessionId,
-          sender: 'assistant',
+          sender: assistantMessageObj.sender,
           message: assistantMessageObj.message,
           timestamp: assistantMessageObj.timestamp
         });
