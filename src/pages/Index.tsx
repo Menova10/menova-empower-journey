@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import VapiAssistant from '@/components/VapiAssistant';
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { MessageCircle, Mic } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { MessageCircle } from 'lucide-react';
+import MeNovaLogo from '@/components/MeNovaLogo';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
       {/* Navbar */}
       <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-menova-green">MeNova</h1>
+        <MeNovaLogo />
         <div className="space-x-2">
           <Button
             onClick={() => setShowLoginModal(true)}
@@ -238,12 +239,14 @@ const Index = () => {
       {/* Login Modal */}
       <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
         <DialogContent className="sm:max-w-md bg-white/90 backdrop-blur-sm p-6">
+          <DialogTitle className="sr-only">Login Options</DialogTitle>
+          <DialogDescription className="sr-only">Choose to login or join the waitlist</DialogDescription>
           <div className="flex flex-col items-center space-y-4">
-            <div 
-              className="text-2xl font-bold text-menova-green cursor-pointer"
-              onClick={() => setShowLoginModal(false)}
-            >
-              MeNova
+            <div onClick={() => {
+              setShowLoginModal(false);
+              navigate('/');
+            }}>
+              <MeNovaLogo className="mb-2" />
             </div>
             
             <div className="rounded-full overflow-hidden w-20 h-20 border-2 border-menova-green mb-2">

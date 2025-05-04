@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
+import MeNovaLogo from '@/components/MeNovaLogo';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -22,70 +23,77 @@ const Waitlist = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-menova-beige bg-menova-pattern bg-cover">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-menova-text">
-              Full Name
-            </label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1"
-              placeholder="Jane Doe"
-              required
-            />
-          </div>
+    <div className="min-h-screen flex flex-col bg-menova-beige">
+      {/* Navigation Bar */}
+      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
+        <MeNovaLogo />
+      </nav>
+      
+      <div className="flex-1 flex items-center justify-center py-12">
+        <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+          <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-menova-text">
+                Full Name
+              </label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1"
+                placeholder="Jane Doe"
+                required
+              />
+            </div>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-menova-text">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="reason" className="block text-sm font-medium text-menova-text">
-              Why are you interested in MeNova?
-            </label>
-            <Textarea
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="mt-1"
-              rows={3}
-            />
-          </div>
-          
-          <Button type="submit" className="w-full bg-menova-green hover:bg-menova-green/90">
-            Join Waitlist
-          </Button>
-        </form>
-        
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <Button 
-              variant="link" 
-              className="p-0 h-auto text-menova-green"
-              onClick={() => navigate('/login')}
-            >
-              Login
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-menova-text">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="reason" className="block text-sm font-medium text-menova-text">
+                Why are you interested in MeNova?
+              </label>
+              <Textarea
+                id="reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="mt-1"
+                rows={3}
+              />
+            </div>
+            
+            <Button type="submit" className="w-full bg-menova-green hover:bg-menova-green/90">
+              Join Waitlist
             </Button>
-          </p>
+          </form>
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-menova-green"
+                onClick={() => navigate('/login')}
+              >
+                Login
+              </Button>
+            </p>
+          </div>
         </div>
       </div>
     </div>
