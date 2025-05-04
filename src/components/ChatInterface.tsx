@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
@@ -120,7 +119,7 @@ const ChatInterface = () => {
           // Create a session if needed
           let sessionId: string | null = null;
           
-          const { data: existingSessions } = await supabase
+          const { data: existingSessions, error: sessionsError } = await supabase
             .from('user_sessions')
             .select('id')
             .eq('user_id', user.id)
@@ -128,11 +127,15 @@ const ChatInterface = () => {
             .order('started_at', { ascending: false })
             .limit(1);
             
+          if (sessionsError) {
+            console.error('Error getting sessions:', sessionsError);
+          }
+            
           if (existingSessions && existingSessions.length > 0) {
             sessionId = existingSessions[0].id;
           } else {
             // Create new session
-            const { data: newSession } = await supabase
+            const { data: newSession, error: newSessionError } = await supabase
               .from('user_sessions')
               .insert({
                 user_id: user.id,
@@ -142,7 +145,9 @@ const ChatInterface = () => {
               .select('id')
               .single();
               
-            if (newSession) {
+            if (newSessionError) {
+              console.error('Error creating session:', newSessionError);
+            } else if (newSession) {
               sessionId = newSession.id;
             }
           }
@@ -154,7 +159,7 @@ const ChatInterface = () => {
               sender: userMessage.sender,
               message: userMessage.message,
               timestamp: new Date().toISOString()
-            }).then(null).catch(error => {
+            }).then(null).catch((error) => {
               console.error('Error saving message:', error);
             });
           }
@@ -168,6 +173,8 @@ const ChatInterface = () => {
               source: 'chat',
               recorded_at: new Date().toISOString(),
               notes: `Automatically detected from chat conversation`
+            }).then(null).catch((error) => {
+              console.error('Error saving symptom:', error);
             });
             
             // Notify user subtly
@@ -202,7 +209,12 @@ const ChatInterface = () => {
             .eq('session_type', 'chat')
             .order('started_at', { ascending: false })
             .limit(1)
-            .then(({ data }) => {
+            .then(({ data, error }) => {
+              if (error) {
+                console.error('Error getting session:', error);
+                return;
+              }
+              
               if (data && data.length > 0) {
                 const sessionId = data[0].id;
                 
@@ -212,12 +224,12 @@ const ChatInterface = () => {
                   sender: assistantMessage.sender,
                   message: assistantMessage.message,
                   timestamp: new Date().toISOString()
-                }).then(null).catch(error => {
+                }).then(null).catch((error) => {
                   console.error('Error saving assistant message:', error);
                 });
               }
             })
-            .catch(error => {
+            .catch((error) => {
               console.error('Error getting session:', error);
             });
         }
