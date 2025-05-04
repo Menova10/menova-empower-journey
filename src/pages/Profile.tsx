@@ -1,0 +1,309 @@
+
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from '@/components/ui/use-toast';
+import MeNovaLogo from '@/components/MeNovaLogo';
+import { supabase } from '@/integrations/supabase/client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+// Profile form schema
+const profileSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters").nullable().optional(),
+  username: z.string().min(3, "Username must be at least 3 characters").nullable().optional(),
+  menopauseStage: z.string().nullable().optional(),
+  birthDate: z.string().nullable().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const Profile = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      fullName: "",
+      username: "",
+      menopauseStage: "",
+      birthDate: "",
+    },
+  });
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        toast({
+          title: "Access denied",
+          description: "Please log in to view your profile.",
+          variant: "destructive",
+        });
+        navigate('/login');
+        return;
+      }
+      
+      setUser(session.user);
+      await fetchProfile(session.user.id);
+    };
+    
+    checkUser();
+  }, [navigate]);
+
+  // Fetch user profile data
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load your profile information.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProfile(data);
+      
+      // Set form default values
+      form.reset({
+        fullName: data.full_name || "",
+        username: data.username || "",
+        menopauseStage: data.menopause_stage || "",
+        birthDate: data.birth_date ? new Date(data.birth_date).toISOString().split('T')[0] : "",
+      });
+      
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Update profile
+  const onSubmit = async (values: ProfileFormValues) => {
+    try {
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to update your profile.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsUpdating(true);
+      
+      // Map form values to profile data
+      const profileUpdate = {
+        full_name: values.fullName,
+        username: values.username,
+        menopause_stage: values.menopauseStage,
+        birth_date: values.birthDate ? values.birthDate : null,
+        updated_at: new Date().toISOString(),
+      };
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileUpdate)
+        .eq('id', user.id);
+      
+      if (error) {
+        toast({
+          title: "Error updating profile",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh profile data
+      await fetchProfile(user.id);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while updating your profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while logging out.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-menova-beige flex flex-col">
+        <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
+          <MeNovaLogo />
+        </nav>
+        <div className="flex-1 flex items-center justify-center">
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-menova-beige flex flex-col">
+      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
+        <MeNovaLogo />
+        <Button 
+          variant="outline" 
+          className="border-menova-green text-menova-green hover:bg-menova-green/10"
+          onClick={handleLogout}
+        >
+          Logout
+        </Button>
+      </nav>
+      
+      <div className="container mx-auto py-8 px-4 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <Avatar className="w-16 h-16">
+                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} />
+                <AvatarFallback>{profile?.full_name?.charAt(0) || user?.email?.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-2xl">{profile?.full_name || "Your Profile"}</CardTitle>
+                <CardDescription>{user?.email}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="fullName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Jane Doe" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormDescription>
+                        This is how your name will appear in your account.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username</FormLabel>
+                      <FormControl>
+                        <Input placeholder="janedoe" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="menopauseStage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Menopause Stage</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value || ''}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select your stage" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="perimenopause">Perimenopause</SelectItem>
+                          <SelectItem value="menopause">Menopause</SelectItem>
+                          <SelectItem value="postmenopause">Postmenopause</SelectItem>
+                          <SelectItem value="not_sure">Not Sure</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="birthDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Birth Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <Button 
+                  type="submit" 
+                  className="bg-menova-green hover:bg-menova-green/90"
+                  disabled={isUpdating}
+                >
+                  {isUpdating ? "Saving..." : "Save Changes"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;

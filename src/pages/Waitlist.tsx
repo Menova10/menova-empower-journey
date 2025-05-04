@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import MeNovaLogo from '@/components/MeNovaLogo';
+import { X } from 'lucide-react';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -30,7 +31,24 @@ const Waitlist = () => {
       </nav>
       
       <div className="flex-1 flex items-center justify-center py-12">
-        <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+        <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md relative">
+          {/* Close button */}
+          <button 
+            onClick={() => navigate('/')}
+            className="absolute right-4 top-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          
+          <div onClick={() => navigate('/')} className="flex justify-center mb-4 cursor-pointer">
+            <img
+              src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+              alt="MeNova Character"
+              className="w-20 h-20 rounded-full object-cover border-2 border-menova-green"
+            />
+          </div>
+          
           <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
           
           <form onSubmit={handleSubmit} className="space-y-4">

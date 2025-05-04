@@ -1,31 +1,47 @@
 
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/stores/authStore';
-import VapiAssistant from '@/components/VapiAssistant';
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import MeNovaLogo from '@/components/MeNovaLogo';
+import VapiAssistant from '@/components/VapiAssistant';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuthStore();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const birdAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const handleFeatureClick = (path: string) => {
-    if (isAuthenticated) {
-      navigate(path);
-    } else {
-      setShowLoginModal(true);
-    }
-  };
+  useEffect(() => {
+    // Check auth state
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session?.user);
+      setUser(session?.user || null);
+      setLoading(false);
+    };
+
+    // Setup auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsAuthenticated(!!session);
+      setUser(session?.user || null);
+    });
+
+    checkAuth();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Handle bird chirping audio
   useEffect(() => {
     // Create audio element for bird chirping
-    const audio = new Audio('/assets/bird-chirping.mp3'); // Replace with your actual audio file path
+    const audio = new Audio('/assets/bird-chirping.mp3');
     audio.loop = true;
     birdAudioRef.current = audio;
     
@@ -37,7 +53,7 @@ const Index = () => {
     };
     
     // Only play if user is not authenticated
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !loading) {
       playAudio();
     }
     
@@ -48,7 +64,7 @@ const Index = () => {
         birdAudioRef.current.currentTime = 0;
       }
     };
-  }, []);
+  }, [isAuthenticated, loading]);
   
   // Stop audio when user logs in
   useEffect(() => {
@@ -58,6 +74,21 @@ const Index = () => {
     }
   }, [isAuthenticated]);
 
+  const handleFeatureClick = (path: string) => {
+    if (isAuthenticated) {
+      navigate(path);
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
+  // Redirect authenticated users to welcome page
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      navigate('/welcome');
+    }
+  }, [isAuthenticated, loading, navigate]);
+
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
       {/* Navbar */}
@@ -65,7 +96,7 @@ const Index = () => {
         <MeNovaLogo />
         <div className="space-x-2">
           <Button
-            onClick={() => setShowLoginModal(true)}
+            onClick={() => navigate('/login')}
             variant="outline"
             className="border-menova-green text-menova-green hover:bg-menova-green/10"
           >
@@ -236,11 +267,21 @@ const Index = () => {
         <VapiAssistant />
       </div>
 
-      {/* Login Modal */}
+      {/* Login Modal with improved accessibility and close button */}
       <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
         <DialogContent className="sm:max-w-md bg-white/90 backdrop-blur-sm p-6">
           <DialogTitle className="sr-only">Login Options</DialogTitle>
           <DialogDescription className="sr-only">Choose to login or join the waitlist</DialogDescription>
+          
+          {/* Close button */}
+          <button 
+            onClick={() => setShowLoginModal(false)}
+            className="absolute right-4 top-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          
           <div className="flex flex-col items-center space-y-4">
             <div onClick={() => {
               setShowLoginModal(false);
