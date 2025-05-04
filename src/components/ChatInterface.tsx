@@ -154,28 +154,40 @@ const ChatInterface = () => {
           
           // Save the message if we have a session
           if (sessionId) {
-            await supabase.from('session_messages').insert({
-              session_id: sessionId,
-              sender: userMessage.sender,
-              message: userMessage.message,
-              timestamp: new Date().toISOString()
-            }).then(null).catch((error) => {
-              console.error('Error saving message:', error);
-            });
+            await supabase
+              .from('session_messages')
+              .insert({
+                session_id: sessionId,
+                sender: userMessage.sender,
+                message: userMessage.message,
+                timestamp: new Date().toISOString()
+              })
+              .then(() => {
+                // Success case handled silently
+              })
+              .catch((error) => {
+                console.error('Error saving message:', error);
+              });
           }
           
           // Process for symptoms
           const detectedSymptom = processForSymptoms(text);
           if (detectedSymptom && user) {
-            await supabase.from('symptom_tracker').insert({
-              user_id: user.id,
-              symptom: detectedSymptom,
-              source: 'chat',
-              recorded_at: new Date().toISOString(),
-              notes: `Automatically detected from chat conversation`
-            }).then(null).catch((error) => {
-              console.error('Error saving symptom:', error);
-            });
+            await supabase
+              .from('symptom_tracker')
+              .insert({
+                user_id: user.id,
+                symptom: detectedSymptom,
+                source: 'chat',
+                recorded_at: new Date().toISOString(),
+                notes: `Automatically detected from chat conversation`
+              })
+              .then(() => {
+                // Success case handled silently
+              })
+              .catch((error) => {
+                console.error('Error saving symptom:', error);
+              });
             
             // Notify user subtly
             toast({
@@ -219,14 +231,20 @@ const ChatInterface = () => {
                 const sessionId = data[0].id;
                 
                 // Save assistant message
-                supabase.from('session_messages').insert({
-                  session_id: sessionId,
-                  sender: assistantMessage.sender,
-                  message: assistantMessage.message,
-                  timestamp: new Date().toISOString()
-                }).then(null).catch((error) => {
-                  console.error('Error saving assistant message:', error);
-                });
+                supabase
+                  .from('session_messages')
+                  .insert({
+                    session_id: sessionId,
+                    sender: assistantMessage.sender,
+                    message: assistantMessage.message,
+                    timestamp: new Date().toISOString()
+                  })
+                  .then(() => {
+                    // Success case handled silently
+                  })
+                  .catch((error) => {
+                    console.error('Error saving assistant message:', error);
+                  });
               }
             })
             .catch((error) => {
