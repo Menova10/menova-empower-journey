@@ -21,6 +21,8 @@ serve(async (req) => {
   try {
     const { email, full_name, reason, birth_date, menopause_stage } = await req.json();
 
+    console.log("Received waitlist submission:", { email, full_name, reason, birth_date, menopause_stage });
+
     // Send email to admin
     const adminEmail = "menovarocks@gmail.com";
     const adminSubject = `New MeNova Waitlist Submission: ${full_name}`;
@@ -36,8 +38,12 @@ serve(async (req) => {
       To approve this user, click here: ${supabaseUrl}/functions/v1/approve-waitlist?email=${encodeURIComponent(email)}&token=${generateApprovalToken(email)}
     `;
     
-    await sendEmail(adminEmail, adminSubject, adminText);
+    // Log the admin email content
+    console.log("Sending admin email to:", adminEmail);
+    console.log("Admin email content:", adminText);
 
+    await sendEmail(adminEmail, adminSubject, adminText);
+    
     // Send confirmation email to user
     const userSubject = "Thank you for joining the MeNova waitlist!";
     const userText = `
@@ -49,6 +55,10 @@ serve(async (req) => {
       The MeNova Team
     `;
     
+    // Log the user email content
+    console.log("Sending user confirmation email to:", email);
+    console.log("User email content:", userText);
+
     await sendEmail(email, userSubject, userText);
 
     return new Response(JSON.stringify({ success: true }), {

@@ -30,6 +30,8 @@ serve(async (req) => {
       });
     }
 
+    console.log(`Processing approval for email: ${email}`);
+
     // Validate token (in a real implementation, use a more secure validation)
     // For this example, we'll assume the token is valid
 
@@ -41,11 +43,14 @@ serve(async (req) => {
       .single();
 
     if (fetchError || !waitlistEntry) {
+      console.error("Waitlist entry not found:", fetchError);
       return new Response("Waitlist entry not found", { 
         status: 404, 
         headers: { ...corsHeaders } 
       });
     }
+
+    console.log("Found waitlist entry:", waitlistEntry);
 
     // Update waitlist status to approved
     const { error: updateError } = await supabase
@@ -54,8 +59,11 @@ serve(async (req) => {
       .eq("id", waitlistEntry.id);
 
     if (updateError) {
+      console.error("Error updating waitlist status:", updateError);
       throw updateError;
     }
+
+    console.log("Waitlist status updated to approved");
 
     // Create a user account
     const tempPassword = generateRandomPassword(12);
@@ -69,8 +77,11 @@ serve(async (req) => {
     });
 
     if (authError) {
+      console.error("Error creating user account:", authError);
       throw authError;
     }
+
+    console.log("User account created successfully:", authData);
 
     // Send approval email to user
     const userSubject = "Your MeNova Access Has Been Approved!";
@@ -87,6 +98,9 @@ serve(async (req) => {
       Best regards,
       The MeNova Team
     `;
+    
+    console.log(`Sending approval email to ${email}`);
+    console.log("Email content:", userText);
     
     await sendEmail(email, userSubject, userText);
 
