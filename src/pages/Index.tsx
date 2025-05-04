@@ -1,3 +1,4 @@
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
@@ -81,15 +82,15 @@ const Index = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
         {/* Hero Section */}
-        <section className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-          <div className="md:w-1/2 space-y-4">
+        <section className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+          <div className="md:w-3/5 space-y-4">
             <div className="space-y-2">
               <h2 className="text-lg font-medium text-menova-green">Your Menopause Companion</h2>
               <h1 className="text-4xl md:text-5xl font-bold text-menova-text leading-tight">
                 Still You.<br />Just More
               </h1>
             </div>
-            <p className="text-lg text-gray-600 max-w-md leading-relaxed">
+            <p className="text-lg text-gray-600 leading-relaxed">
               MeNova provides empathetic support, personalized tracking,<br />
               and evidence-based resources for your unique menopause journey.
             </p>
@@ -101,7 +102,7 @@ const Index = () => {
             </Button>
           </div>
           
-          <div className="md:w-1/2 flex justify-center relative">
+          <div className="md:w-2/5 flex justify-center relative">
             <div className="relative">
               {/* Circular clip for the character image */}
               <div className="rounded-full overflow-hidden w-64 h-64 border-4 border-white shadow-lg">
@@ -112,7 +113,7 @@ const Index = () => {
                 />
               </div>
               
-              {/* Speech bubble - moved to bottom right */}
+              {/* Speech bubble - at bottom right */}
               <div className="absolute bottom-0 right-0 bg-white px-4 py-2 rounded-2xl text-menova-text shadow-md">
                 <p className="font-medium">Hi, I'm MeNova!</p>
                 <div className="absolute bottom-8 right-4 transform rotate-45 w-4 h-4 bg-white"></div>
