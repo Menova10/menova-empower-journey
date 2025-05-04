@@ -22,7 +22,7 @@ const VapiAssistant = () => {
     <>
       <Button
         onClick={handleAssistantClick}
-        className="fixed bottom-6 right-6 rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 animate-float flex items-center justify-center p-0 z-50"
+        className="rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 animate-float flex items-center justify-center p-0"
       >
         <div className="rounded-full overflow-hidden w-12 h-12 border-2 border-white">
           <img 

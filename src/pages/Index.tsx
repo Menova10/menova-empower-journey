@@ -3,18 +3,58 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import VapiAssistant from '@/components/VapiAssistant';
+import { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const birdAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const handleFeatureClick = (path: string) => {
     if (isAuthenticated) {
       navigate(path);
     } else {
-      navigate('/waitlist');
+      setShowLoginModal(true);
     }
   };
+
+  // Handle bird chirping audio
+  useEffect(() => {
+    // Create audio element for bird chirping
+    const audio = new Audio('/assets/bird-chirping.mp3'); // Replace with your actual audio file path
+    audio.loop = true;
+    birdAudioRef.current = audio;
+    
+    // Play audio when component mounts
+    const playAudio = () => {
+      audio.play().catch(error => {
+        console.log("Audio play failed:", error);
+      });
+    };
+    
+    // Only play if user is not authenticated
+    if (!isAuthenticated) {
+      playAudio();
+    }
+    
+    // Cleanup function to stop audio when component unmounts
+    return () => {
+      if (birdAudioRef.current) {
+        birdAudioRef.current.pause();
+        birdAudioRef.current.currentTime = 0;
+      }
+    };
+  }, []);
+  
+  // Stop audio when user logs in
+  useEffect(() => {
+    if (isAuthenticated && birdAudioRef.current) {
+      birdAudioRef.current.pause();
+      birdAudioRef.current.currentTime = 0;
+    }
+  }, [isAuthenticated]);
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
@@ -23,7 +63,7 @@ const Index = () => {
         <h1 className="text-2xl font-bold text-menova-green">MeNova</h1>
         <div className="space-x-2">
           <Button
-            onClick={() => navigate('/login')}
+            onClick={() => setShowLoginModal(true)}
             variant="outline"
             className="border-menova-green text-menova-green hover:bg-menova-green/10"
           >
@@ -71,10 +111,10 @@ const Index = () => {
                 />
               </div>
               
-              {/* Speech bubble */}
-              <div className="absolute -top-12 right-0 bg-white px-4 py-2 rounded-2xl text-menova-text shadow-md">
-                <p className="font-medium">I am MeNova</p>
-                <div className="absolute bottom-0 right-8 transform translate-y-1/2 rotate-45 w-4 h-4 bg-white"></div>
+              {/* Speech bubble - moved to bottom right */}
+              <div className="absolute bottom-0 right-0 bg-white px-4 py-2 rounded-2xl text-menova-text shadow-md">
+                <p className="font-medium">Hi, I'm MeNova!</p>
+                <div className="absolute bottom-8 right-4 transform rotate-45 w-4 h-4 bg-white"></div>
               </div>
             </div>
           </div>
@@ -176,8 +216,60 @@ const Index = () => {
         <p>© 2025 MeNova. Your companion through menopause.</p>
       </footer>
 
+      {/* Fixed floating chatbot */}
+      <div className="fixed bottom-20 right-6 z-40">
+        <div className="bg-menova-green hover:bg-menova-green/90 text-white rounded-full p-3 shadow-lg cursor-pointer flex items-center justify-center">
+          <span className="text-sm font-medium">Text Chat</span>
+        </div>
+      </div>
+
       {/* Floating Voice Assistant */}
-      <VapiAssistant />
+      <div className="fixed bottom-6 right-6 z-50">
+        <VapiAssistant />
+      </div>
+
+      {/* Login Modal */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className="sm:max-w-md bg-white/90 backdrop-blur-sm p-6">
+          <div className="flex flex-col items-center space-y-4">
+            <div 
+              className="text-2xl font-bold text-menova-green cursor-pointer"
+              onClick={() => setShowLoginModal(false)}
+            >
+              MeNova
+            </div>
+            
+            <div className="rounded-full overflow-hidden w-20 h-20 border-2 border-menova-green mb-2">
+              <img
+                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+                alt="MeNova"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            
+            <h3 className="text-xl font-medium text-menova-text">Welcome to MeNova</h3>
+            <p className="text-sm text-gray-600 text-center mb-2">
+              Your personal menopause companion
+            </p>
+            
+            <div className="flex gap-4 mt-4 w-full">
+              <Button
+                onClick={() => navigate('/login')}
+                className="flex-1 border-menova-green text-menova-green hover:bg-menova-green/10"
+                variant="outline"
+              >
+                Login
+              </Button>
+              <Button
+                onClick={() => navigate('/waitlist')}
+                className="flex-1 bg-menova-green text-white hover:bg-menova-green/90"
+              >
+                Join Waitlist
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
