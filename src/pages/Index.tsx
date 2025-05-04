@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import VapiAssistant from '@/components/VapiAssistant';
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { MessageCircle, Mic } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -89,8 +90,9 @@ const Index = () => {
                 Still You.<br />Just More
               </h1>
             </div>
-            <p className="text-lg text-gray-600 max-w-md">
-              MeNova provides empathetic support, personalized tracking, and evidence-based resources for your unique menopause journey.
+            <p className="text-lg text-gray-600 max-w-md leading-relaxed">
+              MeNova provides empathetic support, personalized tracking,<br />
+              and evidence-based resources for your unique menopause journey.
             </p>
             <Button
               onClick={() => handleFeatureClick('/chat')}
@@ -126,21 +128,21 @@ const Index = () => {
             Understand Your Journey
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 bg-menova-lightgreen rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">🌿</span>
               <h3 className="text-lg font-medium text-menova-text">Perimenopause</h3>
               <p className="text-sm text-gray-600 mt-2">
                 Hormone fluctuations, irregular cycles, and the beginning of your transition.
               </p>
             </div>
-            <div className="p-5 bg-menova-softpink rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">🌸</span>
               <h3 className="text-lg font-medium text-menova-text">Menopause</h3>
               <p className="text-sm text-gray-600 mt-2">
                 12+ months without periods, embracing your natural evolution.
               </p>
             </div>
-            <div className="p-5 bg-menova-softpeach rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">✨</span>
               <h3 className="text-lg font-medium text-menova-text">Postmenopause</h3>
               <p className="text-sm text-gray-600 mt-2">
@@ -199,14 +201,15 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Testimonial Section */}
+        {/* Your Personalized Journey Awaits Section */}
         <section className="pt-2">
+          <h2 className="text-2xl font-semibold text-menova-text mb-4">
+            Your Personalized Journey Awaits
+          </h2>
           <div className="bg-white/80 p-6 rounded-lg shadow-sm backdrop-blur-sm">
-            <h3 className="font-medium text-menova-text mb-3 text-center">What Women Say About MeNova</h3>
-            <div className="italic text-gray-600 text-center">
-              "MeNova has been my compass during this transformative journey. Having a companion who truly understands has made all the difference."
-            </div>
-            <div className="text-right text-sm text-menova-green mt-2">— Sarah, 52</div>
+            <p className="text-gray-600 leading-relaxed">
+              Menopause is a time of transformation and renewal. With MeNova by your side, find moments of peace amid change, reconnect with your inner self, and discover new sources of strength in this journey.
+            </p>
           </div>
         </section>
       </main>
@@ -218,9 +221,13 @@ const Index = () => {
 
       {/* Fixed floating chatbot */}
       <div className="fixed bottom-20 right-6 z-40">
-        <div className="bg-menova-green hover:bg-menova-green/90 text-white rounded-full p-3 shadow-lg cursor-pointer flex items-center justify-center">
+        <button 
+          onClick={() => handleFeatureClick('/chat')}
+          className="bg-menova-green hover:bg-menova-green/90 text-white rounded-full py-3 px-4 shadow-lg cursor-pointer flex items-center justify-center gap-2"
+        >
+          <MessageCircle size={18} />
           <span className="text-sm font-medium">Text Chat</span>
-        </div>
+        </button>
       </div>
 
       {/* Floating Voice Assistant */}

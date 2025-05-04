@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { MessageCircle, Mic } from 'lucide-react';
 
 const VapiAssistant = () => {
   const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState('');
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
@@ -15,6 +17,13 @@ const VapiAssistant = () => {
       setOpen(true);
     } else {
       navigate('/login');
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (message.trim()) {
+      // In a real implementation, this would send the message to a backend
+      setMessage('');
     }
   };
 
@@ -59,8 +68,20 @@ const VapiAssistant = () => {
               type="text" 
               placeholder="Type your message..." 
               className="flex-1 p-2 rounded-md border border-menova-green/30 focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSendMessage();
+                }
+              }}
             />
-            <Button className="bg-menova-green hover:bg-menova-green/90">Send</Button>
+            <Button 
+              className="bg-menova-green hover:bg-menova-green/90"
+              onClick={handleSendMessage}
+            >
+              Send
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
