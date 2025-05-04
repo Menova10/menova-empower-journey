@@ -119,6 +119,14 @@
   @apply bg-white/80 backdrop-blur-sm;
 }
 
+.glass-effect-strong {
+  @apply bg-white/90 backdrop-blur-md shadow-sm;
+}
+
+.glass-effect-subtle {
+  @apply bg-white/60 backdrop-blur-sm;
+}
+
 /* Fix for the promise catch errors */
 .promiseFixClass {
   display: none;

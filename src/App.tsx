@@ -24,8 +24,13 @@ const queryClient = new QueryClient();
 // Apply global background style to all pages
 const AppBackground = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover bg-fixed bg-blend-soft-light opacity-95">
-      {children}
+    <div className="min-h-screen flex flex-col">
+      {/* Background layer with styling */}
+      <div className="fixed inset-0 bg-menova-beige bg-menova-pattern bg-cover bg-fixed bg-blend-soft-light opacity-95 -z-10" />
+      {/* Content layer */}
+      <div className="relative z-0 flex-1 flex flex-col">
+        {children}
+      </div>
     </div>
   );
 };
