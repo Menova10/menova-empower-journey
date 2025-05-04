@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeAuth, setupAuthListener } from "@/stores/authStore";
+import ChatInterface from "./components/ChatInterface";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -62,6 +63,7 @@ const App = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <ChatInterface />
           </AppBackground>
         </BrowserRouter>
       </TooltipProvider>
