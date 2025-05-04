@@ -28,11 +28,14 @@ serve(async (req) => {
   }
 
   try {
-    // Check for direct access for Shettysandhya1985@gmail.com
+    // Parse request body for invoke method
+    const requestData = await req.json().catch(() => null);
+    
+    // Handle both URL parameters and JSON body
     const url = new URL(req.url);
-    const email = url.searchParams.get("email");
-    const token = url.searchParams.get("token");
-    const directAccess = url.searchParams.get("directAccess") === "true";
+    const email = requestData?.email || url.searchParams.get("email");
+    const token = requestData?.token || url.searchParams.get("token");
+    const directAccess = requestData?.directAccess || url.searchParams.get("directAccess") === "true";
     
     // Special case for the specific email
     if (directAccess && email === "Shettysandhya1985@gmail.com") {
@@ -88,7 +91,9 @@ serve(async (req) => {
       password: tempPassword,
       email_confirm: true,
       user_metadata: {
-        full_name: waitlistEntry.full_name
+        full_name: waitlistEntry.full_name,
+        menopause_stage: waitlistEntry.menopause_stage,
+        birth_date: waitlistEntry.birth_date
       }
     });
 
@@ -98,6 +103,26 @@ serve(async (req) => {
     }
 
     console.log("User account created successfully:", authData);
+    
+    // Ensure user's profile has the waitlist data
+    if (authData?.user?.id) {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: authData.user.id,
+          full_name: waitlistEntry.full_name,
+          menopause_stage: waitlistEntry.menopause_stage,
+          birth_date: waitlistEntry.birth_date,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
+      } else {
+        console.log("Profile data synced from waitlist");
+      }
+    }
 
     // Send approval email to user
     const userSubject = "Your MeNova Access Has Been Approved!";
@@ -235,6 +260,24 @@ async function handleDirectAccess(email: string) {
       }
     } else {
       console.log("Default user account created successfully:", authData);
+      
+      // Ensure profile exists
+      if (authData?.user?.id) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert({
+            id: authData.user.id,
+            full_name: "Sandhya Shetty",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        } else {
+          console.log("Profile created successfully");
+        }
+      }
     }
 
     // Send login email to user

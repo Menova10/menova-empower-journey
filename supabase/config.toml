@@ -6,4 +6,3 @@ verify_jwt = false
 
 [functions.approve-waitlist]
 verify_jwt = false
-
