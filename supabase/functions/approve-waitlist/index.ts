@@ -104,9 +104,69 @@ serve(async (req) => {
     
     await sendEmail(email, userSubject, userText);
 
-    return new Response("User approved and account created successfully", { 
+    // Return HTML response with auto-redirect to login page
+    const htmlResponse = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="refresh" content="5;url=${supabaseUrl}/login">
+        <title>MeNova - Waitlist Approved</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f9f5f1;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+          }
+          h1 {
+            color: #5a825a;
+            margin-bottom: 20px;
+          }
+          .button {
+            display: inline-block;
+            background-color: #5a825a;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>MeNova Waitlist Approved!</h1>
+          <p>The user account for <strong>${email}</strong> has been created successfully.</p>
+          <p>An email has been sent to the user with their temporary login credentials.</p>
+          <p>You will be redirected to the login page in 5 seconds...</p>
+          <a href="${supabaseUrl}/login" class="button">Go to Login Now</a>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return new Response(htmlResponse, { 
       status: 200, 
-      headers: { ...corsHeaders }
+      headers: { 
+        "Content-Type": "text/html",
+        ...corsHeaders 
+      }
     });
   } catch (error) {
     console.error("Error approving waitlist entry:", error);

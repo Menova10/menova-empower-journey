@@ -35,7 +35,12 @@ serve(async (req) => {
       Menopause Stage: ${menopause_stage || 'Not specified'}
       Reason: ${reason || 'Not specified'}
       
-      To approve this user, click here: ${supabaseUrl}/functions/v1/approve-waitlist?email=${encodeURIComponent(email)}&token=${generateApprovalToken(email)}
+      To approve this user, click the link below. Upon approval:
+      1. A user account will be created automatically
+      2. The user will receive login credentials via email
+      3. You will be redirected to the login page
+      
+      Approval Link: ${supabaseUrl}/functions/v1/approve-waitlist?email=${encodeURIComponent(email)}&token=${generateApprovalToken(email)}
     `;
     
     // Log the admin email content
