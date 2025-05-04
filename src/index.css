@@ -101,6 +101,24 @@
   }
 }
 
+/* Background utility classes */
+.bg-blend-soft-light {
+  background-blend-mode: soft-light;
+}
+
+.bg-blend-overlay {
+  background-blend-mode: overlay;
+}
+
+.bg-blend-lighten {
+  background-blend-mode: lighten;
+}
+
+/* Glass effect for cards and components */
+.glass-effect {
+  @apply bg-white/80 backdrop-blur-sm;
+}
+
 /* Fix for the promise catch errors */
 .promiseFixClass {
   display: none;
