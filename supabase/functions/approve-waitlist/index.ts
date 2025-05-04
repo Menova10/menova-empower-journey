@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,14 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Email configuration
+const smtpConfig = {
+  hostname: "smtp.gmail.com", // Replace with your SMTP server
+  port: 465,
+  username: "menovarocks@gmail.com", // Replace with your email
+  password: Deno.env.get("EMAIL_PASSWORD") || "", // Get password from environment variable
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -102,7 +111,23 @@ serve(async (req) => {
     console.log(`Sending approval email to ${email}`);
     console.log("Email content:", userText);
     
-    await sendEmail(email, userSubject, userText);
+    // Create SMTP client and send email
+    try {
+      const client = new SmtpClient();
+      await client.connectTLS(smtpConfig);
+      
+      await client.send({
+        from: "menovarocks@gmail.com",
+        to: email,
+        subject: userSubject,
+        content: userText,
+      });
+      
+      await client.close();
+    } catch (smtpError) {
+      console.error("SMTP Error:", smtpError);
+      // Continue with the response even if email fails
+    }
 
     // Return HTML response with auto-redirect to login page
     const htmlResponse = `
@@ -185,16 +210,4 @@ function generateRandomPassword(length: number) {
     password += charset.charAt(Math.floor(Math.random() * charset.length));
   }
   return password;
-}
-
-// Simple email sending function (would use a service like Resend or SendGrid in production)
-async function sendEmail(to: string, subject: string, text: string) {
-  // In a real implementation, this would use an email service
-  console.log(`Email to ${to}:`);
-  console.log(`Subject: ${subject}`);
-  console.log(`Body: ${text}`);
-  console.log("-----");
-  
-  // For this example, we'll simulate successful email sending
-  return { success: true };
 }
