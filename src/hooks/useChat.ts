@@ -83,46 +83,42 @@ export const useChat = () => {
           
           // Save the message if we have a session
           if (sessionId) {
-            await supabase
-              .from('session_messages')
-              .insert({
-                session_id: sessionId,
-                sender: userMessage.sender,
-                message: userMessage.message,
-                timestamp: new Date().toISOString()
-              })
-              .then(() => {
-                // Success case handled silently
-              })
-              .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
-                console.error('Error saving message:', error);
-              });
+            try {
+              await supabase
+                .from('session_messages')
+                .insert({
+                  session_id: sessionId,
+                  sender: userMessage.sender,
+                  message: userMessage.message,
+                  timestamp: new Date().toISOString()
+                });
+            } catch (error) {
+              console.error('Error saving message:', error);
+            }
           }
           
           // Process for symptoms
           const detectedSymptom = processForSymptoms(text);
           if (detectedSymptom && user) {
-            await supabase
-              .from('symptom_tracker')
-              .insert({
-                user_id: user.id,
-                symptom: detectedSymptom,
-                source: 'chat',
-                recorded_at: new Date().toISOString(),
-                notes: `Automatically detected from chat conversation`
-              })
-              .then(() => {
-                // Success case handled silently
-              })
-              .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
-                console.error('Error saving symptom:', error);
+            try {
+              await supabase
+                .from('symptom_tracker')
+                .insert({
+                  user_id: user.id,
+                  symptom: detectedSymptom,
+                  source: 'chat',
+                  recorded_at: new Date().toISOString(),
+                  notes: `Automatically detected from chat conversation`
+                });
+              
+              // Notify user subtly
+              toast({
+                title: "Symptom Logged",
+                description: `I've noted your ${detectedSymptom.toLowerCase()} in your symptom tracker.`,
               });
-            
-            // Notify user subtly
-            toast({
-              title: "Symptom Logged",
-              description: `I've noted your ${detectedSymptom.toLowerCase()} in your symptom tracker.`,
-            });
+            } catch (error) {
+              console.error('Error saving symptom:', error);
+            }
           }
         } catch (error) {
           console.error('Error saving message:', error);
@@ -143,42 +139,40 @@ export const useChat = () => {
         // Save assistant response to database if authenticated
         if (user && userMessage.sender === 'user') {
           // Get the last created session
-          supabase
-            .from('user_sessions')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('session_type', 'chat')
-            .order('started_at', { ascending: false })
-            .limit(1)
-            .then(({ data, error }) => {
-              if (error) {
-                console.error('Error getting session:', error);
-                return;
-              }
+          try {
+            const { data, error } = await supabase
+              .from('user_sessions')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('session_type', 'chat')
+              .order('started_at', { ascending: false })
+              .limit(1);
               
-              if (data && data.length > 0) {
-                const sessionId = data[0].id;
-                
-                // Save assistant message
-                supabase
+            if (error) {
+              console.error('Error getting session:', error);
+              return;
+            }
+            
+            if (data && data.length > 0) {
+              const sessionId = data[0].id;
+              
+              // Save assistant message
+              try {
+                await supabase
                   .from('session_messages')
                   .insert({
                     session_id: sessionId,
                     sender: assistantMessage.sender,
                     message: assistantMessage.message,
                     timestamp: new Date().toISOString()
-                  })
-                  .then(() => {
-                    // Success case handled silently
-                  })
-                  .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
-                    console.error('Error saving assistant message:', error);
                   });
+              } catch (error) {
+                console.error('Error saving assistant message:', error);
               }
-            })
-            .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
-              console.error('Error getting session:', error);
-            });
+            }
+          } catch (error) {
+            console.error('Error getting session:', error);
+          }
         }
         
         setSending(false);
