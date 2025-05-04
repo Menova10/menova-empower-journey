@@ -39,6 +39,42 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          birth_date: string | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          menopause_stage: string | null
+          reason: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          birth_date?: string | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          menopause_stage?: string | null
+          reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          birth_date?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          menopause_stage?: string | null
+          reason?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -3,24 +3,87 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import MeNovaLogo from '@/components/MeNovaLogo';
-import { X } from 'lucide-react';
+import { X, Calendar as CalendarIcon } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [reason, setReason] = useState('');
+  const [date, setDate] = useState<Date | undefined>(undefined);
+  const [menopauseStage, setMenopauseStage] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Joined waitlist",
-      description: "You've been added to our waitlist! We'll notify you when MeNova is ready.",
-    });
-    navigate('/');
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Insert the data into the waitlist table
+      const { data, error } = await supabase
+        .from('waitlist')
+        .insert({
+          email,
+          full_name: name,
+          reason,
+          birth_date: date ? format(date, 'yyyy-MM-dd') : null,
+          menopause_stage: menopauseStage || null
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      // Call the notify-waitlist function to send emails
+      const functionResponse = await supabase.functions.invoke('notify-waitlist', {
+        body: {
+          email,
+          full_name: name,
+          reason,
+          birth_date: date ? format(date, 'yyyy-MM-dd') : null,
+          menopause_stage: menopauseStage || null
+        }
+      });
+      
+      if (functionResponse.error) {
+        console.error("Error calling function:", functionResponse.error);
+      }
+      
+      toast({
+        title: "Joined waitlist",
+        description: "You've been added to our waitlist! We'll notify you when your MeNova access is approved.",
+      });
+      
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error submitting to waitlist:', error);
+      
+      if (error?.code === '23505') {
+        toast({
+          title: "Email already exists",
+          description: "This email has already been added to our waitlist.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Submission failed",
+          description: "There was an error adding you to the waitlist. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -41,7 +104,7 @@ const Waitlist = () => {
             <X size={20} />
           </button>
           
-          <div onClick={() => navigate('/')} className="flex justify-center mb-4 cursor-pointer">
+          <div className="flex justify-center mb-4">
             <img
               src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
               alt="MeNova Character"
@@ -82,6 +145,58 @@ const Waitlist = () => {
               />
             </div>
             
+            {/* Date of Birth Field */}
+            <div>
+              <label htmlFor="date-picker" className="block text-sm font-medium text-menova-text">
+                Date of Birth
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date-picker"
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal mt-1",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    disabled={(date) =>
+                      date > new Date() || date < new Date("1920-01-01")
+                    }
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* Menopause Stage Field */}
+            <div>
+              <label htmlFor="menopause-stage" className="block text-sm font-medium text-menova-text">
+                Cycle Stage
+              </label>
+              <Select onValueChange={setMenopauseStage} value={menopauseStage}>
+                <SelectTrigger id="menopause-stage" className="mt-1">
+                  <SelectValue placeholder="Select your stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Perimenopause">Perimenopause</SelectItem>
+                  <SelectItem value="Menopause">Menopause</SelectItem>
+                  <SelectItem value="Postmenopause">Postmenopause</SelectItem>
+                  <SelectItem value="I'm not sure">I'm not sure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div>
               <label htmlFor="reason" className="block text-sm font-medium text-menova-text">
                 Why are you interested in MeNova?
@@ -95,8 +210,12 @@ const Waitlist = () => {
               />
             </div>
             
-            <Button type="submit" className="w-full bg-menova-green hover:bg-menova-green/90">
-              Join Waitlist
+            <Button 
+              type="submit" 
+              className="w-full bg-menova-green hover:bg-menova-green/90"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Join Waitlist"}
             </Button>
           </form>
           
