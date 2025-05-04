@@ -20,7 +20,6 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <lov-add-dependency>zustand@4.5.0</lov-add-dependency>
           <Route path="/login" element={<Login />} />
           <Route path="/waitlist" element={<Waitlist />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
