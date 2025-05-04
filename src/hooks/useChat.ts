@@ -94,7 +94,7 @@ export const useChat = () => {
               .then(() => {
                 // Success case handled silently
               })
-              .catch((error) => {
+              .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
                 console.error('Error saving message:', error);
               });
           }
@@ -114,7 +114,7 @@ export const useChat = () => {
               .then(() => {
                 // Success case handled silently
               })
-              .catch((error) => {
+              .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
                 console.error('Error saving symptom:', error);
               });
             
@@ -171,12 +171,12 @@ export const useChat = () => {
                   .then(() => {
                     // Success case handled silently
                   })
-                  .catch((error) => {
+                  .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
                     console.error('Error saving assistant message:', error);
                   });
               }
             })
-            .catch((error) => {
+            .then(null).catch((error) => {   // Fixed: Added .then(null) before .catch()
               console.error('Error getting session:', error);
             });
         }
