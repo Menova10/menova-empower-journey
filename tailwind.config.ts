@@ -65,7 +65,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       backgroundImage: {
-        "menova-pattern": "url('/lovable-uploads/972ea6df-a69e-4e71-a43b-6797bf1a17fc.png')"
+        "menova-pattern": "url('/lovable-uploads/972ea6df-a69e-4e71-a43b-6797bf1a17fc.png')",
+        "menova-leaves": "url('/lovable-uploads/menova-leaves-bg.png')"
       },
       keyframes: {
         "accordion-down": {

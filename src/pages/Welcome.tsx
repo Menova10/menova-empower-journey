@@ -80,7 +80,7 @@ const Welcome = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-menova-beige flex flex-col">
+      <div className="min-h-screen flex flex-col">
         <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
           <MeNovaLogo />
         </nav>
@@ -92,7 +92,7 @@ const Welcome = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
+    <div className="min-h-screen flex flex-col">
       {/* Navbar */}
       <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
         <MeNovaLogo />

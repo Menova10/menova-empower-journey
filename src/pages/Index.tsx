@@ -90,7 +90,7 @@ const Index = () => {
   }, [isAuthenticated, loading, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
+    <div className="min-h-screen flex flex-col">
       {/* Navbar */}
       <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
         <MeNovaLogo />
@@ -160,21 +160,21 @@ const Index = () => {
             Understand Your Journey
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">🌿</span>
               <h3 className="text-lg font-medium text-menova-text">Perimenopause</h3>
               <p className="text-sm text-gray-600 mt-2">
                 Hormone fluctuations, irregular cycles, and the beginning of your transition.
               </p>
             </div>
-            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">🌸</span>
               <h3 className="text-lg font-medium text-menova-text">Menopause</h3>
               <p className="text-sm text-gray-600 mt-2">
                 12+ months without periods, embracing your natural evolution.
               </p>
             </div>
-            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">✨</span>
               <h3 className="text-lg font-medium text-menova-text">Postmenopause</h3>
               <p className="text-sm text-gray-600 mt-2">
@@ -192,7 +192,7 @@ const Index = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => handleFeatureClick('/symptom-tracker')}
-              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">🌱</span>
               <h3 className="text-base font-medium text-menova-text">Symptom Tracker</h3>
@@ -202,7 +202,7 @@ const Index = () => {
             </button>
             <button
               onClick={() => handleFeatureClick('/chat')}
-              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">💬</span>
               <h3 className="text-base font-medium text-menova-text">Empathetic Chat</h3>
@@ -212,7 +212,7 @@ const Index = () => {
             </button>
             <button
               onClick={() => handleFeatureClick('/mood-check')}
-              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">😊</span>
               <h3 className="text-base font-medium text-menova-text">Daily Check-In</h3>
@@ -222,7 +222,7 @@ const Index = () => {
             </button>
             <button
               onClick={() => handleFeatureClick('/resources')}
-              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white/90 backdrop-blur-sm rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">📚</span>
               <h3 className="text-base font-medium text-menova-text">Resource Vault</h3>
@@ -238,7 +238,7 @@ const Index = () => {
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
             Your Personalized Journey Awaits
           </h2>
-          <div className="bg-white/80 p-6 rounded-lg shadow-sm backdrop-blur-sm">
+          <div className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm">
             <p className="text-gray-600 leading-relaxed">
               Menopause is a time of transformation and renewal. With MeNova by your side, find moments of peace amid change, reconnect with your inner self, and discover new sources of strength in this journey.
             </p>
