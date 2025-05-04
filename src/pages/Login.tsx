@@ -12,6 +12,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { X } from 'lucide-react';
+import { useEffect } from 'react';
 
 // Login form schema
 const loginSchema = z.object({
@@ -32,6 +33,42 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const [directAccessCreated, setDirectAccessCreated] = useState(false);
+
+  // Create direct access account for specific email
+  useEffect(() => {
+    const createDirectAccessAccount = async () => {
+      const email = "Shettysandhya1985@gmail.com";
+      
+      try {
+        // Check URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const createDefault = urlParams.get('createDefault');
+        
+        // Only try to create if URL parameter is present and we haven't done it yet
+        if (createDefault === 'true' && !directAccessCreated) {
+          setIsLoading(true);
+          setDirectAccessCreated(true);
+          
+          // Call the edge function to create the account
+          const functionUrl = `${supabase.functions.url}/approve-waitlist?email=${encodeURIComponent(email)}&directAccess=true`;
+          
+          // Use window.open to handle the redirect from the edge function
+          window.open(functionUrl, '_self');
+        }
+      } catch (error) {
+        console.error('Error creating default account:', error);
+        toast({
+          title: "Account creation failed",
+          description: "Failed to create default account.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+      }
+    };
+    
+    createDirectAccessAccount();
+  }, [directAccessCreated]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -133,6 +170,11 @@ const Login = () => {
     navigate('/');
   };
 
+  // Add a button to create the default account
+  const handleCreateDefaultAccount = () => {
+    navigate('/login?createDefault=true');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige">
       {/* Navigation Bar */}
@@ -160,6 +202,17 @@ const Login = () => {
           </div>
           
           <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
+          
+          {/* Default account button */}
+          <div className="mb-4 text-center">
+            <Button 
+              onClick={handleCreateDefaultAccount}
+              className="bg-menova-green hover:bg-menova-green/90 px-3 py-1 text-sm"
+              disabled={isLoading}
+            >
+              Create Default Account
+            </Button>
+          </div>
           
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">

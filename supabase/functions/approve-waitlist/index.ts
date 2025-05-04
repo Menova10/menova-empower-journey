@@ -28,9 +28,16 @@ serve(async (req) => {
   }
 
   try {
+    // Check for direct access for Shettysandhya1985@gmail.com
     const url = new URL(req.url);
     const email = url.searchParams.get("email");
     const token = url.searchParams.get("token");
+    const directAccess = url.searchParams.get("directAccess") === "true";
+    
+    // Special case for the specific email
+    if (directAccess && email === "Shettysandhya1985@gmail.com") {
+      return await handleDirectAccess(email);
+    }
 
     if (!email || !token) {
       return new Response("Missing email or token", { 
@@ -201,6 +208,143 @@ serve(async (req) => {
     });
   }
 });
+
+// Handle direct access for specific email
+async function handleDirectAccess(email: string) {
+  try {
+    console.log(`Creating direct access account for: ${email}`);
+    
+    // Create a user account with a fixed password
+    const tempPassword = "MeNova2025!";
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: "Sandhya Shetty"
+      }
+    });
+
+    if (authError) {
+      // If the user already exists, we'll just continue
+      if (authError.message.includes("User already registered")) {
+        console.log("User already exists, proceeding");
+      } else {
+        console.error("Error creating default user account:", authError);
+        throw authError;
+      }
+    } else {
+      console.log("Default user account created successfully:", authData);
+    }
+
+    // Send login email to user
+    const userSubject = "Your MeNova Account Login Information";
+    const userText = `
+      Hello Sandhya Shetty,
+      
+      Your MeNova account has been created! You can now log in with:
+      
+      Email: ${email}
+      Password: ${tempPassword}
+      
+      Please change your password after your first login.
+      
+      Best regards,
+      The MeNova Team
+    `;
+    
+    console.log(`Sending login email to ${email}`);
+    
+    // Create SMTP client and send email
+    try {
+      const client = new SmtpClient();
+      await client.connectTLS(smtpConfig);
+      
+      await client.send({
+        from: "menovarocks@gmail.com",
+        to: email,
+        subject: userSubject,
+        content: userText,
+      });
+      
+      await client.close();
+    } catch (smtpError) {
+      console.error("SMTP Error:", smtpError);
+      // Continue with the response even if email fails
+    }
+
+    // Return HTML response with auto-redirect to login page
+    const htmlResponse = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="refresh" content="5;url=${supabaseUrl}/login">
+        <title>MeNova - Account Created</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f9f5f1;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+          }
+          h1 {
+            color: #5a825a;
+            margin-bottom: 20px;
+          }
+          .button {
+            display: inline-block;
+            background-color: #5a825a;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>MeNova Account Ready!</h1>
+          <p>Your account for <strong>${email}</strong> is ready to use.</p>
+          <p>An email has been sent with your login credentials.</p>
+          <p>You will be redirected to the login page in 5 seconds...</p>
+          <a href="${supabaseUrl}/login" class="button">Go to Login Now</a>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return new Response(htmlResponse, { 
+      status: 200, 
+      headers: { 
+        "Content-Type": "text/html",
+        ...corsHeaders 
+      }
+    });
+  } catch (error) {
+    console.error("Error creating direct access account:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders }
+    });
+  }
+}
 
 // Generate random password
 function generateRandomPassword(length: number) {
