@@ -50,11 +50,25 @@ const Login = () => {
           setIsLoading(true);
           setDirectAccessCreated(true);
           
-          // Call the edge function to create the account
-          const functionUrl = `${supabase.functions.url}/approve-waitlist?email=${encodeURIComponent(email)}&directAccess=true`;
+          // Call the edge function to create the account using invoke method
+          const { data, error } = await supabase.functions.invoke('approve-waitlist', {
+            body: {
+              email: email,
+              directAccess: true
+            }
+          });
           
-          // Use window.open to handle the redirect from the edge function
-          window.open(functionUrl, '_self');
+          if (error) {
+            throw error;
+          }
+          
+          toast({
+            title: "Default account created",
+            description: "A default account has been created and an email with credentials has been sent.",
+          });
+          
+          // Redirect to login page
+          navigate('/login');
         }
       } catch (error) {
         console.error('Error creating default account:', error);
@@ -68,7 +82,7 @@ const Login = () => {
     };
     
     createDirectAccessAccount();
-  }, [directAccessCreated]);
+  }, [directAccessCreated, navigate]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
