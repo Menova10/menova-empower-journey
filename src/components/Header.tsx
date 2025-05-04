@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface HeaderProps {
   showAuth?: boolean;
@@ -30,6 +31,16 @@ const Header = ({ showAuth = true }: HeaderProps) => {
     }
   };
 
+  const displayName = user?.user_metadata?.full_name || 
+                      user?.email?.split('@')[0] || 
+                      'User';
+  
+  const getInitials = (name: string) => {
+    return name.split(' ')
+      .map(part => part.charAt(0).toUpperCase())
+      .join('').slice(0, 2);
+  };
+
   return (
     <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
       <MeNovaLogo />
@@ -43,17 +54,28 @@ const Header = ({ showAuth = true }: HeaderProps) => {
                   variant="outline" 
                   className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
                 >
-                  <span className="hidden md:inline">{user?.user_metadata?.full_name || 'User'}</span>
+                  <Avatar className="h-6 w-6 mr-1">
+                    <AvatarImage 
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} 
+                      alt={displayName} 
+                    />
+                    <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden md:inline">{displayName}</span>
                   <ChevronDown size={16} />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => navigate('/dashboard')}>
                   Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>

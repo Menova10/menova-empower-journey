@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
@@ -84,57 +83,20 @@ serve(async (req) => {
 
     console.log("Waitlist status updated to approved");
 
-    // Create a user account
-    const tempPassword = generateRandomPassword(12);
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: waitlistEntry.full_name,
-        menopause_stage: waitlistEntry.menopause_stage,
-        birth_date: waitlistEntry.birth_date
-      }
-    });
-
-    if (authError) {
-      console.error("Error creating user account:", authError);
-      throw authError;
-    }
-
-    console.log("User account created successfully:", authData);
+    // For the improved flow, instead of creating a user directly,
+    // we'll send a signup link with the email embedded as a query parameter
+    const signupUrl = `${supabaseUrl.replace('.co', '.app')}/signup?email=${encodeURIComponent(email)}`;
     
-    // Ensure user's profile has the waitlist data
-    if (authData?.user?.id) {
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: authData.user.id,
-          full_name: waitlistEntry.full_name,
-          menopause_stage: waitlistEntry.menopause_stage,
-          birth_date: waitlistEntry.birth_date,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        
-      if (profileError) {
-        console.error("Error updating profile:", profileError);
-      } else {
-        console.log("Profile data synced from waitlist");
-      }
-    }
-
-    // Send approval email to user
+    // Send approval email to user with the signup link
     const userSubject = "Your MeNova Access Has Been Approved!";
     const userText = `
       Hello ${waitlistEntry.full_name},
       
-      Your MeNova waitlist request has been approved! You can now log in with:
+      Your MeNova waitlist request has been approved! You can now create your account by clicking the link below:
       
-      Email: ${email}
-      Temporary Password: ${tempPassword}
+      ${signupUrl}
       
-      Please change your password after your first login.
+      We're excited to have you join the MeNova community.
       
       Best regards,
       The MeNova Team
@@ -149,7 +111,7 @@ serve(async (req) => {
       await client.connectTLS(smtpConfig);
       
       await client.send({
-        from: "menovarocks@gmail.com",
+        from: "MeNova <menovarocks@gmail.com>",
         to: email,
         subject: userSubject,
         content: userText,
@@ -209,8 +171,8 @@ serve(async (req) => {
       <body>
         <div class="container">
           <h1>MeNova Waitlist Approved!</h1>
-          <p>The user account for <strong>${email}</strong> has been created successfully.</p>
-          <p>An email has been sent to the user with their temporary login credentials.</p>
+          <p>An approval email has been sent to <strong>${email}</strong>.</p>
+          <p>The user can now create their account using the signup link provided in the email.</p>
           <p>You will be redirected to the login page in 5 seconds...</p>
           <a href="${supabaseUrl}/login" class="button">Go to Login Now</a>
         </div>

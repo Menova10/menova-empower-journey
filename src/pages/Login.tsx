@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +12,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { X } from 'lucide-react';
-import { useEffect } from 'react';
 
 // Login form schema
 const loginSchema = z.object({
@@ -32,8 +31,51 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("login");
   const navigate = useNavigate();
+  const location = useLocation();
   const [directAccessCreated, setDirectAccessCreated] = useState(false);
+  const [waitlistData, setWaitlistData] = useState<any>(null);
+
+  // Parse email from URL query parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const email = queryParams.get('email');
+    
+    if (email) {
+      // Set active tab to signup if email is provided
+      setActiveTab("signup");
+      
+      // Fetch waitlist data for this email to pre-populate fields
+      fetchWaitlistData(email);
+      
+      // Pre-populate the signup form with the email
+      signupForm.setValue("email", email);
+    }
+  }, [location.search]);
+  
+  // Fetch waitlist data for the email
+  const fetchWaitlistData = async (email: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("waitlist")
+        .select("*")
+        .eq("email", email)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching waitlist data:", error);
+        return;
+      }
+      
+      if (data) {
+        setWaitlistData(data);
+        signupForm.setValue("fullName", data.full_name || "");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   // Create direct access account for specific email
   useEffect(() => {
@@ -161,6 +203,22 @@ const Login = () => {
         });
         return;
       }
+      
+      // If we have waitlist data, update the profile with that data
+      if (waitlistData && authData?.user) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: data.fullName,
+            menopause_stage: waitlistData.menopause_stage,
+            birth_date: waitlistData.birth_date,
+          })
+          .eq("id", authData.user.id);
+          
+        if (profileError) {
+          console.error("Error updating profile with waitlist data:", profileError);
+        }
+      }
 
       toast({
         title: "Account created!",
@@ -228,7 +286,7 @@ const Login = () => {
             </Button>
           </div>
           
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
