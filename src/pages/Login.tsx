@@ -204,7 +204,7 @@ const Login = () => {
         return;
       }
       
-      // If we have waitlist data, update the profile with that data
+      // If we have waitlist data and user successfully created, update the profile with that data
       if (waitlistData && authData?.user) {
         const { error: profileError } = await supabase
           .from("profiles")

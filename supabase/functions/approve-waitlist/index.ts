@@ -1,362 +1,266 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.1";
 import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
+// Configure CORS headers for the function
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Create a Supabase client with the service role key
-const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Email configuration
-const smtpConfig = {
-  hostname: "smtp.gmail.com", // Replace with your SMTP server
-  port: 465,
-  username: "menovarocks@gmail.com", // Replace with your email
-  password: Deno.env.get("EMAIL_PASSWORD") || "", // Get password from environment variable
-};
+interface ApproveWaitlistRequest {
+  email: string;
+  directAccess?: boolean;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Parse request body for invoke method
-    const requestData = await req.json().catch(() => null);
-    
-    // Handle both URL parameters and JSON body
-    const url = new URL(req.url);
-    const email = requestData?.email || url.searchParams.get("email");
-    const token = requestData?.token || url.searchParams.get("token");
-    const directAccess = requestData?.directAccess || url.searchParams.get("directAccess") === "true";
-    
-    // Special case for the specific email
-    if (directAccess && email === "Shettysandhya1985@gmail.com") {
-      return await handleDirectAccess(email);
+    // Get the supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get the request body
+    const requestData: ApproveWaitlistRequest = await req.json();
+    const { email, directAccess = false } = requestData;
+
+    if (!email) {
+      return new Response(
+        JSON.stringify({ error: "Email is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    if (!email || !token) {
-      return new Response("Missing email or token", { 
-        status: 400, 
-        headers: { ...corsHeaders }
-      });
-    }
+    console.log(`Processing waitlist approval for: ${email}`);
 
-    console.log(`Processing approval for email: ${email}`);
-
-    // Validate token (in a real implementation, use a more secure validation)
-    // For this example, we'll assume the token is valid
-
-    // Get waitlist entry
-    const { data: waitlistEntry, error: fetchError } = await supabase
+    // Get the waitlist entry
+    const { data: waitlistUser, error: waitlistError } = await supabase
       .from("waitlist")
       .select("*")
       .eq("email", email)
       .single();
 
-    if (fetchError || !waitlistEntry) {
-      console.error("Waitlist entry not found:", fetchError);
-      return new Response("Waitlist entry not found", { 
-        status: 404, 
-        headers: { ...corsHeaders } 
-      });
+    if (waitlistError) {
+      console.error("Error fetching waitlist entry:", waitlistError);
+      return new Response(
+        JSON.stringify({ error: "Waitlist entry not found" }),
+        { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
-
-    console.log("Found waitlist entry:", waitlistEntry);
 
     // Update waitlist status to approved
     const { error: updateError } = await supabase
       .from("waitlist")
-      .update({ status: "approved", updated_at: new Date().toISOString() })
-      .eq("id", waitlistEntry.id);
+      .update({ status: "approved" })
+      .eq("email", email);
 
     if (updateError) {
       console.error("Error updating waitlist status:", updateError);
-      throw updateError;
+      return new Response(
+        JSON.stringify({ error: "Failed to update waitlist status" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
     }
 
-    console.log("Waitlist status updated to approved");
-
-    // For the improved flow, instead of creating a user directly,
-    // we'll send a signup link with the email embedded as a query parameter
-    const signupUrl = `${supabaseUrl.replace('.co', '.app')}/signup?email=${encodeURIComponent(email)}`;
-    
-    // Send approval email to user with the signup link
-    const userSubject = "Your MeNova Access Has Been Approved!";
-    const userText = `
-      Hello ${waitlistEntry.full_name},
-      
-      Your MeNova waitlist request has been approved! You can now create your account by clicking the link below:
-      
-      ${signupUrl}
-      
-      We're excited to have you join the MeNova community.
-      
-      Best regards,
-      The MeNova Team
-    `;
-    
-    console.log(`Sending approval email to ${email}`);
-    console.log("Email content:", userText);
-    
-    // Create SMTP client and send email
-    try {
-      const client = new SmtpClient();
-      await client.connectTLS(smtpConfig);
-      
-      await client.send({
-        from: "MeNova <menovarocks@gmail.com>",
-        to: email,
-        subject: userSubject,
-        content: userText,
+    // If directAccess is true, create a user account
+    if (directAccess) {
+      const password = Math.random().toString(36).slice(-8);
+      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: waitlistUser.full_name,
+        }
       });
-      
-      await client.close();
-    } catch (smtpError) {
-      console.error("SMTP Error:", smtpError);
-      // Continue with the response even if email fails
-    }
 
-    // Return HTML response with auto-redirect to login page
-    const htmlResponse = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="refresh" content="5;url=${supabaseUrl}/login">
-        <title>MeNova - Waitlist Approved</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f9f5f1;
-            color: #333;
-          }
-          .container {
-            max-width: 600px;
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-          }
-          h1 {
-            color: #5a825a;
-            margin-bottom: 20px;
-          }
-          .button {
-            display: inline-block;
-            background-color: #5a825a;
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            margin-top: 20px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>MeNova Waitlist Approved!</h1>
-          <p>An approval email has been sent to <strong>${email}</strong>.</p>
-          <p>The user can now create their account using the signup link provided in the email.</p>
-          <p>You will be redirected to the login page in 5 seconds...</p>
-          <a href="${supabaseUrl}/login" class="button">Go to Login Now</a>
-        </div>
-      </body>
-      </html>
-    `;
-
-    return new Response(htmlResponse, { 
-      status: 200, 
-      headers: { 
-        "Content-Type": "text/html",
-        ...corsHeaders 
+      if (userError) {
+        console.error("Error creating user:", userError);
+        return new Response(
+          JSON.stringify({ error: "Failed to create user account" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
       }
-    });
+
+      // Update the profile with waitlist data
+      if (userData.user) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            menopause_stage: waitlistUser.menopause_stage,
+            birth_date: waitlistUser.birth_date,
+          })
+          .eq("id", userData.user.id);
+
+        if (profileError) {
+          console.error("Error updating profile with waitlist data:", profileError);
+        }
+      }
+
+      // Send email with credentials
+      await sendCredentialEmail(email, waitlistUser.full_name, password);
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "User account created and email sent" }),
+        { headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    } else {
+      // Send approval email with signup link
+      await sendApprovalEmail(email, waitlistUser.full_name);
+      
+      return new Response(
+        JSON.stringify({ success: true, message: "Waitlist approved and email sent" }),
+        { headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
   } catch (error) {
-    console.error("Error approving waitlist entry:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders }
-    });
+    console.error("Error in approve-waitlist function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+    );
   }
 });
 
-// Handle direct access for specific email
-async function handleDirectAccess(email: string) {
+// Function to send approval email with signup link
+async function sendApprovalEmail(email: string, fullName: string) {
   try {
-    console.log(`Creating direct access account for: ${email}`);
-    
-    // Create a user account with a fixed password
-    const tempPassword = "MeNova2025!";
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: "Sandhya Shetty"
-      }
+    const client = new SmtpClient();
+
+    await client.connect({
+      hostname: "smtp.gmail.com",
+      port: 465,
+      username: "menovarocks@gmail.com",
+      password: Deno.env.get("SMTP_PASSWORD") || "",
+      tls: true,
     });
 
-    if (authError) {
-      // If the user already exists, we'll just continue
-      if (authError.message.includes("User already registered")) {
-        console.log("User already exists, proceeding");
-      } else {
-        console.error("Error creating default user account:", authError);
-        throw authError;
-      }
-    } else {
-      console.log("Default user account created successfully:", authData);
-      
-      // Ensure profile exists
-      if (authData?.user?.id) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: authData.user.id,
-            full_name: "Sandhya Shetty",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-        } else {
-          console.log("Profile created successfully");
-        }
-      }
-    }
+    // Create the signup URL with email as query parameter
+    const signupLink = `https://menova.app/login?email=${encodeURIComponent(email)}`;
 
-    // Send login email to user
-    const userSubject = "Your MeNova Account Login Information";
-    const userText = `
-      Hello Sandhya Shetty,
-      
-      Your MeNova account has been created! You can now log in with:
-      
-      Email: ${email}
-      Password: ${tempPassword}
-      
-      Please change your password after your first login.
-      
-      Best regards,
-      The MeNova Team
-    `;
-    
-    console.log(`Sending login email to ${email}`);
-    
-    // Create SMTP client and send email
-    try {
-      const client = new SmtpClient();
-      await client.connectTLS(smtpConfig);
-      
-      await client.send({
-        from: "menovarocks@gmail.com",
-        to: email,
-        subject: userSubject,
-        content: userText,
-      });
-      
-      await client.close();
-    } catch (smtpError) {
-      console.error("SMTP Error:", smtpError);
-      // Continue with the response even if email fails
-    }
-
-    // Return HTML response with auto-redirect to login page
-    const htmlResponse = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="refresh" content="5;url=${supabaseUrl}/login">
-        <title>MeNova - Account Created</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f9f5f1;
-            color: #333;
-          }
-          .container {
-            max-width: 600px;
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            text-align: center;
-          }
-          h1 {
-            color: #5a825a;
-            margin-bottom: 20px;
-          }
-          .button {
-            display: inline-block;
-            background-color: #5a825a;
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
-            margin-top: 20px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h1>MeNova Account Ready!</h1>
-          <p>Your account for <strong>${email}</strong> is ready to use.</p>
-          <p>An email has been sent with your login credentials.</p>
-          <p>You will be redirected to the login page in 5 seconds...</p>
-          <a href="${supabaseUrl}/login" class="button">Go to Login Now</a>
+    // Prepare the email content
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; padding: 20px 0;">
+          <img src="https://menova.app/logo.png" alt="MeNova Logo" style="max-width: 150px;">
         </div>
-      </body>
-      </html>
+        <div style="padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h1 style="color: #3a9861; margin-bottom: 20px;">Welcome to MeNova!</h1>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            Dear ${fullName || 'Friend'},
+          </p>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            We're excited to let you know that your application to join MeNova has been approved! 
+            You're now invited to create your account and begin your personalized wellness journey.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${signupLink}" style="background-color: #3a9861; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              Create Your Account
+            </a>
+          </div>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            If the button above doesn't work, you can copy and paste this link into your browser:
+            <br>
+            <a href="${signupLink}" style="color: #3a9861;">${signupLink}</a>
+          </p>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            We look forward to supporting you on your wellness journey!
+          </p>
+          <p style="font-size: 16px; line-height: 1.5;">
+            Warmly,<br>
+            The MeNova Team
+          </p>
+        </div>
+      </div>
     `;
 
-    return new Response(htmlResponse, { 
-      status: 200, 
-      headers: { 
-        "Content-Type": "text/html",
-        ...corsHeaders 
-      }
+    await client.send({
+      from: "MeNova <menovarocks@gmail.com>",
+      to: email,
+      subject: "Welcome to MeNova - Your Account is Ready!",
+      content: "Please view this email in an HTML-compatible email client.",
+      html: htmlContent,
     });
+
+    await client.close();
+    console.log(`Approval email sent to ${email}`);
   } catch (error) {
-    console.error("Error creating direct access account:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json", ...corsHeaders }
-    });
+    console.error("SMTP Error:", error);
+    throw new Error(`Failed to send approval email: ${error.message}`);
   }
 }
 
-// Generate random password
-function generateRandomPassword(length: number) {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
+// Function to send credentials email for direct access
+async function sendCredentialEmail(email: string, fullName: string, password: string) {
+  try {
+    const client = new SmtpClient();
+
+    await client.connect({
+      hostname: "smtp.gmail.com",
+      port: 465,
+      username: "menovarocks@gmail.com",
+      password: Deno.env.get("SMTP_PASSWORD") || "",
+      tls: true,
+    });
+
+    // Login URL
+    const loginUrl = "https://menova.app/login";
+
+    // Prepare the email content
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="text-align: center; padding: 20px 0;">
+          <img src="https://menova.app/logo.png" alt="MeNova Logo" style="max-width: 150px;">
+        </div>
+        <div style="padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <h1 style="color: #3a9861; margin-bottom: 20px;">Your MeNova Account is Ready!</h1>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            Dear ${fullName || 'User'},
+          </p>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            We've created a default account for you to access MeNova. Below are your credentials:
+          </p>
+          <div style="background-color: #f7f7f7; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <p style="margin-bottom: 10px;"><strong>Email:</strong> ${email}</p>
+            <p><strong>Password:</strong> ${password}</p>
+          </div>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            Please keep this information secure. We recommend changing your password after your first login.
+          </p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${loginUrl}" style="background-color: #3a9861; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+              Login to MeNova
+            </a>
+          </div>
+          <p style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;">
+            We're excited to have you join MeNova and support you on your wellness journey!
+          </p>
+          <p style="font-size: 16px; line-height: 1.5;">
+            Best regards,<br>
+            The MeNova Team
+          </p>
+        </div>
+      </div>
+    `;
+
+    await client.send({
+      from: "MeNova <menovarocks@gmail.com>",
+      to: email,
+      subject: "Your MeNova Account Credentials",
+      content: "Please view this email in an HTML-compatible email client.",
+      html: htmlContent,
+    });
+
+    await client.close();
+    console.log(`Credentials email sent to ${email}`);
+  } catch (error) {
+    console.error("SMTP Error:", error);
+    throw new Error(`Failed to send credentials email: ${error.message}`);
   }
-  return password;
 }
