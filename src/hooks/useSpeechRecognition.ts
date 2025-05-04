@@ -7,6 +7,40 @@ interface UseSpeechRecognitionProps {
   language?: string;
 }
 
+// Add proper TypeScript declarations
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+  error: any;
+}
+
+interface SpeechRecognitionResult {
+  transcript: string;
+  confidence: number;
+  isFinal?: boolean;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: {
+    0: { transcript: string; confidence: number; isFinal?: boolean; };
+    isFinal: boolean;
+  };
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionEvent) => void;
+  onend: () => void;
+}
+
 export const useSpeechRecognition = ({
   onResult,
   onEnd,
@@ -27,8 +61,8 @@ export const useSpeechRecognition = ({
     }
     
     // Initialize speech recognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognitionInstance = new SpeechRecognition();
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognitionInstance = new SpeechRecognitionClass() as SpeechRecognition;
     
     recognitionInstance.continuous = true;
     recognitionInstance.interimResults = true;
@@ -96,7 +130,7 @@ export const useSpeechRecognition = ({
 // Add TypeScript declarations
 declare global {
   interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
   }
 }

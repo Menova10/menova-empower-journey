@@ -17,11 +17,11 @@ import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MessageCircle, X, Mic, MicOff, Expand, Minimize, ChevronDown, ChevronUp } from 'lucide-react';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const ChatInterface = () => {
   const navigate = useNavigate();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const { user, isAuthenticated } = useAuthStore();
   const messageEndRef = useRef<HTMLDivElement>(null);
   
@@ -117,12 +117,47 @@ const ChatInterface = () => {
       // Save message to database if authenticated
       if (user) {
         try {
-          await supabase.from('session_messages').insert({
-            user_id: user.id,
-            sender: userMessage.sender,
-            message: userMessage.message,
-            source: 'chat-interface'
-          });
+          // Create a session if needed
+          let sessionId: string | null = null;
+          
+          const { data: existingSessions } = await supabase
+            .from('user_sessions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('session_type', 'chat')
+            .order('started_at', { ascending: false })
+            .limit(1);
+            
+          if (existingSessions && existingSessions.length > 0) {
+            sessionId = existingSessions[0].id;
+          } else {
+            // Create new session
+            const { data: newSession } = await supabase
+              .from('user_sessions')
+              .insert({
+                user_id: user.id,
+                session_type: 'chat',
+                title: 'Chat Session ' + new Date().toLocaleString()
+              })
+              .select('id')
+              .single();
+              
+            if (newSession) {
+              sessionId = newSession.id;
+            }
+          }
+          
+          // Save the message if we have a session
+          if (sessionId) {
+            await supabase.from('session_messages').insert({
+              session_id: sessionId,
+              sender: userMessage.sender,
+              message: userMessage.message,
+              timestamp: new Date().toISOString()
+            }).then(null).catch(error => {
+              console.error('Error saving message:', error);
+            });
+          }
           
           // Process for symptoms
           const detectedSymptom = processForSymptoms(text);
@@ -158,15 +193,33 @@ const ChatInterface = () => {
         addMessage(assistantMessage);
         
         // Save assistant response to database if authenticated
-        if (user) {
-          supabase.from('session_messages').insert({
-            user_id: user.id,
-            sender: assistantMessage.sender,
-            message: assistantMessage.message,
-            source: 'chat-interface'
-          }).catch(error => {
-            console.error('Error saving assistant message:', error);
-          });
+        if (user && userMessage.sender === 'user') {
+          // Get the last created session
+          supabase
+            .from('user_sessions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('session_type', 'chat')
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .then(({ data }) => {
+              if (data && data.length > 0) {
+                const sessionId = data[0].id;
+                
+                // Save assistant message
+                supabase.from('session_messages').insert({
+                  session_id: sessionId,
+                  sender: assistantMessage.sender,
+                  message: assistantMessage.message,
+                  timestamp: new Date().toISOString()
+                }).then(null).catch(error => {
+                  console.error('Error saving assistant message:', error);
+                });
+              }
+            })
+            .catch(error => {
+              console.error('Error getting session:', error);
+            });
         }
         
         setSending(false);
