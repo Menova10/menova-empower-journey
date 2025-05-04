@@ -126,7 +126,7 @@ export const useChat = () => {
       }
       
       // Generate assistant response
-      setTimeout(() => {
+      setTimeout(async () => { // Make the setTimeout callback async
         const response = generateResponse(text);
         
         const assistantMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
