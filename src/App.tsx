@@ -26,7 +26,18 @@ const AppBackground = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Background layer with styling */}
-      <div className="fixed inset-0 bg-menova-beige bg-menova-pattern bg-cover bg-fixed bg-blend-soft-light opacity-95 -z-10" />
+      <div 
+        className="fixed inset-0 -z-10" 
+        style={{
+          backgroundColor: "#FDF6E8",
+          backgroundImage: "url('/lovable-uploads/aff70692-db32-4873-9df2-db385e7ccedf.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          backgroundBlendMode: "soft-light",
+          opacity: 0.95
+        }}
+      />
       {/* Content layer */}
       <div className="relative z-0 flex-1 flex flex-col">
         {children}

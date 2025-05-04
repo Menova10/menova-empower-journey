@@ -15,6 +15,7 @@ const Index = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const birdAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioAvailable, setAudioAvailable] = useState(false);
 
   useEffect(() => {
     // Check auth state
@@ -40,21 +41,41 @@ const Index = () => {
 
   // Handle bird chirping audio
   useEffect(() => {
-    // Create audio element for bird chirping
-    const audio = new Audio('/assets/bird-chirping.mp3');
-    audio.loop = true;
-    birdAudioRef.current = audio;
-    
-    // Play audio when component mounts
-    const playAudio = () => {
-      audio.play().catch(error => {
-        console.log("Audio play failed:", error);
-      });
+    // Check if audio file exists
+    const checkAudio = async () => {
+      try {
+        const response = await fetch('/assets/bird-chirping.mp3', { method: 'HEAD' });
+        if (response.ok) {
+          setAudioAvailable(true);
+        } else {
+          console.log("Audio file not found");
+          setAudioAvailable(false);
+        }
+      } catch (error) {
+        console.log("Error checking audio file:", error);
+        setAudioAvailable(false);
+      }
     };
     
-    // Only play if user is not authenticated
-    if (!isAuthenticated && !loading) {
-      playAudio();
+    checkAudio();
+    
+    // Create audio element for bird chirping only if available
+    if (audioAvailable) {
+      const audio = new Audio('/assets/bird-chirping.mp3');
+      audio.loop = true;
+      birdAudioRef.current = audio;
+      
+      // Play audio when component mounts
+      const playAudio = () => {
+        audio.play().catch(error => {
+          console.log("Audio play failed:", error);
+        });
+      };
+      
+      // Only play if user is not authenticated
+      if (!isAuthenticated && !loading) {
+        playAudio();
+      }
     }
     
     // Cleanup function to stop audio when component unmounts
@@ -64,7 +85,7 @@ const Index = () => {
         birdAudioRef.current.currentTime = 0;
       }
     };
-  }, [isAuthenticated, loading]);
+  }, [isAuthenticated, loading, audioAvailable]);
   
   // Stop audio when user logs in
   useEffect(() => {
