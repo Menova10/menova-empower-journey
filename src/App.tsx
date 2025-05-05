@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,15 +26,14 @@ const AppBackground = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen flex flex-col">
       {/* Background layer with styling */}
       <div 
-        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat bg-fixed md:bg-scroll" 
+        className="fixed inset-0 -z-10" 
         style={{
           backgroundColor: "#FDF6E8",
-          backgroundImage: "url('/lovable-uploads/aff70692-db32-4873-9df2-db385e7ccedf.png')",
-          backgroundSize: "cover",
+          backgroundImage: "url('/lovable-uploads/5ce4bc39-1da7-4809-8498-ab1a62e6c24c.png')",
+          backgroundSize: "20px 20px",
           backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundBlendMode: "soft-light",
-          opacity: 0.95
+          backgroundRepeat: "repeat",
+          opacity: 0.3
         }}
       />
       {/* Content layer */}
