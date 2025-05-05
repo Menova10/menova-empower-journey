@@ -119,12 +119,12 @@ const Index = () => {
             <div className="space-y-2">
               <h2 className="text-lg font-medium text-menova-green">Your Menopause Companion</h2>
               <h1 className="text-4xl md:text-5xl font-bold text-menova-text leading-tight">
-                Still You.<br />Just More
+                Still You.<br />
+                <span className="text-menova-green">Just More.</span>
               </h1>
             </div>
             <p className="text-lg text-gray-600 leading-relaxed">
-              MeNova provides empathetic support, personalized tracking,<br />
-              and evidence-based resources for your unique menopause journey.
+              Your empathetic AI companion for the menopause journey. Get personalized support when you need it most.
             </p>
             <Button
               onClick={() => handleFeatureClick('/chat')}
@@ -137,9 +137,9 @@ const Index = () => {
           <div className="md:w-2/5 flex justify-center relative">
             <div className="relative">
               {/* Circular clip for the character image */}
-              <div className="rounded-full overflow-hidden w-64 h-64 border-4 border-white shadow-lg">
+              <div className="rounded-full overflow-hidden w-64 h-64 border-4 border-menova-green/20 shadow-lg animate-float">
                 <img
-                  src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+                  src="/lovable-uploads/d686f732-9dfb-4934-8990-27a59e1bf967.png"
                   alt="MeNova Character"
                   className="w-full h-full object-cover"
                 />
@@ -292,7 +292,7 @@ const Index = () => {
             
             <div className="rounded-full overflow-hidden w-20 h-20 border-2 border-menova-green mb-2">
               <img
-                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+                src="/lovable-uploads/d686f732-9dfb-4934-8990-27a59e1bf967.png"
                 alt="MeNova"
                 className="w-full h-full object-cover"
               />

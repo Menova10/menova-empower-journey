@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Waitlist from "./pages/Waitlist";
 import Profile from "./pages/Profile";
 import Welcome from "./pages/Welcome";
+import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => {
             <Route path="/waitlist" element={<Waitlist />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/chat" element={<Chat />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
