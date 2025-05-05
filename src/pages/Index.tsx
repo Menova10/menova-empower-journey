@@ -156,9 +156,9 @@ const Index = () => {
           </div>
           
           <div className="md:w-2/5 flex justify-center relative">
-            <div className="relative animate-float">
-              {/* Circular clip for the character image with olive green border */}
-              <div className="rounded-full overflow-hidden w-64 h-64 border-4 border-menova-green shadow-lg">
+            <div className="relative">
+              {/* Circular clip for the character image */}
+              <div className="rounded-full overflow-hidden w-64 h-64 border-4 border-white shadow-lg">
                 <img
                   src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
                   alt="MeNova Character"
