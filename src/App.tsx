@@ -13,31 +13,9 @@ import Login from "./pages/Login";
 import Waitlist from "./pages/Waitlist";
 import Profile from "./pages/Profile";
 import Welcome from "./pages/Welcome";
-import Dashboard from "./pages/Dashboard";
-import SymptomTracker from "./pages/SymptomTracker";
-import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
-// Apply global background style to all pages
-const AppBackground = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <div 
-      className="min-h-screen flex flex-col"
-      style={{
-        backgroundColor: '#FDF6E8',
-        backgroundImage: 'url("/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png")',
-        backgroundSize: 'cover',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
-      {children}
-    </div>
-  );
-};
 
 const App = () => {
   // Initialize auth state
@@ -59,20 +37,15 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AppBackground>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/waitlist" element={<Waitlist />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/welcome" element={<Welcome />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/symptom-tracker" element={<SymptomTracker />} />
-              <Route path="/chat" element={<Chat />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppBackground>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/waitlist" element={<Waitlist />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/welcome" element={<Welcome />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
