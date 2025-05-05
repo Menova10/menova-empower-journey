@@ -106,7 +106,7 @@ export default {
 				'float': 'float 6s ease-in-out infinite',
 			},
 			backgroundImage: {
-				'menova-pattern': "url('/lovable-uploads/d686f732-9dfb-4934-8990-27a59e1bf967.png')"
+				'menova-pattern': "url('/public/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png')"
 			}
 		}
 	},

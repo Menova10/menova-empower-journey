@@ -4,17 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Mic, Send, X } from 'lucide-react';
+import { MessageCircle, Mic } from 'lucide-react';
 
 const VapiAssistant = () => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([
-    {
-      role: 'assistant',
-      content: 'Hello! I\'m MeNova, your companion through menopause. How are you feeling today?'
-    }
-  ]);
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
@@ -27,23 +21,10 @@ const VapiAssistant = () => {
   };
 
   const handleSendMessage = () => {
-    if (!message.trim()) return;
-    
-    // Add user message
-    setMessages([...messages, { role: 'user', content: message }]);
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prevMessages => [
-        ...prevMessages, 
-        { 
-          role: 'assistant', 
-          content: `Thank you for sharing. I understand how that can feel during menopause. How can I support you today?` 
-        }
-      ]);
-    }, 1000);
-    
-    setMessage('');
+    if (message.trim()) {
+      // In a real implementation, this would send the message to a backend
+      setMessage('');
+    }
   };
 
   return (
@@ -64,46 +45,23 @@ const VapiAssistant = () => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md bg-menova-beige">
           <DialogHeader>
-            <DialogTitle className="flex justify-between items-center">
-              <span>Chat with MeNova</span>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7" 
-                onClick={() => setOpen(false)}
-              >
-                <X size={18} />
-                <span className="sr-only">Close</span>
-              </Button>
-            </DialogTitle>
+            <DialogTitle>Chat with MeNova</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col space-y-4 h-[300px] overflow-y-auto p-4 bg-white/80 rounded-md">
-            {messages.map((msg, index) => (
-              <div key={index} className="flex items-start gap-2">
-                {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                    <img 
-                      src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
-                      alt="MeNova" 
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-                <div className={`${
-                  msg.role === 'assistant' 
-                    ? 'bg-menova-lightgreen ml-0 mr-auto' 
-                    : 'bg-menova-green/20 ml-auto mr-0'
-                  } p-3 rounded-lg max-w-[80%]`}
-                >
-                  <p className="text-sm text-menova-text">{msg.content}</p>
-                </div>
-                {msg.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-menova-green/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs">You</span>
-                  </div>
-                )}
+            <div className="flex items-start gap-2">
+              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                <img 
+                  src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
+                  alt="MeNova" 
+                  className="w-full h-full object-cover"
+                />
               </div>
-            ))}
+              <div className="bg-menova-lightgreen p-3 rounded-lg max-w-[80%]">
+                <p className="text-sm text-menova-text">
+                  Hello! I'm MeNova, your companion through menopause. How are you feeling today?
+                </p>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-2 pt-2">
             <input 
@@ -122,8 +80,7 @@ const VapiAssistant = () => {
               className="bg-menova-green hover:bg-menova-green/90"
               onClick={handleSendMessage}
             >
-              <Send size={18} />
-              <span className="sr-only">Send</span>
+              Send
             </Button>
           </div>
         </DialogContent>

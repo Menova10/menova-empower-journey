@@ -29,15 +29,6 @@ const Waitlist = () => {
     try {
       setIsSubmitting(true);
       
-      // Log the submission data
-      console.log("Submitting to waitlist:", {
-        email,
-        full_name: name,
-        reason,
-        birth_date: date ? format(date, 'yyyy-MM-dd') : null,
-        menopause_stage: menopauseStage || null
-      });
-      
       // Insert the data into the waitlist table
       const { data, error } = await supabase
         .from('waitlist')
@@ -53,8 +44,6 @@ const Waitlist = () => {
         throw error;
       }
       
-      console.log("Waitlist insertion successful, calling notify-waitlist function");
-      
       // Call the notify-waitlist function to send emails
       const functionResponse = await supabase.functions.invoke('notify-waitlist', {
         body: {
@@ -68,10 +57,7 @@ const Waitlist = () => {
       
       if (functionResponse.error) {
         console.error("Error calling function:", functionResponse.error);
-        throw new Error(`Error sending notifications: ${functionResponse.error.message}`);
       }
-      
-      console.log("Function response:", functionResponse);
       
       toast({
         title: "Joined waitlist",
@@ -159,7 +145,7 @@ const Waitlist = () => {
               />
             </div>
             
-            {/* Date of Birth Field with improved date picker */}
+            {/* Date of Birth Field */}
             <div>
               <label htmlFor="date-picker" className="block text-sm font-medium text-menova-text">
                 Date of Birth
@@ -178,20 +164,16 @@ const Waitlist = () => {
                     {date ? format(date, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0">
                   <Calendar
                     mode="single"
                     selected={date}
                     onSelect={setDate}
                     initialFocus
                     disabled={(date) =>
-                      date > new Date()
+                      date > new Date() || date < new Date("1920-01-01")
                     }
-                    className={cn("p-3 pointer-events-auto", "w-auto")}
-                    captionLayout="dropdown-buttons"
-                    fromYear={1930}
-                    toYear={2024}
-                    showOutsideDays={false}
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>

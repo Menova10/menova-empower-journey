@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SmtpClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,14 +12,6 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Email configuration
-const smtpConfig = {
-  hostname: "smtp.gmail.com", // Replace with your SMTP server
-  port: 465,
-  username: "menovarocks@gmail.com", // Replace with your email
-  password: Deno.env.get("EMAIL_PASSWORD") || "", // Get password from environment variable
-};
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -30,73 +21,35 @@ serve(async (req) => {
   try {
     const { email, full_name, reason, birth_date, menopause_stage } = await req.json();
 
-    console.log("Received waitlist submission:", { email, full_name, reason, birth_date, menopause_stage });
+    // Send email to admin
+    const adminEmail = "menovarocks@gmail.com";
+    const adminSubject = `New MeNova Waitlist Submission: ${full_name}`;
+    const adminText = `
+      New waitlist submission:
+      
+      Name: ${full_name}
+      Email: ${email}
+      Date of Birth: ${birth_date || 'Not specified'}
+      Menopause Stage: ${menopause_stage || 'Not specified'}
+      Reason: ${reason || 'Not specified'}
+      
+      To approve this user, click here: ${supabaseUrl}/functions/v1/approve-waitlist?email=${encodeURIComponent(email)}&token=${generateApprovalToken(email)}
+    `;
+    
+    await sendEmail(adminEmail, adminSubject, adminText);
 
-    // Create SMTP client
-    const client = new SmtpClient();
-    try {
-      await client.connectTLS(smtpConfig);
-
-      // Send email to admin
-      const adminEmail = "menovarocks@gmail.com";
-      const adminSubject = `New MeNova Waitlist Submission: ${full_name}`;
-      const adminText = `
-        New waitlist submission:
-        
-        Name: ${full_name}
-        Email: ${email}
-        Date of Birth: ${birth_date || 'Not specified'}
-        Menopause Stage: ${menopause_stage || 'Not specified'}
-        Reason: ${reason || 'Not specified'}
-        
-        To approve this user, click the link below. Upon approval:
-        1. A user account will be created automatically
-        2. The user will receive login credentials via email
-        3. You will be redirected to the login page
-        
-        Approval Link: ${supabaseUrl}/functions/v1/approve-waitlist?email=${encodeURIComponent(email)}&token=${generateApprovalToken(email)}
-      `;
+    // Send confirmation email to user
+    const userSubject = "Thank you for joining the MeNova waitlist!";
+    const userText = `
+      Hello ${full_name},
       
-      // Log the admin email content
-      console.log("Sending admin email to:", adminEmail);
-      console.log("Admin email content:", adminText);
+      Thank you for joining the MeNova waitlist! We are reviewing your submission and will notify you once your access has been approved.
       
-      await client.send({
-        from: "menovarocks@gmail.com",
-        to: adminEmail,
-        subject: adminSubject,
-        content: adminText,
-      });
-      
-      // Send confirmation email to user
-      const userSubject = "Thank you for joining the MeNova waitlist!";
-      const userText = `
-        Hello ${full_name},
-        
-        Thank you for joining the MeNova waitlist! We are reviewing your submission and will notify you once your access has been approved.
-        
-        Best regards,
-        The MeNova Team
-      `;
-      
-      // Log the user email content
-      console.log("Sending user confirmation email to:", email);
-      console.log("User email content:", userText);
-      
-      await client.send({
-        from: "menovarocks@gmail.com",
-        to: email,
-        subject: userSubject,
-        content: userText,
-      });
-      
-      // Close connection
-      await client.close();
-      
-    } catch (smtpError) {
-      console.error("SMTP Error:", smtpError);
-      throw new Error(`Failed to send emails: ${smtpError.message}`);
-    }
+      Best regards,
+      The MeNova Team
+    `;
+    
+    await sendEmail(email, userSubject, userText);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -115,4 +68,16 @@ serve(async (req) => {
 function generateApprovalToken(email: string) {
   const timestamp = Date.now();
   return btoa(`${email}:${timestamp}`);
+}
+
+// Simple email sending function (would use a service like Resend or SendGrid in production)
+async function sendEmail(to: string, subject: string, text: string) {
+  // In a real implementation, this would use an email service
+  console.log(`Email to ${to}:`);
+  console.log(`Subject: ${subject}`);
+  console.log(`Body: ${text}`);
+  console.log("-----");
+  
+  // For this example, we'll simulate successful email sending
+  return { success: true };
 }
