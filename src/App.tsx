@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { initializeAuth, setupAuthListener } from "@/stores/authStore";
-import ChatInterface from "./components/ChatInterface";
 
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -24,24 +23,18 @@ const queryClient = new QueryClient();
 // Apply global background style to all pages
 const AppBackground = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Background layer with styling */}
-      <div 
-        className="fixed inset-0 -z-10" 
-        style={{
-          backgroundColor: "#FDF6E8",
-          backgroundImage: "url('/lovable-uploads/aff70692-db32-4873-9df2-db385e7ccedf.png')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundBlendMode: "soft-light",
-          opacity: 0.95
-        }}
-      />
-      {/* Content layer */}
-      <div className="relative z-0 flex-1 flex flex-col">
-        {children}
-      </div>
+    <div 
+      className="min-h-screen flex flex-col"
+      style={{
+        backgroundColor: '#FDF6E8',
+        backgroundImage: 'url("/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png")',
+        backgroundSize: 'cover',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
+      {children}
     </div>
   );
 };
@@ -79,7 +72,6 @@ const App = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <ChatInterface />
           </AppBackground>
         </BrowserRouter>
       </TooltipProvider>

@@ -15,7 +15,6 @@ const Index = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const birdAudioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioAvailable, setAudioAvailable] = useState(false);
 
   useEffect(() => {
     // Check auth state
@@ -41,41 +40,21 @@ const Index = () => {
 
   // Handle bird chirping audio
   useEffect(() => {
-    // Check if audio file exists
-    const checkAudio = async () => {
-      try {
-        const response = await fetch('/assets/bird-chirping.mp3', { method: 'HEAD' });
-        if (response.ok) {
-          setAudioAvailable(true);
-        } else {
-          console.log("Audio file not found");
-          setAudioAvailable(false);
-        }
-      } catch (error) {
-        console.log("Error checking audio file:", error);
-        setAudioAvailable(false);
-      }
+    // Create audio element for bird chirping
+    const audio = new Audio('/assets/bird-chirping.mp3');
+    audio.loop = true;
+    birdAudioRef.current = audio;
+    
+    // Play audio when component mounts
+    const playAudio = () => {
+      audio.play().catch(error => {
+        console.log("Audio play failed:", error);
+      });
     };
     
-    checkAudio();
-    
-    // Create audio element for bird chirping only if available
-    if (audioAvailable) {
-      const audio = new Audio('/assets/bird-chirping.mp3');
-      audio.loop = true;
-      birdAudioRef.current = audio;
-      
-      // Play audio when component mounts
-      const playAudio = () => {
-        audio.play().catch(error => {
-          console.log("Audio play failed:", error);
-        });
-      };
-      
-      // Only play if user is not authenticated
-      if (!isAuthenticated && !loading) {
-        playAudio();
-      }
+    // Only play if user is not authenticated
+    if (!isAuthenticated && !loading) {
+      playAudio();
     }
     
     // Cleanup function to stop audio when component unmounts
@@ -85,7 +64,7 @@ const Index = () => {
         birdAudioRef.current.currentTime = 0;
       }
     };
-  }, [isAuthenticated, loading, audioAvailable]);
+  }, [isAuthenticated, loading]);
   
   // Stop audio when user logs in
   useEffect(() => {
@@ -111,9 +90,9 @@ const Index = () => {
   }, [isAuthenticated, loading, navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
       {/* Navbar */}
-      <nav className="flex justify-between items-center px-6 py-4 glass-effect-strong sticky top-0 z-10">
+      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
         <MeNovaLogo />
         <div className="space-x-2">
           <Button
@@ -167,7 +146,7 @@ const Index = () => {
               </div>
               
               {/* Speech bubble - at bottom right */}
-              <div className="absolute bottom-0 right-0 glass-effect px-4 py-2 rounded-2xl text-menova-text shadow-md">
+              <div className="absolute bottom-0 right-0 bg-white px-4 py-2 rounded-2xl text-menova-text shadow-md">
                 <p className="font-medium">Hi, I'm MeNova!</p>
                 <div className="absolute bottom-8 right-4 transform rotate-45 w-4 h-4 bg-white"></div>
               </div>
@@ -181,21 +160,21 @@ const Index = () => {
             Understand Your Journey
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-5 glass-effect rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">🌿</span>
               <h3 className="text-lg font-medium text-menova-text">Perimenopause</h3>
               <p className="text-sm text-gray-600 mt-2">
                 Hormone fluctuations, irregular cycles, and the beginning of your transition.
               </p>
             </div>
-            <div className="p-5 glass-effect rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">🌸</span>
               <h3 className="text-lg font-medium text-menova-text">Menopause</h3>
               <p className="text-sm text-gray-600 mt-2">
                 12+ months without periods, embracing your natural evolution.
               </p>
             </div>
-            <div className="p-5 glass-effect rounded-lg text-center hover:shadow-md transition-shadow">
+            <div className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow">
               <span className="text-3xl block mb-2">✨</span>
               <h3 className="text-lg font-medium text-menova-text">Postmenopause</h3>
               <p className="text-sm text-gray-600 mt-2">
@@ -213,7 +192,7 @@ const Index = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => handleFeatureClick('/symptom-tracker')}
-              className="p-5 glass-effect-subtle rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">🌱</span>
               <h3 className="text-base font-medium text-menova-text">Symptom Tracker</h3>
@@ -223,7 +202,7 @@ const Index = () => {
             </button>
             <button
               onClick={() => handleFeatureClick('/chat')}
-              className="p-5 glass-effect-subtle rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">💬</span>
               <h3 className="text-base font-medium text-menova-text">Empathetic Chat</h3>
@@ -233,7 +212,7 @@ const Index = () => {
             </button>
             <button
               onClick={() => handleFeatureClick('/mood-check')}
-              className="p-5 glass-effect-subtle rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">😊</span>
               <h3 className="text-base font-medium text-menova-text">Daily Check-In</h3>
@@ -243,7 +222,7 @@ const Index = () => {
             </button>
             <button
               onClick={() => handleFeatureClick('/resources')}
-              className="p-5 glass-effect-subtle rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">📚</span>
               <h3 className="text-base font-medium text-menova-text">Resource Vault</h3>
@@ -259,7 +238,7 @@ const Index = () => {
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
             Your Personalized Journey Awaits
           </h2>
-          <div className="glass-effect p-6 rounded-lg shadow-sm">
+          <div className="bg-white/80 p-6 rounded-lg shadow-sm backdrop-blur-sm">
             <p className="text-gray-600 leading-relaxed">
               Menopause is a time of transformation and renewal. With MeNova by your side, find moments of peace amid change, reconnect with your inner self, and discover new sources of strength in this journey.
             </p>
@@ -268,7 +247,7 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="glass-effect-strong py-4 px-6 text-center text-sm text-gray-500">
+      <footer className="bg-white/90 backdrop-blur-sm py-4 px-6 text-center text-sm text-gray-500">
         <p>© 2025 MeNova. Your companion through menopause.</p>
       </footer>
 
@@ -290,7 +269,7 @@ const Index = () => {
 
       {/* Login Modal with improved accessibility and close button */}
       <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
-        <DialogContent className="sm:max-w-md glass-effect-strong p-6">
+        <DialogContent className="sm:max-w-md bg-white/90 backdrop-blur-sm p-6">
           <DialogTitle className="sr-only">Login Options</DialogTitle>
           <DialogDescription className="sr-only">Choose to login or join the waitlist</DialogDescription>
           

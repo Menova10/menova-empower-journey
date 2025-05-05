@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -99,35 +98,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Background utility classes */
-.bg-blend-soft-light {
-  background-blend-mode: soft-light;
-}
-
-.bg-blend-overlay {
-  background-blend-mode: overlay;
-}
-
-.bg-blend-lighten {
-  background-blend-mode: lighten;
-}
-
-/* Glass effect for cards and components */
-.glass-effect {
-  @apply bg-white/80 backdrop-blur-sm;
-}
-
-.glass-effect-strong {
-  @apply bg-white/90 backdrop-blur-md shadow-sm;
-}
-
-.glass-effect-subtle {
-  @apply bg-white/60 backdrop-blur-sm;
-}
-
-/* Fix for the promise catch errors */
-.promiseFixClass {
-  display: none;
 }
