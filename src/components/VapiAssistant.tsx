@@ -9,6 +9,7 @@ import { MessageCircle, Mic } from 'lucide-react';
 const VapiAssistant = () => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
@@ -24,14 +25,30 @@ const VapiAssistant = () => {
     if (message.trim()) {
       // In a real implementation, this would send the message to a backend
       setMessage('');
+      
+      // Simulate a response
+      setIsSpeaking(true);
+      setTimeout(() => {
+        setIsSpeaking(false);
+      }, 3000);
     }
+  };
+
+  // This function would be connected to a real speech API in production
+  const speak = (text: string) => {
+    console.log("MeNova says:", text);
+    // Implement speech functionality here
+    setIsSpeaking(true);
+    setTimeout(() => {
+      setIsSpeaking(false);
+    }, 3000);
   };
 
   return (
     <>
       <Button
         onClick={handleAssistantClick}
-        className="rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 animate-float flex items-center justify-center p-0"
+        className={`rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 ${isSpeaking ? 'animate-float' : ''} flex items-center justify-center p-0`}
       >
         <div className="rounded-full overflow-hidden w-12 h-12 border-2 border-white">
           <img 

@@ -15,27 +15,122 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          last_check_in: string | null
           menopause_stage: string | null
           updated_at: string | null
           username: string | null
+          wellness_score: number | null
         }
         Insert: {
           birth_date?: string | null
           created_at?: string | null
           full_name?: string | null
           id: string
+          last_check_in?: string | null
           menopause_stage?: string | null
           updated_at?: string | null
           username?: string | null
+          wellness_score?: number | null
         }
         Update: {
           birth_date?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          last_check_in?: string | null
           menopause_stage?: string | null
           updated_at?: string | null
           username?: string | null
+          wellness_score?: number | null
+        }
+        Relationships: []
+      }
+      session_messages: {
+        Row: {
+          id: string
+          message: string
+          sender: string
+          session_id: string
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          sender: string
+          session_id: string
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          sender?: string
+          session_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      symptom_tracker: {
+        Row: {
+          id: string
+          intensity: number
+          notes: string | null
+          recorded_at: string
+          source: string
+          symptom: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          intensity?: number
+          notes?: string | null
+          recorded_at?: string
+          source?: string
+          symptom: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          intensity?: number
+          notes?: string | null
+          recorded_at?: string
+          source?: string
+          symptom?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          ended_at: string | null
+          id: string
+          session_type: string
+          started_at: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          session_type?: string
+          started_at?: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          session_type?: string
+          started_at?: string
+          title?: string | null
+          user_id?: string
         }
         Relationships: []
       }
