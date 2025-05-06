@@ -26,7 +26,6 @@ const Welcome = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
-  const [isExploreFeaturesOpen, setIsExploreFeaturesOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Check if user is logged in
@@ -81,7 +80,6 @@ const Welcome = () => {
     
     // Close all menus
     setIsExploreOpen(false);
-    setIsExploreFeaturesOpen(false);
     setIsMobileMenuOpen(false);
     
     // Navigate after a short delay to allow the voice to be heard
@@ -94,12 +92,6 @@ const Welcome = () => {
   const handleExplorePrompt = () => {
     if (vapiRef.current) {
       (vapiRef.current as any).speak('Say Explore to view more options');
-    }
-  };
-
-  const handleExploreFeaturesPrompt = () => {
-    if (vapiRef.current) {
-      (vapiRef.current as any).speak('Say Explore Features to view more options');
     }
   };
 
@@ -164,30 +156,6 @@ const Welcome = () => {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleVoiceNavigation('Community', '/community')} className="cursor-pointer">
                   Community
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            {/* Explore Features Menu - New */}
-            <DropdownMenu open={isExploreFeaturesOpen} onOpenChange={setIsExploreFeaturesOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="text-menova-green hover:bg-menova-green/10"
-                  onMouseEnter={handleExploreFeaturesPrompt}
-                >
-                  Explore Features <ChevronDown size={16} className="ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48 bg-white border-menova-green/20">
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Feature 1', '/features/feature1')} className="cursor-pointer">
-                  Feature 1
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Feature 2', '/features/feature2')} className="cursor-pointer">
-                  Feature 2
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Feature 3', '/features/feature3')} className="cursor-pointer">
-                  Feature 3
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -283,36 +251,6 @@ const Welcome = () => {
                   onClick={() => handleVoiceNavigation('Community', '/community')}
                 >
                   Community
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-menova-green">Explore Features</p>
-              <div className="pl-2 space-y-1 border-l-2 border-menova-green/20">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => handleVoiceNavigation('Feature 1', '/features/feature1')}
-                >
-                  Feature 1
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => handleVoiceNavigation('Feature 2', '/features/feature2')}
-                >
-                  Feature 2
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => handleVoiceNavigation('Feature 3', '/features/feature3')}
-                >
-                  Feature 3
                 </Button>
               </div>
             </div>

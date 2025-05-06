@@ -8,9 +8,6 @@ import Waitlist from './pages/Waitlist';
 import SymptomTracker from './pages/SymptomTracker';
 import NotFound from './pages/NotFound';
 import Chat from './pages/Chat';
-import Feature1 from './pages/Feature1';
-import Feature2 from './pages/Feature2';
-import Feature3 from './pages/Feature3';
 import './App.css';
 
 function App() {
@@ -24,9 +21,6 @@ function App() {
         <Route path="/waitlist" element={<Waitlist />} />
         <Route path="/symptom-tracker" element={<SymptomTracker />} />
         <Route path="/chat" element={<Chat />} />
-        <Route path="/features/feature1" element={<Feature1 />} />
-        <Route path="/features/feature2" element={<Feature2 />} />
-        <Route path="/features/feature3" element={<Feature3 />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>

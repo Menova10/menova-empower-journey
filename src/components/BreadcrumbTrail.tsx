@@ -32,10 +32,10 @@ export const BreadcrumbTrail = ({ currentPath }: BreadcrumbTrailProps) => {
           .join(' ');
         
         // Custom mappings for specific paths
-        if (segment === 'features') {
-          name = 'Explore Features';
-        } else if (segment.startsWith('feature')) {
-          name = `Feature ${segment.replace('feature', '')}`;
+        if (segment === 'symptom-tracker') {
+          name = 'Symptom Tracker';
+        } else if (segment === 'wellness-plan') {
+          name = 'Wellness Plan';
         }
         
         breadcrumbs.push({ name, path: currentPathBuild });
