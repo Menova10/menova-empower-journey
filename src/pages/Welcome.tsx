@@ -1,17 +1,25 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { MessageCircle, User } from 'lucide-react';
+import { MessageCircle, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import VapiAssistant from '@/components/VapiAssistant';
 import WellnessDashboard from '@/components/WellnessDashboard';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const vapiRef = useRef(null);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -94,25 +102,46 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Navbar */}
+      {/* Navbar with User Dropdown */}
       <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
         <MeNovaLogo />
         <div className="flex items-center space-x-2">
-          <Button
-            onClick={() => navigate('/profile')}
-            variant="outline"
-            className="border-menova-green text-menova-green hover:bg-menova-green/10"
-          >
-            <User className="mr-2 h-4 w-4" />
-            Profile
-          </Button>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="border-menova-green text-menova-green hover:bg-menova-green/10"
-          >
-            Logout
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage
+                    src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+                    alt="Profile"
+                  />
+                  <AvatarFallback className="bg-menova-green text-white">
+                    {profile?.full_name?.[0] || user?.email?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden md:inline">
+                  {profile?.full_name || user?.email?.split('@')[0]}
+                </span>
+                <ChevronDown size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 bg-white border-menova-green/20">
+              <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </nav>
 
@@ -214,7 +243,7 @@ const Welcome = () => {
 
       {/* Floating Voice Assistant */}
       <div className="fixed bottom-6 right-6 z-50">
-        <VapiAssistant />
+        <VapiAssistant ref={vapiRef} />
       </div>
     </div>
   );

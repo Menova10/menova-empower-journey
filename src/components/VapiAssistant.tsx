@@ -11,8 +11,7 @@ interface VapiAssistantProps {
   className?: string;
 }
 
-const VapiAssistant = forwardRef<any, VapiAssistantProps>((props, ref) => {
-  const { onSpeaking, className } = props;
+const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className }, ref) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
