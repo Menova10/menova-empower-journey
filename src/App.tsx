@@ -15,6 +15,7 @@ import Profile from "./pages/Profile";
 import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
 import Chat from "./pages/Chat";
+import SymptomTracker from "./pages/SymptomTracker";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/welcome" element={<Welcome />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/symptom-tracker" element={<SymptomTracker />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

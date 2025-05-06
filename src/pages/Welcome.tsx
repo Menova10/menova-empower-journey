@@ -8,6 +8,7 @@ import { toast } from '@/components/ui/use-toast';
 import { MessageCircle, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import VapiAssistant from '@/components/VapiAssistant';
+import WellnessDashboard from '@/components/WellnessDashboard';
 
 const Welcome = () => {
   const navigate = useNavigate();
@@ -140,10 +141,13 @@ const Welcome = () => {
           </p>
         </section>
 
+        {/* New Wellness Dashboard Section */}
+        <WellnessDashboard />
+
         {/* Quick Links Section */}
         <section>
           <h2 className="text-xl font-semibold text-menova-text mb-4">
-            Your Wellness Dashboard
+            Your Wellness Services
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="hover:shadow-md transition-shadow">
