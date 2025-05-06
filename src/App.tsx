@@ -1,59 +1,36 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { initializeAuth, setupAuthListener } from "@/stores/authStore";
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Index from './pages/Index';
+import Login from './pages/Login';
+import Profile from './pages/Profile';
+import Welcome from './pages/Welcome';
+import Waitlist from './pages/Waitlist';
+import SymptomTracker from './pages/SymptomTracker';
+import NotFound from './pages/NotFound';
+import Chat from './pages/Chat';
+import Feature1 from './pages/Feature1';
+import Feature2 from './pages/Feature2';
+import Feature3 from './pages/Feature3';
+import './App.css';
 
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Waitlist from "./pages/Waitlist";
-import Profile from "./pages/Profile";
-import Welcome from "./pages/Welcome";
-import NotFound from "./pages/NotFound";
-import Chat from "./pages/Chat";
-import SymptomTracker from "./pages/SymptomTracker";
-
-const queryClient = new QueryClient();
-
-const App = () => {
-  // Initialize auth state
-  useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = setupAuthListener();
-    
-    // Initialize auth state
-    initializeAuth();
-    
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, []);
-
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/waitlist" element={<Waitlist />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/symptom-tracker" element={<SymptomTracker />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/waitlist" element={<Waitlist />} />
+        <Route path="/symptom-tracker" element={<SymptomTracker />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/features/feature1" element={<Feature1 />} />
+        <Route path="/features/feature2" element={<Feature2 />} />
+        <Route path="/features/feature3" element={<Feature3 />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Router>
   );
-};
+}
 
 export default App;

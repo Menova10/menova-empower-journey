@@ -1,6 +1,6 @@
 
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import VapiAssistant from '@/components/VapiAssistant';
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,10 +20,14 @@ import {
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const vapiRef = useRef(null);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isExploreOpen, setIsExploreOpen] = useState(false);
+  const [isExploreFeaturesOpen, setIsExploreFeaturesOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Check if user is logged in
   useEffect(() => {
@@ -68,6 +73,36 @@ const Welcome = () => {
     }
   };
 
+  // Handle voice navigation with announcements
+  const handleVoiceNavigation = (sectionName: string, path: string) => {
+    if (vapiRef.current) {
+      (vapiRef.current as any).speak(`Navigating to ${sectionName}`);
+    }
+    
+    // Close all menus
+    setIsExploreOpen(false);
+    setIsExploreFeaturesOpen(false);
+    setIsMobileMenuOpen(false);
+    
+    // Navigate after a short delay to allow the voice to be heard
+    setTimeout(() => {
+      navigate(path);
+    }, 500);
+  };
+  
+  // Voice prompts for menu sections
+  const handleExplorePrompt = () => {
+    if (vapiRef.current) {
+      (vapiRef.current as any).speak('Say Explore to view more options');
+    }
+  };
+
+  const handleExploreFeaturesPrompt = () => {
+    if (vapiRef.current) {
+      (vapiRef.current as any).speak('Say Explore Features to view more options');
+    }
+  };
+
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -102,10 +137,83 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Navbar with User Dropdown */}
+      {/* Navbar with expanded menus */}
       <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-        <MeNovaLogo />
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-4">
+          <MeNovaLogo />
+          
+          {/* Desktop Menu Items */}
+          <div className="hidden md:flex items-center space-x-4">
+            {/* Explore Menu */}
+            <DropdownMenu open={isExploreOpen} onOpenChange={setIsExploreOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="text-menova-green hover:bg-menova-green/10"
+                  onMouseEnter={handleExplorePrompt}
+                >
+                  Explore <ChevronDown size={16} className="ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-white border-menova-green/20">
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')} className="cursor-pointer">
+                  Symptom Tracker
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')} className="cursor-pointer">
+                  Wellness Plan
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Community', '/community')} className="cursor-pointer">
+                  Community
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
+            {/* Explore Features Menu - New */}
+            <DropdownMenu open={isExploreFeaturesOpen} onOpenChange={setIsExploreFeaturesOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  className="text-menova-green hover:bg-menova-green/10"
+                  onMouseEnter={handleExploreFeaturesPrompt}
+                >
+                  Explore Features <ChevronDown size={16} className="ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-white border-menova-green/20">
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Feature 1', '/features/feature1')} className="cursor-pointer">
+                  Feature 1
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Feature 2', '/features/feature2')} className="cursor-pointer">
+                  Feature 2
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Feature 3', '/features/feature3')} className="cursor-pointer">
+                  Feature 3
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+        
+        {/* Mobile Menu Toggle */}
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="md:hidden text-menova-green"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+          )}
+        </Button>
+        
+        {/* User Dropdown */}
+        <div className="hidden md:flex items-center space-x-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -144,6 +252,111 @@ const Welcome = () => {
           </DropdownMenu>
         </div>
       </nav>
+      
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-white/95 p-4 shadow-md animate-in fade-in slide-in-from-top">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-menova-green">Explore</p>
+              <div className="pl-2 space-y-1 border-l-2 border-menova-green/20">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')}
+                >
+                  Symptom Tracker
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')}
+                >
+                  Wellness Plan
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => handleVoiceNavigation('Community', '/community')}
+                >
+                  Community
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-menova-green">Explore Features</p>
+              <div className="pl-2 space-y-1 border-l-2 border-menova-green/20">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => handleVoiceNavigation('Feature 1', '/features/feature1')}
+                >
+                  Feature 1
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => handleVoiceNavigation('Feature 2', '/features/feature2')}
+                >
+                  Feature 2
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => handleVoiceNavigation('Feature 3', '/features/feature3')}
+                >
+                  Feature 3
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-menova-green">Account</p>
+              <div className="pl-2 space-y-1 border-l-2 border-menova-green/20">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => navigate('/profile')}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={() => navigate('/settings')}
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full justify-start text-menova-text"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Breadcrumb Navigation */}
+      <div className="px-6 pt-4 max-w-6xl mx-auto w-full">
+        <BreadcrumbTrail currentPath={location.pathname} />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
