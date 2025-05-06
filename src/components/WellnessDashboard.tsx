@@ -13,8 +13,8 @@ interface WellnessGoal {
 }
 
 interface SymptomRating {
-  type: string;
-  rating: number;
+  symptom: string;
+  intensity: number;
 }
 
 interface DailyInsight {
@@ -60,6 +60,15 @@ const WellnessDashboard = () => {
             { category: "Centre", completed: 1, total: 1 },
             { category: "Play", completed: 0, total: 2 }
           ]);
+          
+          // Insert default goals for this user
+          const defaultGoals = [
+            { category: "Nourish", completed: 2, total: 3, user_id: session.user.id },
+            { category: "Centre", completed: 1, total: 1, user_id: session.user.id },
+            { category: "Play", completed: 0, total: 2, user_id: session.user.id }
+          ];
+          
+          await supabase.from('wellness_goals').insert(defaultGoals);
         }
 
         // Fetch symptom data
@@ -67,23 +76,23 @@ const WellnessDashboard = () => {
           .from('symptom_tracking')
           .select('*')
           .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
+          .order('recorded_at', { ascending: false })
           .limit(3);
 
         if (symptomError) throw symptomError;
         
         if (symptomData && symptomData.length > 0) {
           setSymptoms([
-            { type: "Hot Flashes", rating: symptomData.find((s: any) => s.type === 'hot_flashes')?.rating || 3 },
-            { type: "Sleep Quality", rating: symptomData.find((s: any) => s.type === 'sleep')?.rating || 2 },
-            { type: "Mood", rating: symptomData.find((s: any) => s.type === 'mood')?.rating || 4 }
+            { symptom: "Hot Flashes", intensity: symptomData.find((s: any) => s.symptom === 'hot_flashes')?.intensity || 3 },
+            { symptom: "Sleep Quality", intensity: symptomData.find((s: any) => s.symptom === 'sleep')?.intensity || 2 },
+            { symptom: "Mood", intensity: symptomData.find((s: any) => s.symptom === 'mood')?.intensity || 4 }
           ]);
         } else {
           // Provide default symptom data if none exists
           setSymptoms([
-            { type: "Hot Flashes", rating: 3 },
-            { type: "Sleep Quality", rating: 2 },
-            { type: "Mood", rating: 4 }
+            { symptom: "Hot Flashes", intensity: 3 },
+            { symptom: "Sleep Quality", intensity: 2 },
+            { symptom: "Mood", intensity: 4 }
           ]);
         }
 
@@ -101,8 +110,13 @@ const WellnessDashboard = () => {
           setInsight({ quote: insightData[0].quote });
         } else {
           // Provide default insight if none exists
-          setInsight({ 
-            quote: "Your body is transitioning, but your spirit remains steadfast. Honor both with kindness today." 
+          const defaultQuote = "Your body is transitioning, but your spirit remains steadfast. Honor both with kindness today.";
+          setInsight({ quote: defaultQuote });
+          
+          // Insert a default insight for this user
+          await supabase.from('daily_insights').insert({
+            user_id: session.user.id,
+            quote: defaultQuote
           });
         }
       } catch (error) {
@@ -187,16 +201,16 @@ const WellnessDashboard = () => {
           <div className="space-y-6">
             {symptoms.map((symptom, index) => (
               <div key={index} className="flex items-center">
-                <div className="w-1/3 text-sm font-medium">{symptom.type}</div>
+                <div className="w-1/3 text-sm font-medium">{symptom.symptom}</div>
                 <div className="w-2/3 flex space-x-2">
                   {[1, 2, 3, 4, 5].map((rating) => (
                     <div 
                       key={rating} 
                       className={`h-6 w-6 rounded-full ${
-                        rating <= symptom.rating 
-                          ? symptom.type === "Hot Flashes" 
+                        rating <= symptom.intensity
+                          ? symptom.symptom === "Hot Flashes" 
                             ? "bg-[#FFDEE2]/80" 
-                            : symptom.type === "Sleep Quality" 
+                            : symptom.symptom === "Sleep Quality" 
                               ? "bg-menova-green/80" 
                               : "bg-[#d9b6d9]/80"
                           : "bg-gray-200"

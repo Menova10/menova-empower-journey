@@ -1,17 +1,38 @@
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Mic } from 'lucide-react';
 
-const VapiAssistant = () => {
+interface VapiAssistantProps {
+  onSpeaking?: (speaking: boolean) => void;
+  className?: string;
+}
+
+const VapiAssistant = forwardRef<any, VapiAssistantProps>((props, ref) => {
+  const { onSpeaking, className } = props;
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+
+  // Expose the speak method to parent components
+  useImperativeHandle(ref, () => ({
+    speak: (text: string) => {
+      console.log("MeNova says:", text);
+      // Implement speech functionality here
+      setIsSpeaking(true);
+      if (onSpeaking) onSpeaking(true);
+      
+      setTimeout(() => {
+        setIsSpeaking(false);
+        if (onSpeaking) onSpeaking(false);
+      }, 3000);
+    }
+  }));
 
   const handleAssistantClick = () => {
     if (isAuthenticated) {
@@ -28,27 +49,20 @@ const VapiAssistant = () => {
       
       // Simulate a response
       setIsSpeaking(true);
+      if (onSpeaking) onSpeaking(true);
+      
       setTimeout(() => {
         setIsSpeaking(false);
+        if (onSpeaking) onSpeaking(false);
       }, 3000);
     }
-  };
-
-  // This function would be connected to a real speech API in production
-  const speak = (text: string) => {
-    console.log("MeNova says:", text);
-    // Implement speech functionality here
-    setIsSpeaking(true);
-    setTimeout(() => {
-      setIsSpeaking(false);
-    }, 3000);
   };
 
   return (
     <>
       <Button
         onClick={handleAssistantClick}
-        className={`rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 ${isSpeaking ? 'animate-float' : ''} flex items-center justify-center p-0`}
+        className={className || `rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 ${isSpeaking ? 'animate-float' : ''} flex items-center justify-center p-0`}
       >
         <div className="rounded-full overflow-hidden w-12 h-12 border-2 border-white">
           <img 
@@ -104,6 +118,8 @@ const VapiAssistant = () => {
       </Dialog>
     </>
   );
-};
+});
+
+VapiAssistant.displayName = 'VapiAssistant';
 
 export default VapiAssistant;

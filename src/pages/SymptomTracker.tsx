@@ -45,9 +45,10 @@ const SymptomTracker = () => {
       // Record all symptom ratings
       const entries = Object.entries(ratings).map(([type, rating]) => ({
         user_id: session.user.id,
-        type,
-        rating,
-        created_at: new Date().toISOString()
+        symptom: type,
+        intensity: rating,
+        source: 'manual',
+        recorded_at: new Date().toISOString()
       }));
       
       const { error } = await supabase.from('symptom_tracking').insert(entries);

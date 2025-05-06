@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      daily_insights: {
+        Row: {
+          created_at: string | null
+          id: string
+          quote: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          quote: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          quote?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birth_date: string | null
@@ -77,7 +98,7 @@ export type Database = {
           },
         ]
       }
-      symptom_tracker: {
+      symptom_tracking: {
         Row: {
           id: string
           intensity: number
@@ -167,6 +188,33 @@ export type Database = {
           reason?: string | null
           status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      wellness_goals: {
+        Row: {
+          category: string
+          completed: number
+          created_at: string | null
+          id: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          category: string
+          completed?: number
+          created_at?: string | null
+          id?: string
+          total?: number
+          user_id: string
+        }
+        Update: {
+          category?: string
+          completed?: number
+          created_at?: string | null
+          id?: string
+          total?: number
+          user_id?: string
         }
         Relationships: []
       }
