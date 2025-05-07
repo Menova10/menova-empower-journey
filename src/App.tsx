@@ -8,22 +8,25 @@ import Waitlist from './pages/Waitlist';
 import SymptomTracker from './pages/SymptomTracker';
 import NotFound from './pages/NotFound';
 import Chat from './pages/Chat';
+import { VapiProvider } from './contexts/VapiContext';
 import './App.css';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/welcome" element={<Welcome />} />
-        <Route path="/waitlist" element={<Waitlist />} />
-        <Route path="/symptom-tracker" element={<SymptomTracker />} />
-        <Route path="/chat" element={<Chat />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+    <VapiProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/welcome" element={<Welcome />} />
+          <Route path="/waitlist" element={<Waitlist />} />
+          <Route path="/symptom-tracker" element={<SymptomTracker />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Router>
+    </VapiProvider>
   );
 }
 

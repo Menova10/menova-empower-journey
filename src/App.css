@@ -40,3 +40,13 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Animation for VapiAssistant when speaking */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-float {
+  animation: float 2s ease-in-out infinite;
+}
