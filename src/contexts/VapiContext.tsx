@@ -37,20 +37,6 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const startAssistant = () => {
     if (!vapiRef.current) return;
-    const assistantOptions = {
-      name: "Vapi Assistant",
-      firstMessage: "Hello! How can I help you? I am Nexa",
-      model: {
-        provider: "openai",
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant."
-          }
-        ]
-      }
-    };
     try {
       vapiRef.current.start("2e3da3a1-8a7c-41d0-8e65-ab33101bb6b7");
     } catch (e) {
