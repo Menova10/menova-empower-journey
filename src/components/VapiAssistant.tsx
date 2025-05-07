@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Mic, MicOff, Speaker } from 'lucide-react';
 import { useVapi } from '@/contexts/VapiContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -15,7 +16,7 @@ interface VapiAssistantProps {
 const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className }, ref) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const { isAuthenticated } = useAuthStore();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const navigate = useNavigate();
 
   const { 
@@ -28,6 +29,25 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     connect,
     disconnect
   } = useVapi();
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session?.user);
+    };
+    
+    checkAuth();
+    
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Connect to Vapi when component mounts
   useEffect(() => {
@@ -49,8 +69,11 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     }
   }));
 
-  const handleAssistantClick = () => {
-    if (isAuthenticated) {
+  const handleAssistantClick = async () => {
+    // Check authentication status right before opening the dialog
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
       setOpen(true);
     } else {
       navigate('/login');
