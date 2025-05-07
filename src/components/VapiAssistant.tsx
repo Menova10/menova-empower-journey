@@ -1,12 +1,12 @@
 
 import { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuthStore } from '@/stores/authStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Mic, MicOff, Speaker } from 'lucide-react';
+import { MessageCircle, Mic, MicOff, Speaker, Volume2, VolumeX } from 'lucide-react';
 import { useVapi } from '@/contexts/VapiContext';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -17,12 +17,15 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(false);
   const navigate = useNavigate();
 
   const { 
     isSpeaking,
     isListening, 
     isConnected,
+    sdkLoaded,
+    error,
     startListening,
     stopListening,
     speak,
@@ -49,12 +52,25 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     };
   }, []);
 
-  // Connect to Vapi when component mounts
+  // Connect to Vapi when dialog opens
   useEffect(() => {
-    if (open && !isConnected) {
-      connect();
-    }
-  }, [open, isConnected]);
+    const setupVapi = async () => {
+      if (open && !isConnected && sdkLoaded) {
+        try {
+          await connect();
+        } catch (e) {
+          console.error("Error connecting to Vapi:", e);
+          toast({
+            title: "Connection Error",
+            description: "Could not connect to voice assistant. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    setupVapi();
+  }, [open, isConnected, sdkLoaded]);
 
   // Call onSpeaking prop when isSpeaking changes
   useEffect(() => {
@@ -65,7 +81,9 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   useImperativeHandle(ref, () => ({
     speak: async (text: string) => {
       console.log("MeNova says:", text);
-      await speak(text);
+      if (!audioMuted) {
+        await speak(text);
+      }
     }
   }));
 
@@ -87,6 +105,8 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       const userMessage = message;
       setMessage('');
       
+      // Add user message to chat UI (you'd implement this)
+      
       // Simulate a response
       const responses = [
         "I'm here to help you through your menopause journey. What can I assist you with today?",
@@ -95,16 +115,41 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       ];
       
       const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      await speak(randomResponse);
+      
+      if (!audioMuted) {
+        await speak(randomResponse);
+      }
     }
   };
 
   const handleToggleListening = async () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      await startListening();
+    if (!sdkLoaded) {
+      toast({
+        title: "Voice Assistant Not Ready",
+        description: "The voice assistant is still loading. Please try again in a moment.",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    try {
+      if (isListening) {
+        stopListening();
+      } else {
+        await startListening();
+      }
+    } catch (e) {
+      console.error("Error toggling microphone:", e);
+      toast({
+        title: "Microphone Error",
+        description: "Could not access microphone. Please check your permissions.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleAudio = () => {
+    setAudioMuted(!audioMuted);
   };
 
   return (
@@ -133,18 +178,31 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
                   variant={isListening ? "default" : "outline"}
                   className={`rounded-full ${isListening ? 'bg-menova-green hover:bg-menova-green/90 text-white' : 'text-menova-green'}`}
                   onClick={handleToggleListening}
+                  disabled={!sdkLoaded}
                 >
                   {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                 </Button>
                 <Button 
                   size="icon"
-                  variant={isSpeaking ? "default" : "outline"}
-                  className={`rounded-full ${isSpeaking ? 'bg-menova-green hover:bg-menova-green/90 text-white' : 'text-menova-green'}`}
+                  variant={audioMuted ? "outline" : "default"}
+                  className={`rounded-full ${!audioMuted ? 'bg-menova-green hover:bg-menova-green/90 text-white' : 'text-menova-green'}`}
+                  onClick={handleToggleAudio}
+                  disabled={!sdkLoaded}
                 >
-                  <Speaker size={18} />
+                  {audioMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                 </Button>
               </div>
             </DialogTitle>
+            {!sdkLoaded && (
+              <DialogDescription className="text-yellow-600">
+                Voice assistant is loading...
+              </DialogDescription>
+            )}
+            {error && (
+              <DialogDescription className="text-red-500">
+                Error: Could not connect voice assistant
+              </DialogDescription>
+            )}
           </DialogHeader>
           <div className="flex flex-col space-y-4 h-[300px] overflow-y-auto p-4 bg-white/80 rounded-md">
             <div className="flex items-start gap-2">

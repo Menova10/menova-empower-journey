@@ -1,10 +1,13 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { toast } from '@/components/ui/use-toast';
 
 type VapiContextType = {
   isSpeaking: boolean;
   isListening: boolean;
   isConnected: boolean;
+  sdkLoaded: boolean;
+  error: string | null;
   startListening: () => Promise<void>;
   stopListening: () => void;
   speak: (text: string) => Promise<void>;
@@ -26,35 +29,81 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [vapiSession, setVapiSession] = useState<any>(null);
 
-  // Initialize Vapi
-  const connect = async (): Promise<void> => {
-    try {
-      if (typeof window === 'undefined') return;
+  // Load the Vapi SDK
+  useEffect(() => {
+    const loadVapiSdk = () => {
+      if (typeof window === 'undefined' || window.document.querySelector('script[src="https://cdn.vapi.ai/web-sdk@1.0.0/dist/sdk.js"]')) {
+        return;
+      }
 
-      // Load the Vapi SDK dynamically
       const script = document.createElement('script');
       script.src = 'https://cdn.vapi.ai/web-sdk@1.0.0/dist/sdk.js';
       script.async = true;
+      script.id = 'vapi-sdk';
       
-      // Create a promise to handle script loading
-      const scriptLoaded = new Promise<void>((resolve, reject) => {
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load Vapi SDK'));
-      });
+      script.onload = () => {
+        console.log('Vapi SDK loaded successfully');
+        setSdkLoaded(true);
+        setError(null);
+      };
+      
+      script.onerror = () => {
+        const errorMsg = 'Failed to load Vapi SDK';
+        console.error(errorMsg);
+        setError(errorMsg);
+        setSdkLoaded(false);
+        
+        // Remove failed script to allow retry
+        script.remove();
+        
+        // Show toast with error
+        toast({
+          title: "Voice Assistant Error",
+          description: "Could not load voice assistant. Please try again later.",
+          variant: "destructive",
+        });
+      };
       
       document.body.appendChild(script);
-      
-      // Wait for the script to load
-      await scriptLoaded;
-      
-      // Initialize Vapi client
-      const vapiClient = new (window as any).Vapi.Client({
+    };
+
+    loadVapiSdk();
+
+    // Clean up on unmount
+    return () => {
+      disconnect();
+    };
+  }, []);
+
+  // Initialize Vapi client
+  const connect = async (): Promise<void> => {
+    try {
+      if (!sdkLoaded) {
+        console.log("SDK not loaded yet, can't connect");
+        return;
+      }
+
+      if (isConnected) {
+        console.log("Already connected");
+        return;
+      }
+
+      console.log("Initializing Vapi client...");
+      const Vapi = (window as any).Vapi;
+      if (!Vapi || !Vapi.Client) {
+        throw new Error("Vapi SDK not found or not properly initialized");
+      }
+
+      const vapiClient = new Vapi.Client({
         agentId: '2e3da3a1-8a7c-41d0-8e65-ab33101bb6b7',
         apiKey: 'd3fd5e81-606a-4d19-b737-bd00fd55a737',
       });
 
+      console.log("Starting Vapi session...");
       const session = await vapiClient.start();
       setVapiSession(session);
       setIsConnected(true);
@@ -65,28 +114,47 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session.on('listening-started', () => setIsListening(true));
       session.on('listening-finished', () => setIsListening(false));
       
-      // Don't return the cleanup function directly
-      // Instead, we'll handle cleanup in the useEffect
+      console.log("Vapi session started successfully");
     } catch (error) {
-      console.error('Failed to initialize Vapi:', error);
+      const errorMsg = `Failed to initialize Vapi: ${error}`;
+      console.error(errorMsg);
+      setError(errorMsg);
       setIsConnected(false);
+      
+      toast({
+        title: "Voice Assistant Error",
+        description: "Could not connect to voice assistant. Please try again later.",
+        variant: "destructive",
+      });
     }
   };
 
   const disconnect = () => {
     if (vapiSession) {
-      vapiSession.stop();
+      try {
+        vapiSession.stop();
+        console.log("Vapi session stopped");
+      } catch (e) {
+        console.error("Error stopping Vapi session:", e);
+      }
       setVapiSession(null);
       setIsConnected(false);
     }
   };
 
   const startListening = async () => {
-    if (!vapiSession) return;
+    if (!vapiSession) {
+      if (!isConnected && sdkLoaded) {
+        await connect();
+      }
+      return;
+    }
+    
     try {
       await vapiSession.startListening();
     } catch (error) {
       console.error('Error starting listening:', error);
+      setError(`Error starting listening: ${error}`);
     }
   };
 
@@ -100,31 +168,33 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const speak = async (text: string) => {
-    if (!vapiSession) return;
+    if (!vapiSession) {
+      if (!isConnected && sdkLoaded) {
+        await connect();
+        if (!vapiSession) {
+          console.error("Failed to establish session before speaking");
+          return;
+        }
+      } else {
+        console.error("No active session to speak through");
+        return;
+      }
+    }
+    
     try {
       await vapiSession.speak(text);
     } catch (error) {
       console.error('Error speaking:', error);
+      setError(`Error speaking: ${error}`);
     }
   };
-
-  // Clean up on unmount
-  useEffect(() => {
-    // We'll handle the script removal here instead of in the connect function
-    return () => {
-      disconnect();
-      // Remove the script if it exists
-      const scriptElement = document.querySelector('script[src="https://cdn.vapi.ai/web-sdk@1.0.0/dist/sdk.js"]');
-      if (scriptElement && scriptElement.parentNode) {
-        scriptElement.parentNode.removeChild(scriptElement);
-      }
-    };
-  }, []);
 
   const value = {
     isSpeaking,
     isListening,
     isConnected,
+    sdkLoaded,
+    error,
     startListening,
     stopListening,
     speak,
