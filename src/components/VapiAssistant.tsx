@@ -1,4 +1,3 @@
-
 import { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -20,17 +19,13 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const [audioMuted, setAudioMuted] = useState(false);
   const navigate = useNavigate();
 
-  const { 
+  const {
     isSpeaking,
-    isListening, 
-    isConnected,
+    isListening,
     sdkLoaded,
     error,
-    startListening,
-    stopListening,
-    speak,
-    connect,
-    disconnect
+    startAssistant,
+    stopAssistant,
   } = useVapi();
 
   // Check authentication status
@@ -39,58 +34,31 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session?.user);
     };
-    
     checkAuth();
-    
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session?.user);
     });
-    
     return () => {
       subscription.unsubscribe();
     };
   }, []);
 
-  // Connect to Vapi when dialog opens
+  // Start/stop assistant on dialog open/close
   useEffect(() => {
-    const setupVapi = async () => {
-      if (open && !isConnected && sdkLoaded) {
-        try {
-          await connect();
-        } catch (e) {
-          console.error("Error connecting to Vapi:", e);
-          toast({
-            title: "Connection Error",
-            description: "Could not connect to voice assistant. Please try again.",
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    setupVapi();
-  }, [open, isConnected, sdkLoaded]);
-
-  // Call onSpeaking prop when isSpeaking changes
-  useEffect(() => {
-    if (onSpeaking) onSpeaking(isSpeaking);
-  }, [isSpeaking, onSpeaking]);
-  
-  // Expose the speak method to parent components
-  useImperativeHandle(ref, () => ({
-    speak: async (text: string) => {
-      console.log("MeNova says:", text);
-      if (!audioMuted) {
-        await speak(text);
-      }
+    if (open && sdkLoaded) {
+      startAssistant();
+    } else if (!open) {
+      stopAssistant();
     }
+  }, [open, sdkLoaded, startAssistant, stopAssistant]);
+
+  // Expose a dummy speak method for parent compatibility (no-op)
+  useImperativeHandle(ref, () => ({
+    speak: async (_text: string) => {},
   }));
 
   const handleAssistantClick = async () => {
-    // Check authentication status right before opening the dialog
     const { data: { session } } = await supabase.auth.getSession();
-    
     if (session?.user) {
       setOpen(true);
     } else {
@@ -100,51 +68,8 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
 
   const handleSendMessage = async () => {
     if (message.trim()) {
-      // In a real implementation, this would call Vapi's text input API
-      // For now, we'll just speak a response
-      const userMessage = message;
       setMessage('');
-      
-      // Add user message to chat UI (you'd implement this)
-      
-      // Simulate a response
-      const responses = [
-        "I'm here to help you through your menopause journey. What can I assist you with today?",
-        "That's a common concern during menopause. Would you like some information about managing those symptoms?",
-        "I understand how challenging this can be. Let's work through some strategies together."
-      ];
-      
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      if (!audioMuted) {
-        await speak(randomResponse);
-      }
-    }
-  };
-
-  const handleToggleListening = async () => {
-    if (!sdkLoaded) {
-      toast({
-        title: "Voice Assistant Not Ready",
-        description: "The voice assistant is still loading. Please try again in a moment.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    try {
-      if (isListening) {
-        stopListening();
-      } else {
-        await startListening();
-      }
-    } catch (e) {
-      console.error("Error toggling microphone:", e);
-      toast({
-        title: "Microphone Error",
-        description: "Could not access microphone. Please check your permissions.",
-        variant: "destructive",
-      });
+      // Optionally, implement text input to Vapi if supported in future
     }
   };
 
@@ -173,15 +98,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
             <DialogTitle className="flex items-center justify-between">
               <span>Chat with MeNova</span>
               <div className="flex space-x-2">
-                <Button 
-                  size="icon"
-                  variant={isListening ? "default" : "outline"}
-                  className={`rounded-full ${isListening ? 'bg-menova-green hover:bg-menova-green/90 text-white' : 'text-menova-green'}`}
-                  onClick={handleToggleListening}
-                  disabled={!sdkLoaded}
-                >
-                  {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-                </Button>
+                {/* Only audio toggle remains */}
                 <Button 
                   size="icon"
                   variant={audioMuted ? "outline" : "default"}
