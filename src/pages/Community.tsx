@@ -149,8 +149,35 @@ const Community = () => {
 
   // Handle community navigation - direct link to community
   const handleCommunityNavigation = (name: string, url: string) => {
-    speak(`Opening ${name} for you.`);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      speak(`Opening ${name} for you.`);
+      
+      // Log for debugging
+      console.log(`Attempting to open URL: ${url}`);
+      
+      // Force the window.open to happen within a user gesture handler
+      const newWindow = window.open(url, '_blank');
+      
+      // Check if popup was blocked
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        console.error('Popup was blocked or failed to open');
+        toast({
+          title: "Popup Blocked",
+          description: `Please allow popups for this site to visit ${name}.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error opening URL:', error);
+      // Fallback method - create an anchor element and simulate a click
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   // Handle notification sign-up
@@ -641,18 +668,36 @@ const Community = () => {
             {communities.map((community, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-start hover:shadow-md transition-shadow"
+                className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-start hover:shadow-md transition-shadow cursor-pointer group"
+                onClick={() => handleCommunityNavigation(community.name, community.url)}
               >
-                <h3 className="text-lg font-medium text-menova-green mb-2">
-                  {community.name}
-                </h3>
+                <div className="flex items-center gap-3 mb-2 w-full">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                    <img
+                      src={communityIcons[community.name as keyof typeof communityIcons] || '/lovable-uploads/community-icon.png'}
+                      alt={community.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = '/lovable-uploads/community-icon.png';
+                      }}
+                    />
+                  </div>
+                  <h3 className="text-lg font-medium text-menova-green">
+                    {community.name}
+                  </h3>
+                </div>
                 <p className="text-gray-600 mb-4">
                   {community.description}
                 </p>
                 <Button 
-                  onClick={() => handleCommunityNavigation(community.name, community.url)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the parent div's click event
+                    handleCommunityNavigation(community.name, community.url);
+                  }}
                   variant="outline"
-                  className="border-menova-green text-menova-green hover:bg-menova-green/10 rounded-full"
+                  className="border-menova-green text-menova-green hover:bg-menova-green/10 rounded-full group-hover:bg-menova-green/5"
                 >
                   Take me there
                 </Button>
