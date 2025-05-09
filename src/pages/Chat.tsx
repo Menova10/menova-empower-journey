@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { Send } from 'lucide-react';
@@ -14,10 +13,14 @@ const Chat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Add initial greeting when component mounts
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Check if we were navigated here from an authenticated page
+    const comingFromAuthenticatedPage = location.state?.authenticated === true;
+    
+    if (!isAuthenticated && !comingFromAuthenticatedPage) {
       navigate('/login');
       return;
     }
@@ -29,7 +32,7 @@ const Chat = () => {
         timestamp: new Date()
       }
     ]);
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, location.state]);
 
   // Scroll to bottom when messages update
   useEffect(() => {

@@ -10,6 +10,7 @@ type VapiContextType = {
   startAssistant: () => void;
   stopAssistant: () => void;
   speak: (text: string) => void;
+  vapiRef: React.MutableRefObject<any>;
 };
 
 const VapiContext = createContext<VapiContextType | undefined>(undefined);
@@ -57,8 +58,6 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     vapiRef.current?.speak(text);
   };
 
-  // Optionally, add event listeners for speaking/listening here
-
   const value = {
     isSpeaking,
     isListening,
@@ -67,6 +66,7 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     startAssistant,
     stopAssistant,
     speak,
+    vapiRef,
   };
 
   return <VapiContext.Provider value={value}>{children}</VapiContext.Provider>;

@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -8,6 +7,7 @@ import Waitlist from './pages/Waitlist';
 import SymptomTracker from './pages/SymptomTracker';
 import NotFound from './pages/NotFound';
 import Chat from './pages/Chat';
+import Community from './pages/Community';
 import { VapiProvider } from './contexts/VapiContext';
 import './App.css';
 
@@ -23,6 +23,7 @@ function App() {
           <Route path="/waitlist" element={<Waitlist />} />
           <Route path="/symptom-tracker" element={<SymptomTracker />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/community" element={<Community />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
