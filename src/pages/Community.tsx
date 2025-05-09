@@ -44,13 +44,42 @@ const Community = () => {
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
-  // Community icons mapping
-  const communityIcons = {
-    'Reddit': '/lovable-uploads/reddit-icon.png',
-    'HealthUnlocked': '/lovable-uploads/health-icon.png',
-    'Geneva': '/lovable-uploads/geneva-icon.png',
-    'Facebook Groups': '/lovable-uploads/facebook-icon.png',
-    'Peanut App': '/lovable-uploads/peanut-icon.png'
+  // Replace the existing communityIcons mapping with direct JSX elements for each logo
+  const CommunityLogos = {
+    'Reddit': (
+      <div className="w-full h-full bg-white rounded-full p-0.5 flex items-center justify-center">
+        <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <circle cx="10" cy="10" r="10" fill="#FF4500"/>
+          <path d="M16.67,10A1.46,1.46,0,0,0,14.2,9a7.12,7.12,0,0,0-3.85-1.23L11,4.65,13.14,5.1a1,1,0,1,0,.13-0.61L10.82,4a0.31,0.31,0,0,0-.37.24L9.71,7.71a7.14,7.14,0,0,0-3.9,1.23A1.46,1.46,0,1,0,4.2,11.33a2.87,2.87,0,0,0,0,.44c0,2.24,2.61,4.06,5.83,4.06s5.83-1.82,5.83-4.06a2.87,2.87,0,0,0,0-.44A1.46,1.46,0,0,0,16.67,10Zm-10,1a1,1,0,1,1,1,1A1,1,0,0,1,6.67,11Zm5.81,2.75a3.84,3.84,0,0,1-2.47.77,3.84,3.84,0,0,1-2.47-.77,0.27,0.27,0,0,1,.38-0.38A3.27,3.27,0,0,0,10,14a3.28,3.28,0,0,0,2.09-.61A0.27,0.27,0,1,1,12.48,13.79Zm-0.18-1.71a1,1,0,1,1,1-1A1,1,0,0,1,12.29,12.08Z" fill="#FFFFFF"/>
+        </svg>
+      </div>
+    ),
+    'HealthUnlocked': (
+      <div className="w-full h-full flex items-center justify-center bg-gray-300 p-1">
+        <span className="text-[0.5rem] sm:text-xs text-teal-700 font-bold truncate">HealthUnlocked</span>
+      </div>
+    ),
+    'Geneva': (
+      <div className="w-full h-full flex items-center justify-center bg-white p-1">
+        <span className="text-[0.5rem] sm:text-xs font-bold tracking-widest">GENEVA</span>
+      </div>
+    ),
+    'Facebook Groups': (
+      <div className="w-full h-full flex items-center justify-center bg-white p-0.5">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
+        </svg>
+      </div>
+    ),
+    'Peanut App': (
+      <div className="w-full h-full bg-pink-50 flex items-center justify-center p-1">
+        <svg viewBox="0 0 300 75" xmlns="http://www.w3.org/2000/svg" className="w-full">
+          <path d="M40,15 C17.9,15 0,29.5 0,47.5 C0,65.5 17.9,80 40,80 C62.1,80 80,65.5 80,47.5 C80,29.5 62.1,15 40,15 Z M40,65 C32.3,65 26,57.8 26,48.9 C26,40 32.3,32.8 40,32.8 C47.7,32.8 54,40 54,48.9 C54,57.8 47.7,65 40,65 Z" fill="#F36"/>
+          <path d="M120,15 C97.9,15 80,29.5 80,47.5 C80,65.5 97.9,80 120,80 C142.1,80 160,65.5 160,47.5 C160,29.5 142.1,15 120,15 Z M120,65 C112.3,65 106,57.8 106,48.9 C106,40 112.3,32.8 120,32.8 C127.7,32.8 134,40 134,48.9 C134,57.8 127.7,65 120,65 Z" fill="#F36"/>
+          <text x="170" y="55" font-family="Arial" font-size="40" fill="#F36">peanut</text>
+        </svg>
+      </div>
+    ),
   };
 
   // Check if user is logged in
@@ -182,32 +211,82 @@ const Community = () => {
 
   // Handle notification sign-up
   const handleNotifySignUp = async () => {
-    if (!notifyEmail) {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!notifyEmail || !emailRegex.test(notifyEmail)) {
       toast({
-        title: "Email Required",
+        title: "Invalid Email",
         description: "Please enter a valid email address.",
         variant: "destructive",
       });
       return;
     }
+
     try {
-      const { error } = await supabase
+      // Show loading state
+      toast({
+        title: "Processing...",
+        description: "Please wait while we add you to the waitlist.",
+      });
+
+      // 1. Insert into waitlist table
+      const { error: insertError } = await supabase
         .from('waitlist')
         .insert({ 
           email: notifyEmail,
-          full_name: 'Community Subscriber', // Default name for notifications
-          reason: 'Interested in MeNova community'
+          full_name: profile?.full_name || 'Community Subscriber', // Use profile name if available
+          reason: 'Interested in MeNova community',
+          source: 'Community Page',
+          status: 'pending'
         });
-      if (error) throw error;
-      toast({
-        title: "Success",
-        description: "Thank you! We'll notify you when the MeNova community is ready.",
+      
+      if (insertError) {
+        // Handle duplicate emails
+        if (insertError.code === '23505') {
+          toast({
+            title: "Already on Waitlist",
+            description: "This email is already on our waitlist. We'll notify you when the community is ready.",
+            variant: "success",
+          });
+          setNotifyEmail('');
+          return;
+        }
+        throw insertError;
+      }
+
+      // 2. Call the edge function to send notification email
+      await supabase.functions.invoke('notify-community-interest', {
+        body: {
+          email: notifyEmail,
+          full_name: profile?.full_name || 'Community Subscriber',
+          admin_email: 'menovarocks@gmail.com',
+          message: `A user has expressed interest in joining the MeNova community.
+          
+Email: ${notifyEmail}
+Name: ${profile?.full_name || 'Community Subscriber'}
+Source: Community Page
+Date: ${new Date().toLocaleDateString()}`
+        }
       });
+
+      // Show success message
+      toast({
+        title: "Success!",
+        description: "Thank you! We'll notify you when the MeNova community is ready.",
+        variant: "success",
+      });
+      
+      // Clear the input
       setNotifyEmail('');
+      
+      // Optional: Use voice to confirm
+      speak("Thank you for joining our community waitlist. We'll notify you when it's ready.");
+      
     } catch (err) {
+      console.error('Error submitting to waitlist:', err);
       toast({
         title: "Error",
-        description: "There was an error. Please try again later.",
+        description: "There was an error adding you to the waitlist. Please try again later.",
         variant: "destructive",
       });
     }
@@ -257,7 +336,7 @@ const Community = () => {
             const lastAiMsg = [...parsedMessages].reverse().find(m => m.sender === 'ai');
             if (lastAiMsg) {
               // Check if the last message was about a specific community
-              const communityMatch = Object.keys(communityIcons).find(
+              const communityMatch = Object.keys(CommunityLogos).find(
                 comm => lastAiMsg.text.toLowerCase().includes(comm.toLowerCase())
               );
               setCurrentCommunity(communityMatch || '');
@@ -278,7 +357,7 @@ const Community = () => {
       // Focus on input after a short delay
       setTimeout(() => chatInputRef.current?.focus(), 300);
     }
-  }, [communityDialogOpen]);
+  }, [communityDialogOpen, CommunityLogos]);
 
   // Save chat messages to local storage when they change
   useEffect(() => {
@@ -314,7 +393,7 @@ const Community = () => {
     setShowFollowUps(false);
     
     // Detect if the message is asking about a specific community
-    const communityMatch = Object.keys(communityIcons).find(
+    const communityMatch = Object.keys(CommunityLogos).find(
       comm => chatInputText.toLowerCase().includes(comm.toLowerCase())
     );
     
@@ -641,11 +720,6 @@ const Community = () => {
                 src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
                 alt="MeNova Avatar"
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null;
-                  target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="%23A5D6A7"/><text x="50%" y="50%" font-family="Arial" font-size="14" fill="white" text-anchor="middle" dominant-baseline="middle">MeNova</text></svg>';
-                }}
               />
             </div>
             <div>
@@ -673,16 +747,11 @@ const Community = () => {
               >
                 <div className="flex items-center gap-3 mb-2 w-full">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img
-                      src={communityIcons[community.name as keyof typeof communityIcons] || '/lovable-uploads/community-icon.png'}
-                      alt={community.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = '/lovable-uploads/community-icon.png';
-                      }}
-                    />
+                    {CommunityLogos[community.name as keyof typeof CommunityLogos] || (
+                      <div className="w-full h-full bg-menova-green flex items-center justify-center">
+                        <span className="text-white font-bold">{community.name[0]}</span>
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-lg font-medium text-menova-green">
                     {community.name}
@@ -832,16 +901,11 @@ const Community = () => {
                   onClick={() => handleCommunityChat(community.name)}
                 >
                   <div className="w-6 h-6 mr-2 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img
-                      src={communityIcons[community.name as keyof typeof communityIcons] || '/lovable-uploads/community-icon.png'}
-                      alt={community.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null;
-                        target.src = '/lovable-uploads/community-icon.png';
-                      }}
-                    />
+                    {CommunityLogos[community.name as keyof typeof CommunityLogos] || (
+                      <div className="w-full h-full bg-menova-green flex items-center justify-center">
+                        <span className="text-white font-bold text-xs">{community.name[0]}</span>
+                      </div>
+                    )}
                   </div>
                   Tell me about {community.name}
                 </Button>
