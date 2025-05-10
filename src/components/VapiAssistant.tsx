@@ -1,3 +1,4 @@
+
 import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -30,6 +31,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [userSpeaking, setUserSpeaking] = useState(false);
+  const [autoStartTriggered, setAutoStartTriggered] = useState(false);
 
   const {
     isSpeaking,
@@ -44,8 +46,10 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   // Check for auto-start parameter from location state
   useEffect(() => {
     const locationState = location.state as any;
-    if (locationState?.autoStartVoice) {
+    if (locationState?.autoStartVoice && !autoStartTriggered) {
       // Auto-open dialog when requested from navigation
+      console.log("Auto-starting voice assistant from location state");
+      setAutoStartTriggered(true);
       setTimeout(() => {
         handleAssistantClick();
       }, 800);
@@ -70,8 +74,18 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   // Start/stop assistant on dialog open/close
   useEffect(() => {
     if (open && sdkLoaded) {
+      console.log("Dialog open, starting assistant");
       startAssistant();
+      
+      // If this is the first message, have the assistant start speaking
+      if (messages.length === 1 && messages[0].sender === 'ai' && vapiRef.current?.sendTextMessage) {
+        console.log("Auto-speaking initial greeting");
+        setTimeout(() => {
+          vapiRef.current.sendTextMessage(messages[0].text);
+        }, 500);
+      }
     } else if (!open) {
+      console.log("Dialog closed, stopping assistant");
       stopAssistant();
     }
   }, [open, sdkLoaded, startAssistant, stopAssistant]);
@@ -89,6 +103,8 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   // Create a new session if needed
   const ensureSession = async (userId: string) => {
     if (sessionId) return sessionId;
+    
+    console.log("Creating new voice assistant session");
     const { data, error } = await supabase
       .from('user_sessions')
       .insert({ user_id: userId, session_type: 'voice_assistant', started_at: new Date().toISOString(), title: 'Voice Assistant Session' })
@@ -102,6 +118,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   // Save a message to Supabase
   const saveMessage = async (userId: string, sender: 'user' | 'ai', text: string, timestamp: Date) => {
     const sid = await ensureSession(userId);
+    console.log(`Saving ${sender} message to session ${sid}: ${text.substring(0, 30)}...`);
     await supabase.from('session_messages').insert({
       message: text,
       sender,
@@ -113,6 +130,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const handleAssistantClick = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
+      console.log("Opening voice assistant dialog");
       setOpen(true);
     } else {
       navigate('/login');
@@ -163,9 +181,11 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     if (vapiRef.current) {
       if (userSpeaking) {
         // If already listening, stop listening
+        console.log("Stopping listening");
         vapiRef.current.stopListening && vapiRef.current.stopListening();
       } else {
         // Start listening
+        console.log("Starting listening");
         vapiRef.current.startListening && vapiRef.current.startListening();
       }
     }
@@ -216,8 +236,11 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     if (!sdkLoaded || !vapiRef.current) return;
     const vapi = vapiRef.current;
 
+    console.log("Setting up Vapi event listeners");
+
     // User speech transcript
     const transcriptHandler = (data: any) => {
+      console.log("Transcript event:", data);
       if (data.final) {
         const userMessage = {
           text: data.transcript,
@@ -248,6 +271,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
 
     // Assistant response
     const responseHandler = (data: any) => {
+      console.log("Response event:", data);
       if (data.text) {
         const aiMessage = {
           text: data.text,
@@ -343,6 +367,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
 
           {/* Message display area with animation when MeNova is speaking */}
           <div className="flex flex-col space-y-3 max-h-[50vh] overflow-y-auto p-2 bg-white/80 rounded-md">
+            {/* Animated speech indicator */}
             {isSpeaking && (
               <div className="flex justify-center items-center py-2">
                 <div className="flex gap-1 items-center">
