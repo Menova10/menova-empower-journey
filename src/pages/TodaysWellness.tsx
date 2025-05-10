@@ -157,6 +157,7 @@ const TodaysWellness = () => {
       // Set goals and calculate category progress
       const fetchedGoals = data || [];
       setGoals(fetchedGoals);
+      console.log("Fetched today's goals:", fetchedGoals);
       
       // If we have no goals for today, check if we have wellness goals in the database
       // and create some default goals based on that
@@ -172,6 +173,10 @@ const TodaysWellness = () => {
       if (activeTab === 'monthly' || activeTab === 'all') {
         await fetchMonthlyGoals(session.user.id);
       }
+      
+      // Check for existing progress in wellness_goals table
+      await fetchWellnessGoalsProgress(session.user.id);
+      
     } catch (error) {
       console.error('Error fetching goals:', error);
       toast({
@@ -183,6 +188,53 @@ const TodaysWellness = () => {
       setLoading(false);
     }
   }, [navigate, toast, activeTab]);
+  
+  // NEW: Fetch wellness_goals progress directly from the database
+  const fetchWellnessGoalsProgress = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('wellness_goals')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const newCategoryCounts: CategoryProgress = {};
+        
+        // Initialize categories
+        categories.forEach(cat => {
+          newCategoryCounts[cat.value] = {
+            completed: 0,
+            total: 0,
+            percentage: 0
+          };
+        });
+        
+        // Fill in existing data from wellness_goals
+        data.forEach(record => {
+          const category = normalizeCategory(record.category);
+          if (category in newCategoryCounts) {
+            newCategoryCounts[category] = {
+              completed: record.completed,
+              total: record.total,
+              percentage: record.total > 0 ? Math.round((record.completed / record.total) * 100) : 0
+            };
+          }
+        });
+        
+        console.log("Fetched wellness goals progress:", newCategoryCounts);
+        setCategoryCounts(newCategoryCounts);
+      } else {
+        // If no data exists yet, calculate from daily_goals
+        calculateCategoryProgress();
+      }
+    } catch (error) {
+      console.error('Error fetching wellness goals progress:', error);
+      // Fallback to calculation
+      calculateCategoryProgress();
+    }
+  };
 
   // Fetch weekly goals
   const fetchWeeklyGoals = async (userId: string) => {
@@ -403,24 +455,62 @@ const TodaysWellness = () => {
 
       const { data, error } = await supabase.functions.invoke('suggest-wellness-goals', {
         headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { 
+          categories: categories.slice(0, 3).map(c => c.value) 
+        }
       });
 
       if (error) throw error;
       
       if (data?.suggestions && Array.isArray(data.suggestions)) {
-        setSuggestedGoals(data.suggestions);
+        // Check if suggestions are already categorized
+        if (data.suggestions[0] && typeof data.suggestions[0] === 'object' && data.suggestions[0].category) {
+          // Already categorized format
+          setSuggestedGoals(data.suggestions);
+        } else {
+          // Need to categorize them ourselves
+          const categorized = data.suggestions.map((goal: string) => {
+            let category = 'general';
+            
+            // Simple keyword matching for categorization
+            if (goal.toLowerCase().includes('water') || 
+                goal.toLowerCase().includes('eat') || 
+                goal.toLowerCase().includes('food') || 
+                goal.toLowerCase().includes('nutrition')) {
+              category = 'nourish';
+            } else if (goal.toLowerCase().includes('meditat') || 
+                      goal.toLowerCase().includes('breath') || 
+                      goal.toLowerCase().includes('calm') || 
+                      goal.toLowerCase().includes('relax')) {
+              category = 'center';
+            } else if (goal.toLowerCase().includes('walk') || 
+                      goal.toLowerCase().includes('exercise') || 
+                      goal.toLowerCase().includes('stretch') || 
+                      goal.toLowerCase().includes('yoga')) {
+              category = 'play';
+            }
+            
+            return {
+              text: goal,
+              category: category
+            };
+          });
+          
+          setSuggestedGoals(categorized);
+        }
       } else {
         console.error('Invalid suggestions format:', data);
         setSuggestedGoals([]);
       }
     } catch (error) {
       console.error('Error fetching suggested goals:', error);
+      // Fallback suggestions
       setSuggestedGoals([
-        "Drink 8 glasses of water today",
-        "Take a 15-minute walk outside",
-        "Practice deep breathing for 5 minutes",
-        "Write down 3 things you're grateful for",
-        "Eat a meal rich in calcium and vitamin D"
+        { text: "Drink 8 glasses of water today", category: "nourish" },
+        { text: "Take a 15-minute walk outside", category: "play" },
+        { text: "Practice deep breathing for 5 minutes", category: "center" },
+        { text: "Write down 3 things you're grateful for", category: "center" },
+        { text: "Eat a meal rich in calcium and vitamin D", category: "nourish" }
       ]);
     } finally {
       setLoadingSuggestions(false);
@@ -477,7 +567,7 @@ const TodaysWellness = () => {
   };
 
   // Add a suggested goal
-  const addSuggestedGoal = async (goal: string) => {
+  const addSuggestedGoal = async (goal: string | { text: string, category: string }) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -487,31 +577,26 @@ const TodaysWellness = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // Determine the best category for this goal using keyword matching
-      let category = 'nourish'; // Default category
+      // Handle either string or object format
+      let goalText = typeof goal === 'string' ? goal : goal.text;
+      let category = typeof goal === 'string' ? 'general' : goal.category;
       
-      if (goal.toLowerCase().includes('water') || 
-          goal.toLowerCase().includes('eat') || 
-          goal.toLowerCase().includes('food') || 
-          goal.toLowerCase().includes('nutrition')) {
-        category = 'nourish';
-      } else if (goal.toLowerCase().includes('meditat') || 
-                 goal.toLowerCase().includes('breath') || 
-                 goal.toLowerCase().includes('calm') || 
-                 goal.toLowerCase().includes('relax')) {
-        category = 'center';
-      } else if (goal.toLowerCase().includes('walk') || 
-                 goal.toLowerCase().includes('exercise') || 
-                 goal.toLowerCase().includes('stretch') || 
-                 goal.toLowerCase().includes('yoga')) {
-        category = 'play';
+      // Check for duplicates before adding
+      const existingGoal = goals.find(g => g.goal.toLowerCase() === goalText.toLowerCase());
+      if (existingGoal) {
+        toast({
+          title: 'Goal already exists',
+          description: 'This goal has already been added to your daily goals.',
+          variant: 'destructive',
+        });
+        return;
       }
       
       const { data, error } = await supabase
         .from('daily_goals')
         .insert({
           user_id: session.user.id,
-          goal: goal,
+          goal: goalText,
           date: today,
           category: category
         })
@@ -522,14 +607,22 @@ const TodaysWellness = () => {
       if (data) {
         const updatedGoals = [...goals, data[0]];
         setGoals(updatedGoals);
-        speak(`Added suggested goal: ${goal}`);
+        speak(`Added suggested goal: ${goalText}`);
         toast({
           title: 'Suggested goal added',
           description: 'The suggested goal has been added to your daily goals.',
         });
         
-        // Remove from suggestions
-        setSuggestedGoals(suggestedGoals.filter(g => g !== goal));
+        // Remove from suggestions (handle both formats)
+        if (typeof goal === 'string') {
+          setSuggestedGoals(suggestedGoals.filter(g => 
+            typeof g === 'string' ? g !== goal : g.text !== goal
+          ));
+        } else {
+          setSuggestedGoals(suggestedGoals.filter(g => 
+            typeof g === 'string' ? g !== goal.text : g.text !== goal.text
+          ));
+        }
         
         // Update category progress and sync with wellness_goals table
         const newCategoryCounts = calculateCategoryProgress();
@@ -796,6 +889,61 @@ const TodaysWellness = () => {
     }
   };
 
+  // Update the Suggested Goals section to handle categorized suggestions
+  const renderSuggestedGoals = () => {
+    if (loadingSuggestions) {
+      return (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="ml-auto h-8 w-8 bg-gray-200 rounded-full"></div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    
+    if (suggestedGoals.length === 0) {
+      return (
+        <p className="text-gray-600 text-center py-4">No suggested goals available. Click refresh to generate new suggestions.</p>
+      );
+    }
+    
+    return (
+      <ul className="space-y-2">
+        {suggestedGoals.map((goal, index) => {
+          const goalText = typeof goal === 'string' ? goal : goal.text;
+          const goalCategory = typeof goal === 'string' ? 'general' : goal.category;
+          
+          // Find the category display information
+          const categoryInfo = categories.find(c => c.value === goalCategory) || categories[3];
+          
+          return (
+            <li 
+              key={index}
+              className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
+            >
+              <div className="flex items-center gap-2 flex-1">
+                <div className={`w-2 h-2 rounded-full ${categoryInfo.color.replace('text-', 'bg-').split(' ')[1]}`}></div>
+                <span className="text-gray-700">{goalText}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => addSuggestedGoal(goal)}
+                className="text-menova-green hover:bg-menova-green/10 rounded-full"
+              >
+                <Plus size={20} />
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -923,7 +1071,7 @@ const TodaysWellness = () => {
               </div>
             </div>
             
-            {/* Suggested Goals */}
+            {/* Suggested Goals - Updated to show categories */}
             <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-menova-text">Suggested Goals</h2>
@@ -937,38 +1085,7 @@ const TodaysWellness = () => {
                 </Button>
               </div>
               
-              {loadingSuggestions ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="ml-auto h-8 w-8 bg-gray-200 rounded-full"></div>
-                    </div>
-                  ))}
-                </div>
-              ) : suggestedGoals.length > 0 ? (
-                <ul className="space-y-2">
-                  {suggestedGoals.map((goal, index) => (
-                    <li 
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors animate-fade-in"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <span className="text-gray-700">{goal}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => addSuggestedGoal(goal)}
-                        className="text-menova-green hover:bg-menova-green/10 rounded-full"
-                      >
-                        <Plus size={20} />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-600 text-center py-4">No suggested goals available. Click refresh to generate new suggestions.</p>
-              )}
+              {renderSuggestedGoals()}
             </div>
             
             {/* Today's Goals */}

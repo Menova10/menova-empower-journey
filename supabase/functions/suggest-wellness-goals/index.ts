@@ -24,6 +24,18 @@ serve(async (req) => {
       );
     }
 
+    // Parse request body if it exists
+    let requestData = {};
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      // If no JSON body provided, use empty object
+      requestData = {};
+    }
+
+    // Get categories if provided
+    const categories = requestData.categories || ['nourish', 'center', 'play'];
+
     // Create Supabase client with the user's token
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://kiuaitdfimlmgvkybuxx.supabase.co';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -88,11 +100,11 @@ serve(async (req) => {
     if (!openaiApiKey) {
       // Fallback suggestions if no API key
       const fallbackSuggestions = [
-        "Take a 15-minute walk outside",
-        "Drink 8 glasses of water today",
-        "Practice deep breathing for 5 minutes",
-        "Eat a meal rich in calcium and vitamin D",
-        "Write down 3 things you're grateful for"
+        { text: "Drink 8 glasses of water today", category: "nourish" },
+        { text: "Take a 15-minute walk outside", category: "play" },
+        { text: "Practice deep breathing for 5 minutes", category: "center" },
+        { text: "Eat a meal rich in calcium and vitamin D", category: "nourish" },
+        { text: "Write down 3 things you're grateful for", category: "center" }
       ];
       
       return new Response(
@@ -117,20 +129,33 @@ serve(async (req) => {
           {
             role: "system",
             content: `You are a wellness assistant for MeNova, an app supporting women through menopause. 
-                     Generate 5 personalized daily wellness goal suggestions based on the user's info.
+                     Generate 6 personalized daily wellness goal suggestions based on the user's info.
                      The user is in the ${menopauseStage} stage of menopause.
-                     Goals should be specific, achievable in a day, and cover categories like nutrition, 
-                     movement, mindfulness, symptom management, and self-care.
+                     
+                     The goals should be categorized into these three categories:
+                     - nourish (for nutrition, hydration, supplements)
+                     - center (for mindfulness, meditation, relaxation)
+                     - play (for physical activity, exercise, fun)
+                     
+                     Two suggestions for each category. Goals should be specific, achievable in a day.
                      Use a warm, encouraging tone. Avoid suggesting goals the user already has.
-                     Existing goals: ${existingGoalTexts.join(', ')}`
+                     
+                     Existing goals: ${existingGoalTexts.join(', ')}
+                     
+                     Output your response as a JSON array with objects having 'text' and 'category' properties.
+                     Example: [
+                      {"text": "Drink 8 glasses of water today", "category": "nourish"},
+                      {"text": "Take a 15-minute mindful walk", "category": "play"}
+                     ]`
           },
           {
             role: "user",
-            content: `Generate 5 personalized daily wellness goal suggestions based on this context: ${userContext}`
+            content: `Generate 6 personalized daily wellness goal suggestions (2 for each category: nourish, center, play) based on this context: ${userContext}`
           }
         ],
         temperature: 0.7,
-        max_tokens: 500
+        response_format: { type: "json_object" },
+        max_tokens: 600
       })
     });
 
@@ -144,23 +169,31 @@ serve(async (req) => {
     let suggestions = [];
     try {
       const content = openaiData.choices[0].message.content;
-      // Extract suggestions by finding numbered items
-      const matches = content.match(/\d+\.\s+(.*?)(?=\n\d+\.|\n*$)/gs);
-      if (matches && matches.length > 0) {
-        suggestions = matches.map(match => {
-          // Remove the number and any extra whitespace
-          return match.replace(/^\d+\.\s+/, '').trim();
-        });
+      // Parse the JSON response
+      const parsedContent = JSON.parse(content);
+      
+      if (Array.isArray(parsedContent)) {
+        suggestions = parsedContent;
+      } else if (parsedContent.suggestions && Array.isArray(parsedContent.suggestions)) {
+        suggestions = parsedContent.suggestions;
       } else {
-        // Fallback to splitting by newlines if numbered list not found
-        suggestions = content
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line && !line.startsWith('Here') && !line.includes('suggestions'));
+        throw new Error("Invalid response format from OpenAI");
       }
 
-      // Ensure we have exactly 5 suggestions
-      suggestions = suggestions.slice(0, 5);
+      // Ensure each suggestion has text and category properties
+      suggestions = suggestions.map(suggestion => {
+        if (typeof suggestion === 'string') {
+          // Default to general category if string provided
+          return { 
+            text: suggestion, 
+            category: 'general' 
+          };
+        }
+        return suggestion;
+      });
+
+      // Ensure we have exactly 6 suggestions (2 for each category)
+      suggestions = suggestions.slice(0, 6);
     } catch (error) {
       console.error("Error parsing OpenAI response:", error);
       throw error;
