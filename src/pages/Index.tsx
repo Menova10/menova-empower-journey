@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
@@ -230,50 +229,6 @@ const Index = () => {
                 AI assistant for your questions
               </p>
             </button>
-          </div>
-        </section>
-
-        {/* Resources Section */}
-        <section className="bg-white rounded-lg p-6 mt-8">
-          <div className="flex flex-col md:flex-row gap-6 items-center">
-            <div className="md:w-3/5 space-y-3">
-              <h2 className="text-2xl font-semibold text-menova-text">AI-Powered Resources</h2>
-              <p className="text-gray-600">
-                Discover personalized menopause guides, articles, and videos tailored to your journey.
-                Our AI analyzes your symptoms and preferences to recommend the most relevant resources.
-              </p>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  Personalized menopause guides
-                </li>
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  AI-recommended articles based on your symptoms
-                </li>
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  Short explainer videos for quick learning
-                </li>
-                <li className="flex items-center">
-                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
-                  Voice readout for accessibility
-                </li>
-              </ul>
-              <Button
-                onClick={() => handleFeatureClick('/resources')}
-                className="bg-menova-green text-white hover:bg-menova-green/90"
-              >
-                Explore Resources
-              </Button>
-            </div>
-            <div className="md:w-2/5">
-              <img
-                src="https://images.unsplash.com/photo-1559090286-36796926e134"
-                alt="Resources"
-                className="rounded-lg shadow-md w-full object-cover h-64"
-              />
-            </div>
           </div>
         </section>
 
