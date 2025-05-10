@@ -9,6 +9,13 @@ import { MessageCircle, Volume2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import { toast } from '@/components/ui/use-toast';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
 
 const CheckIn = () => {
   const navigate = useNavigate();
@@ -17,6 +24,7 @@ const CheckIn = () => {
   const [sessionMessages, setSessionMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [showChatOptions, setShowChatOptions] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -109,6 +117,17 @@ const CheckIn = () => {
     return session.title || `${session.session_type.charAt(0).toUpperCase() + session.session_type.slice(1)} Session`;
   };
 
+  // Open chat options dialog
+  const handleStartNewSession = () => {
+    setShowChatOptions(true);
+  };
+  
+  // Start voice or text chat session
+  const handleChatOptionSelected = (type: 'voice' | 'text') => {
+    setShowChatOptions(false);
+    navigate('/chat', { state: { sessionType: type } });
+  };
+
   // Resume or start a new session
   const handleStartSession = (sessionId?: string) => {
     // For now, just redirect to chat page
@@ -147,10 +166,17 @@ const CheckIn = () => {
         <div className="flex justify-between items-center">
           <p className="text-gray-600">Review your past check-ins or start a new session.</p>
           <Button
-            onClick={() => handleStartSession()}
-            className="bg-menova-green text-white hover:bg-menova-green/90"
+            onClick={handleStartNewSession}
+            className="bg-menova-green text-white hover:bg-menova-green/90 flex items-center gap-2"
           >
-            Start New Check-In
+            <div className="w-6 h-6 rounded-full overflow-hidden">
+              <img 
+                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
+                alt="MeNova" 
+                className="w-full h-full object-cover" 
+              />
+            </div>
+            Talk to MeNova
           </Button>
         </div>
         
@@ -169,9 +195,16 @@ const CheckIn = () => {
               <div className="text-center py-8">
                 <p className="text-gray-500 mb-4">You haven't had any check-ins yet.</p>
                 <Button 
-                  onClick={() => handleStartSession()} 
-                  className="bg-menova-green text-white hover:bg-menova-green/90"
+                  onClick={handleStartNewSession} 
+                  className="bg-menova-green text-white hover:bg-menova-green/90 flex items-center gap-2"
                 >
+                  <div className="w-6 h-6 rounded-full overflow-hidden">
+                    <img 
+                      src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
+                      alt="MeNova" 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
                   Start Your First Check-In
                 </Button>
               </div>
@@ -270,6 +303,44 @@ const CheckIn = () => {
           </Card>
         )}
       </main>
+
+      {/* Chat Options Dialog */}
+      <Dialog open={showChatOptions} onOpenChange={setShowChatOptions}>
+        <DialogContent className="sm:max-w-md bg-menova-beige">
+          <DialogHeader>
+            <DialogTitle className="text-center">How would you like to chat with MeNova?</DialogTitle>
+            <DialogDescription className="text-center">
+              Choose your preferred mode of conversation
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <Button 
+              onClick={() => handleChatOptionSelected('text')}
+              className="flex flex-col items-center gap-3 h-auto py-6 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
+              variant="outline"
+            >
+              <MessageCircle className="h-8 w-8 text-menova-green" />
+              <div className="text-center">
+                <p className="font-medium">Text Chat</p>
+                <p className="text-xs text-gray-500">Type your messages</p>
+              </div>
+            </Button>
+            
+            <Button 
+              onClick={() => handleChatOptionSelected('voice')}
+              className="flex flex-col items-center gap-3 h-auto py-6 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
+              variant="outline"
+            >
+              <Volume2 className="h-8 w-8 text-menova-green" />
+              <div className="text-center">
+                <p className="font-medium">Voice Chat</p>
+                <p className="text-xs text-gray-500">Speak with MeNova</p>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

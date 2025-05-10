@@ -1,24 +1,47 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
-import { Send } from 'lucide-react';
+import { Send, Mic, Volume2 } from 'lucide-react';
 import VapiAssistant from '@/components/VapiAssistant';
 
 const Chat = () => {
   const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'ai', timestamp: Date }[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionType, setSessionType] = useState<'voice' | 'text'>('text');
+  const [showVoiceUI, setShowVoiceUI] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const vapiRef = useRef<any>(null);
   const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Add initial greeting when component mounts
+  // Initialize session based on location state
   useEffect(() => {
+    const locationState = location.state as any;
+    if (locationState) {
+      // If resuming a specific session
+      if (locationState.sessionId) {
+        setSessionId(locationState.sessionId);
+        // Fetch existing messages for this session
+      } 
+      
+      // Set session type (voice or text)
+      if (locationState.sessionType === 'voice') {
+        setSessionType('voice');
+        setShowVoiceUI(true);
+      } else {
+        setSessionType('text');
+      }
+    }
+    
+    // Add initial greeting when component mounts
     // Check if we were navigated here from an authenticated page
-    const comingFromAuthenticatedPage = location.state?.authenticated === true;
+    const comingFromAuthenticatedPage = locationState?.authenticated === true;
     
     if (!isAuthenticated && !comingFromAuthenticatedPage) {
       navigate('/login');
@@ -39,6 +62,62 @@ const Chat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Create a new session in the database
+  const createSession = async () => {
+    if (!user) return null;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_sessions')
+        .insert({
+          user_id: user.id,
+          session_type: sessionType,
+          started_at: new Date().toISOString()
+        })
+        .select('id')
+        .single();
+        
+      if (error) {
+        console.error('Error creating session:', error);
+        return null;
+      }
+      
+      return data.id;
+    } catch (error) {
+      console.error('Error creating session:', error);
+      return null;
+    }
+  };
+  
+  // Save a message to the database
+  const saveMessage = async (message: string, sender: 'user' | 'ai') => {
+    if (!user) return;
+    
+    try {
+      // Create a new session if we don't have one yet
+      let currentSessionId = sessionId;
+      if (!currentSessionId) {
+        currentSessionId = await createSession();
+        if (currentSessionId) {
+          setSessionId(currentSessionId);
+        }
+      }
+      
+      if (currentSessionId) {
+        await supabase
+          .from('session_messages')
+          .insert({
+            session_id: currentSessionId,
+            sender: sender,
+            message: message,
+            timestamp: new Date().toISOString()
+          });
+      }
+    } catch (error) {
+      console.error('Error saving message:', error);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
     
@@ -52,10 +131,11 @@ const Chat = () => {
     };
     
     setMessages(prevMessages => [...prevMessages, userMessage]);
+    await saveMessage(inputText, 'user');
     setInputText('');
     
     // Simulate AI response delay
-    setTimeout(() => {
+    setTimeout(async () => {
       // In a real implementation, this would call an API
       const aiMessage = {
         text: "I'm here to support you on your journey. What specific aspect of menopause would you like to discuss today?",
@@ -64,16 +144,23 @@ const Chat = () => {
       };
       
       setMessages(prevMessages => [...prevMessages, aiMessage]);
+      await saveMessage(aiMessage.text, 'ai');
       setIsLoading(false);
     }, 1500);
+  };
+
+  // Handle switching between voice and text modes
+  const toggleVoiceMode = () => {
+    setShowVoiceUI(!showVoiceUI);
+    setSessionType(showVoiceUI ? 'text' : 'voice');
     
-    // In a real implementation, you would save the conversation to Supabase
-    try {
-      // Create a new session if needed
-      // Save the message to Supabase
-      // etc.
-    } catch (error) {
-      console.error("Error saving message:", error);
+    // If switching to voice, open the voice assistant
+    if (!showVoiceUI && vapiRef.current) {
+      setTimeout(() => {
+        document.querySelector('.rounded-full.w-14.h-14')?.dispatchEvent(
+          new MouseEvent('click', { bubbles: true })
+        );
+      }, 100);
     }
   };
 
@@ -85,13 +172,20 @@ const Chat = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/welcome')}
             className="text-menova-text hover:bg-menova-lightgreen"
           >
             ← Back
           </Button>
           <h1 className="text-xl font-semibold text-menova-green">Chat with MeNova</h1>
-          <div className="w-10"></div> {/* Spacer for alignment */}
+          <Button
+            variant="ghost"
+            onClick={toggleVoiceMode}
+            className="text-menova-text hover:bg-menova-lightgreen"
+            aria-label={showVoiceUI ? "Switch to text chat" : "Switch to voice chat"}
+          >
+            {showVoiceUI ? <Send size={18} /> : <Volume2 size={18} />}
+          </Button>
         </div>
       </div>
       
@@ -140,35 +234,37 @@ const Chat = () => {
           )}
         </div>
         
-        {/* Input container */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 p-2 border border-menova-green/30 rounded-full focus:outline-none focus:ring-2 focus:ring-menova-green/50"
-              placeholder="Type your message..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSendMessage();
-                }
-              }}
-            />
-            <Button 
-              onClick={handleSendMessage}
-              className="bg-menova-green hover:bg-menova-green/90 rounded-full"
-              disabled={isLoading}
-            >
-              <Send size={18} />
-            </Button>
+        {/* Input container - only show for text chat */}
+        {!showVoiceUI && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="flex-1 p-2 border border-menova-green/30 rounded-full focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+                placeholder="Type your message..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSendMessage();
+                  }
+                }}
+              />
+              <Button 
+                onClick={handleSendMessage}
+                className="bg-menova-green hover:bg-menova-green/90 rounded-full"
+                disabled={isLoading}
+              >
+                <Send size={18} />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
       
-      {/* Voice Assistant */}
+      {/* Voice Assistant - Always render but only make prominent when in voice mode */}
       <div className="fixed bottom-6 right-6 z-50">
-        <VapiAssistant />
+        <VapiAssistant ref={vapiRef} />
       </div>
     </div>
   );
