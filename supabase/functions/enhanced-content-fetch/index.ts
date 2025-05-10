@@ -119,19 +119,46 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    let contentType = 'article';
+    let topic = 'menopause wellness';
+    let count = 6;
     
-    // Get content type and topic from URL parameters
-    const contentType = url.searchParams.get('type') as 'article' | 'video' || 'article';
-    const topic = url.searchParams.get('topic') || 'menopause wellness';
-    const count = parseInt(url.searchParams.get('count') || '6');
+    // Check if we have parameters in the body or in the URL
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        
+        if (body && body.params) {
+          contentType = body.params.type || 'article';
+          topic = body.params.topic || 'menopause wellness';
+          count = parseInt(body.params.count || '6');
+        }
+      } catch (e) {
+        console.error("Error parsing request body:", e);
+        // Continue with default values or URL parameters
+      }
+    }
+    
+    // If not in body, check URL parameters
+    if (contentType === 'article' && url.searchParams.has('type')) {
+      contentType = url.searchParams.get('type') as 'article' | 'video';
+    }
+    
+    if (topic === 'menopause wellness' && url.searchParams.has('topic')) {
+      topic = url.searchParams.get('topic') || topic;
+    }
+    
+    if (count === 6 && url.searchParams.has('count')) {
+      count = parseInt(url.searchParams.get('count') || '6');
+    }
     
     console.log(`Fetching ${contentType} content about "${topic}"`);
     
     // Scrape content using Firecrawl
-    const scrapedContent = await scrapeContentWithFirecrawl(topic, contentType, count);
+    const scrapedContent = await scrapeContentWithFirecrawl(topic, contentType as 'article' | 'video', count);
     
     // Process and enrich the scraped content
-    const processedContent = await processContent(scrapedContent, contentType);
+    const processedContent = await processContent(scrapedContent, contentType as 'article' | 'video');
     
     // Return the processed content
     return new Response(JSON.stringify(processedContent), {

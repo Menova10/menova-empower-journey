@@ -123,15 +123,15 @@ const Resources: React.FC = () => {
     try {
       setLoading(true);
       
-      // Build the URL for the edge function with query parameters
+      // Fixed: Use query parameters in the correct way by passing them as URL parameters instead of using the query property
       const params = new URLSearchParams();
       if (type !== 'all') params.append('type', type);
       if (topic) params.append('topic', topic);
       params.append('count', count.toString());
       
-      // Call the edge function
+      // Call the edge function with correct parameters
       const { data, error } = await supabase.functions.invoke('enhanced-content-fetch', {
-        query: params
+        body: { params: Object.fromEntries(params) }
       });
       
       if (error) {
