@@ -12,10 +12,11 @@ import { useLocation } from 'react-router-dom';
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
   className?: string;
+  autoOpen?: boolean;
 }
 
-const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className }, ref) => {
-  const [open, setOpen] = useState(false);
+const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className, autoOpen = false }, ref) => {
+  const [open, setOpen] = useState(autoOpen);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'ai'; timestamp: Date }[]>([{
     text: "Hello! I'm MeNova, your companion through menopause. How are you feeling today?",
@@ -46,15 +47,13 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   // Check for auto-start parameter from location state
   useEffect(() => {
     const locationState = location.state as any;
-    if (locationState?.autoStartVoice && !autoStartTriggered) {
+    if (locationState?.autoStartVoice && !autoStartTriggered && !open) {
       // Auto-open dialog when requested from navigation
       console.log("Auto-starting voice assistant from location state");
       setAutoStartTriggered(true);
-      setTimeout(() => {
-        handleAssistantClick();
-      }, 800);
+      setOpen(true);
     }
-  }, [location.state]);
+  }, [location.state, autoStartTriggered, open]);
 
   // Check authentication status
   useEffect(() => {
@@ -162,7 +161,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     
     // Optionally send to Vapi for processing
     if (vapiRef.current) {
-      vapiRef.current.sendTextMessage(message);
+      vapiRef.current.sendTextMessage && vapiRef.current.sendTextMessage(message);
     }
   };
 
@@ -170,9 +169,9 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     setAudioMuted(!audioMuted);
     if (vapiRef.current) {
       if (!audioMuted) {
-        vapiRef.current.mute();
+        vapiRef.current.mute && vapiRef.current.mute();
       } else {
-        vapiRef.current.unmute();
+        vapiRef.current.unmute && vapiRef.current.unmute();
       }
     }
   };

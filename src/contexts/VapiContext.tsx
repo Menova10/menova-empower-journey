@@ -105,8 +105,10 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const speak = (text: string) => {
+    if (!vapiRef.current) return;
     console.log("Speaking text:", text);
-    vapiRef.current?.speak(text);
+    // Use sendTextMessage instead of speak for Vapi API v2
+    vapiRef.current?.sendTextMessage && vapiRef.current.sendTextMessage(text);
   };
 
   const value = {
