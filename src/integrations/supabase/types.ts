@@ -48,6 +48,36 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_goals: {
+        Row: {
+          category: string | null
+          completed: boolean | null
+          created_at: string | null
+          date: string | null
+          goal: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          completed?: boolean | null
+          created_at?: string | null
+          date?: string | null
+          goal: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          completed?: boolean | null
+          created_at?: string | null
+          date?: string | null
+          goal?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_insights: {
         Row: {
           created_at: string | null

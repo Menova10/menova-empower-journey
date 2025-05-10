@@ -1,9 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from 'react-router-dom';
 
 interface WellnessGoal {
   category: string;
@@ -23,6 +23,7 @@ interface DailyInsight {
 }
 
 const WellnessDashboard = () => {
+  const navigate = useNavigate();
   const [goals, setGoals] = useState<WellnessGoal[]>([]);
   const [symptoms, setSymptoms] = useState<SymptomRating[]>([]);
   const [insight, setInsight] = useState<DailyInsight>({ 
@@ -147,11 +148,8 @@ const WellnessDashboard = () => {
   }, []);
 
   const handleAskAboutProgress = () => {
-    if (window.confirm(`You've completed ${overallProgress}% of your daily goals.\n${
-      goals.map(goal => `For ${goal.category}, you've completed ${goal.completed} out of ${goal.total} activities.`).join('\n')
-    }`)) {
-      // This is just a simple alert replacement for now
-    }
+    // Navigate to the new Today's Wellness page
+    navigate('/todays-wellness');
   };
 
   return (
@@ -231,7 +229,7 @@ const WellnessDashboard = () => {
             <Button 
               variant="outline" 
               className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 mt-4"
-              onClick={() => window.location.href = '/symptom-tracker'}
+              onClick={() => navigate('/symptom-tracker')}
             >
               View Full Tracker
             </Button>

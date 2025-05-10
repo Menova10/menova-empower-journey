@@ -2,4 +2,5 @@
 project_id = "kiuaitdfimlmgvkybuxx"
 [functions.enhanced-content-fetch]
 verify_jwt = false
-
+[functions.suggest-wellness-goals]
+verify_jwt = false
