@@ -1,3 +1,4 @@
+
 // Firecrawl integration for fetching images and content
 // This shared module can be used by multiple edge functions
 
@@ -18,6 +19,8 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
       return getFallbackImages(count);
     }
     
+    console.log(`Fetching ${count} images for query: "${query}" from Firecrawl`);
+    
     // Make the API request to Firecrawl
     const response = await fetch(`${endpoint}?query=${encodeURIComponent(query)}&limit=${count}`, {
       method: "GET",
@@ -32,6 +35,7 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     }
     
     const data = await response.json();
+    console.log("Firecrawl image response:", JSON.stringify(data).substring(0, 200) + "...");
     
     // Extract image URLs from the response
     if (data && data.images && Array.isArray(data.images)) {
@@ -64,11 +68,12 @@ export async function scrapeContentWithFirecrawl(
     
     if (!apiKey) {
       console.warn("FIRECRAWL_API_KEY not found in environment variables");
-      return [];
+      throw new Error("Firecrawl API key not configured");
     }
     
     // Create the search query based on topic and content type
     const query = `${topic} ${contentType === 'video' ? 'video' : 'article'} menopause health`;
+    console.log(`Scraping content for query: "${query}" from Firecrawl`);
     
     // Make the API request to Firecrawl
     const response = await fetch(endpoint, {
@@ -85,16 +90,20 @@ export async function scrapeContentWithFirecrawl(
     });
     
     if (!response.ok) {
+      console.error(`Firecrawl API responded with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`Error response body: ${errorText}`);
       throw new Error(`Firecrawl API error: ${response.status} ${response.statusText}`);
     }
     
     const data = await response.json();
+    console.log(`Firecrawl returned ${data.results?.length || 0} results for ${contentType}`);
     
     // Return the scraped content
     return data.results || [];
   } catch (error) {
     console.error(`Error scraping content with Firecrawl: ${error}`);
-    return [];
+    throw error;
   }
 }
 
@@ -114,4 +123,4 @@ function getFallbackImages(count: number): string[] {
   ];
   
   return fallbackImages.slice(0, count);
-} 
+}

@@ -298,7 +298,9 @@ serve(async (req) => {
     try {
       const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
       if (firecrawlApiKey) {
+        console.log("Found Firecrawl API key, attempting to fetch content");
         scrapedContent = await scrapeContentWithFirecrawl(topic, contentType as 'article' | 'video', count);
+        console.log(`Successfully fetched ${scrapedContent.length} items from Firecrawl`);
       } else {
         console.error("FIRECRAWL_API_KEY not found in environment variables");
         throw new Error("Firecrawl API key not configured");
