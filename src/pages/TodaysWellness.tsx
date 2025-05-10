@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Check, Plus, RefreshCw, Apple, Yoga, Running } from 'lucide-react';
+import { Check, Plus, RefreshCw, Apple, Brain, ActivitySquare } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
@@ -28,8 +27,8 @@ const motivationalMessages = [
 // Improved categories with icons and colors
 const categories = [
   { value: 'nourish', label: 'Nourish', icon: Apple, color: 'bg-orange-200 text-orange-700' },
-  { value: 'center', label: 'Center', icon: Yoga, color: 'bg-teal-200 text-teal-700' },
-  { value: 'play', label: 'Play', icon: Running, color: 'bg-red-200 text-red-700' },
+  { value: 'center', label: 'Center', icon: Brain, color: 'bg-teal-200 text-teal-700' },
+  { value: 'play', label: 'Play', icon: ActivitySquare, color: 'bg-red-200 text-red-700' },
   { value: 'general', label: 'General', icon: Plus, color: 'bg-gray-200 text-gray-700' },
 ];
 

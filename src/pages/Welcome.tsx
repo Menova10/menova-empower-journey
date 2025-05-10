@@ -4,7 +4,7 @@ import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { MessageCircle, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { MessageCircle, User, Settings, LogOut, ChevronDown, Apple, Brain, ActivitySquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -427,13 +427,13 @@ const Welcome = () => {
             <CategoryProgressRing 
               category="center" 
               percentage={categoryProgress.center} 
-              icon={Yoga} 
+              icon={Brain} 
               color="#14b8a6" // teal-500
             />
             <CategoryProgressRing 
               category="play" 
               percentage={categoryProgress.play} 
-              icon={Running} 
+              icon={ActivitySquare} 
               color="#ea384c" // red-500
             />
           </div>
