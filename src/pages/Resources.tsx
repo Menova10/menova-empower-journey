@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
@@ -27,7 +26,7 @@ interface ContentItem {
   url: string;
   duration?: string;
   author?: {
-    name: string;
+    name: string | object;
     avatar: string;
   };
   isOpenAIGenerated?: boolean;
@@ -60,6 +59,19 @@ const Resources: React.FC = () => {
     'mental health women',
     'meditation women'
   ]);
+
+  // Helper function to safely get author initials
+  const getAuthorInitial = (author: any): string => {
+    if (!author || !author.name) return '?';
+    
+    // Check if name is a string
+    if (typeof author.name === 'string') {
+      return author.name.charAt(0) || '?';
+    }
+    
+    // If name is an object or something else, return a safe fallback
+    return '?';
+  };
 
   // Fetch user profile and symptoms
   useEffect(() => {
@@ -362,9 +374,11 @@ const Resources: React.FC = () => {
                       <div className="flex items-center">
                         <Avatar className="h-6 w-6 mr-2">
                           <AvatarImage src={item.author?.avatar} />
-                          <AvatarFallback>{item.author?.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
                         </Avatar>
-                        <span className="text-xs text-muted-foreground">{item.author?.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
+                        </span>
                       </div>
                       {item.type === 'video' && item.duration && (
                         <span className="text-xs text-muted-foreground flex items-center">
@@ -486,9 +500,11 @@ const Resources: React.FC = () => {
                           <div className="flex items-center">
                             <Avatar className="h-6 w-6 mr-2">
                               <AvatarImage src={item.author?.avatar} />
-                              <AvatarFallback>{item.author?.name.charAt(0)}</AvatarFallback>
+                              <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
                             </Avatar>
-                            <span className="text-xs text-muted-foreground">{item.author?.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
+                            </span>
                           </div>
                           <div className="flex items-center">
                             <Button 
@@ -542,10 +558,12 @@ const Resources: React.FC = () => {
                       <div className="flex items-center">
                         <Avatar className="h-8 w-8 mr-2">
                           <AvatarImage src={activeContent.author?.avatar} />
-                          <AvatarFallback>{activeContent.author?.name.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>{getAuthorInitial(activeContent.author)}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-sm font-medium">{activeContent.author?.name}</p>
+                          <p className="text-sm font-medium">
+                            {typeof activeContent.author?.name === 'string' ? activeContent.author.name : 'Author'}
+                          </p>
                           {activeContent.duration && (
                             <p className="text-xs text-muted-foreground">{activeContent.duration}</p>
                           )}
