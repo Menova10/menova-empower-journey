@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Calendar, ChartBar } from 'lucide-react';
+import { CalendarDays, Calendar, ChartBar, Apple, Brain, ActivitySquare, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
@@ -15,7 +15,9 @@ import {
   CategoryProgress,
   WeeklyProgress,
   MonthlyProgress,
-  normalizeCategory
+  normalizeCategory,
+  categories,
+  motivationalMessages
 } from '@/types/wellness';
 
 // Import components
@@ -50,33 +52,6 @@ import {
   endOfMonth, 
   differenceInDays 
 } from 'date-fns';
-
-const motivationalMessages = [
-  "Amazing job! You're taking great care of yourself.",
-  "Fantastic work! Keep nurturing your wellbeing.",
-  "Well done! Every step matters on your wellness journey.",
-  "Great achievement! You're making wonderful progress.",
-  "Excellent! Your dedication to self-care is inspiring."
-];
-
-// Improved categories with icons and colors
-const categories = [
-  { value: 'nourish', label: 'Nourish', icon: Apple, color: 'bg-orange-200 text-orange-700' },
-  { value: 'center', label: 'Center', icon: Brain, color: 'bg-teal-200 text-teal-700' },
-  { value: 'play', label: 'Play', icon: ActivitySquare, color: 'bg-red-200 text-red-700' },
-  { value: 'general', label: 'General', icon: Plus, color: 'bg-gray-200 text-gray-700' },
-];
-
-// Helper function to normalize category names for consistency
-const normalizeCategory = (category: string): string => {
-  // Convert to lowercase for consistency
-  const lowerCategory = category.toLowerCase();
-  
-  // Map 'centre' to 'center' for consistency
-  if (lowerCategory === 'centre') return 'center';
-  
-  return lowerCategory;
-};
 
 const TodaysWellness = () => {
   const navigate = useNavigate();
@@ -538,9 +513,84 @@ const TodaysWellness = () => {
 
   // Initial data loading
   useEffect(() => {
+    const fetchGoals = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/login');
+          return;
+        }
+  
+        // Fetch today's goals
+        const fetchedGoals = await fetchTodaysGoals(session.user.id);
+        setGoals(fetchedGoals);
+        
+        // If we have no goals for today, check if we have wellness goals in the database
+        // and create some default goals based on that
+        if (fetchedGoals.length === 0) {
+          const defaultGoals = await checkAndCreateDefaultGoals(session.user.id);
+          if (defaultGoals.length > 0) {
+            setGoals(defaultGoals);
+            toast({
+              title: 'Daily goals created',
+              description: 'We\'ve created some default goals based on your wellness plan.',
+            });
+          }
+        }
+  
+        // Also fetch weekly and monthly data when switching tabs
+        if (activeTab === 'weekly' || activeTab === 'all') {
+          const weeklyData = await fetchWeeklyGoals(session.user.id);
+          setWeeklyGoals(weeklyData);
+          processWeeklyData(weeklyData);
+        }
+  
+        if (activeTab === 'monthly' || activeTab === 'all') {
+          const monthlyData = await fetchMonthlyGoals(session.user.id);
+          setMonthlyGoals(monthlyData);
+          processMonthlyData(monthlyData);
+        }
+        
+        // Check for existing progress in wellness_goals table
+        const progress = await fetchWellnessGoalsProgress(session.user.id);
+        if (progress) {
+          setCategoryCounts(progress);
+        } else {
+          // Fallback to calculation from goals
+          calculateCategoryProgress();
+        }
+        
+      } catch (error) {
+        console.error('Error fetching goals:', error);
+        toast({
+          title: 'Error fetching goals',
+          description: 'Could not retrieve your goals. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchGoals();
+    
+    const fetchSuggestedGoalsHandler = async () => {
+      try {
+        setLoadingSuggestions(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        
+        const suggestions = await fetchSuggestedGoals(session.user.id);
+        setSuggestedGoals(suggestions);
+      } catch (error) {
+        console.error('Error fetching suggested goals:', error);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+    
     fetchSuggestedGoalsHandler();
-  }, [fetchGoals, fetchSuggestedGoalsHandler, activeTab]);
+  }, [activeTab, calculateCategoryProgress, navigate, toast]);
 
   // Calculate category progress whenever goals change
   useEffect(() => {
