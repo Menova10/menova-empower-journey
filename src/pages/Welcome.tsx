@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -6,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { MessageCircle, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import VapiAssistant from '@/components/VapiAssistant';
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
@@ -21,7 +21,6 @@ import {
 const Welcome = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const vapiRef = useRef(null);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -74,25 +73,12 @@ const Welcome = () => {
 
   // Handle voice navigation with announcements
   const handleVoiceNavigation = (sectionName: string, path: string) => {
-    if (vapiRef.current) {
-      (vapiRef.current as any).speak(`Navigating to ${sectionName}`);
-    }
-    
     // Close all menus
     setIsExploreOpen(false);
     setIsMobileMenuOpen(false);
     
-    // Navigate after a short delay to allow the voice to be heard
-    setTimeout(() => {
-      navigate(path);
-    }, 500);
-  };
-  
-  // Voice prompts for menu sections
-  const handleExplorePrompt = () => {
-    if (vapiRef.current) {
-      (vapiRef.current as any).speak('Say Explore to view more options');
-    }
+    // Navigate immediately
+    navigate(path);
   };
 
   // Handle logout
@@ -142,7 +128,6 @@ const Welcome = () => {
                 <Button 
                   variant="ghost" 
                   className="text-menova-green hover:bg-menova-green/10"
-                  onMouseEnter={handleExplorePrompt}
                 >
                   Explore <ChevronDown size={16} className="ml-1" />
                 </Button>
@@ -381,14 +366,9 @@ const Welcome = () => {
         </section>
       </main>
 
-      {/* Fixed floating chatbot - replaced with our new component */}
-      <div className="fixed bottom-20 right-6 z-40">
+      {/* Fixed floating chatbot - kept for text chat functionality */}
+      <div className="fixed bottom-6 right-6 z-40">
         <MeNovaChatButton variant="floating" />
-      </div>
-
-      {/* Floating Voice Assistant */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <VapiAssistant ref={vapiRef} />
       </div>
     </div>
   );

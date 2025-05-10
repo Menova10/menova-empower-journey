@@ -1,10 +1,10 @@
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
 import MeNovaLogo from '@/components/MeNovaLogo';
-import VapiAssistant from '@/components/VapiAssistant';
 import { supabase } from '@/integrations/supabase/client';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
 
@@ -295,14 +295,9 @@ const Index = () => {
         <p>© 2025 MeNova. Your companion through menopause.</p>
       </footer>
 
-      {/* Fixed floating chatbot - replaced with our new component */}
-      <div className="fixed bottom-20 right-6 z-40">
+      {/* Fixed floating chatbot - kept for text chat functionality */}
+      <div className="fixed bottom-6 right-6 z-40">
         <MeNovaChatButton variant="floating" />
-      </div>
-
-      {/* Floating Voice Assistant */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <VapiAssistant />
       </div>
 
       {/* Login Modal with improved accessibility and close button */}
