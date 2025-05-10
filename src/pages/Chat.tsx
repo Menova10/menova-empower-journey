@@ -23,39 +23,84 @@ const Chat = () => {
   // Initialize session based on location state
   useEffect(() => {
     const locationState = location.state as any;
+    
+    // Check authentication first
+    if (!isAuthenticated && (!locationState?.authenticated)) {
+      navigate('/login', { state: { returnTo: '/chat' } });
+      return;
+    }
+    
     if (locationState) {
       // If resuming a specific session
       if (locationState.sessionId) {
         setSessionId(locationState.sessionId);
-        // Fetch existing messages for this session
+        fetchExistingMessages(locationState.sessionId);
       } 
       
       // Set session type (voice or text)
       if (locationState.sessionType === 'voice') {
         setSessionType('voice');
         setShowVoiceUI(true);
+        
+        // Auto-open voice assistant if coming from voice option
+        setTimeout(() => {
+          if (vapiRef.current) {
+            document.querySelector('.rounded-full.w-14.h-14')?.dispatchEvent(
+              new MouseEvent('click', { bubbles: true })
+            );
+          }
+        }, 300);
       } else {
         setSessionType('text');
       }
     }
     
-    // Add initial greeting when component mounts
-    // Check if we were navigated here from an authenticated page
-    const comingFromAuthenticatedPage = locationState?.authenticated === true;
-    
-    if (!isAuthenticated && !comingFromAuthenticatedPage) {
-      navigate('/login');
-      return;
+    // Add initial greeting when component mounts (if no existing messages)
+    if (!locationState?.sessionId) {
+      setMessages([
+        {
+          text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
+          sender: 'ai',
+          timestamp: new Date()
+        }
+      ]);
     }
-    
-    setMessages([
-      {
-        text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
-        sender: 'ai',
-        timestamp: new Date()
-      }
-    ]);
   }, [isAuthenticated, navigate, location.state]);
+
+  // Fetch existing messages for a session
+  const fetchExistingMessages = async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('session_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('timestamp', { ascending: true });
+        
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        setMessages(data.map(msg => ({
+          text: msg.message,
+          sender: msg.sender as 'user' | 'ai',
+          timestamp: new Date(msg.timestamp)
+        })));
+      } else {
+        // If no messages, add initial greeting
+        setMessages([
+          {
+            text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
+            sender: 'ai',
+            timestamp: new Date()
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -172,7 +217,7 @@ const Chat = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/welcome')}
+            onClick={() => navigate('/check-in')}
             className="text-menova-text hover:bg-menova-lightgreen"
           >
             ← Back
