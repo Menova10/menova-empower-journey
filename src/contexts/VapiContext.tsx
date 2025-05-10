@@ -1,8 +1,8 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import Vapi from "@vapi-ai/web";
 import { toast } from '@/components/ui/use-toast';
 
+// Define the interface for the Vapi context
 type VapiContextType = {
   isSpeaking: boolean;
   isListening: boolean;
@@ -14,14 +14,28 @@ type VapiContextType = {
   vapiRef: React.MutableRefObject<any>;
 };
 
+// Create the context with undefined as initial value
 const VapiContext = createContext<VapiContextType | undefined>(undefined);
 
+// Custom hook to use the Vapi context
 export const useVapi = (): VapiContextType => {
   const context = useContext(VapiContext);
   if (!context) throw new Error('useVapi must be used within a VapiProvider');
   return context;
 };
 
+// Create a dynamic import for Vapi to ensure it only loads in browser environment
+let Vapi: any = null;
+if (typeof window !== 'undefined') {
+  // This will only execute in browser environment
+  import('@vapi-ai/web').then(module => {
+    Vapi = module.default;
+  }).catch(error => {
+    console.error('Failed to load Vapi module:', error);
+  });
+}
+
+// The VapiProvider component
 export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -30,6 +44,12 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const vapiRef = useRef<any>(null);
 
   useEffect(() => {
+    // Only initialize Vapi if we're in the browser
+    if (typeof window === 'undefined' || !Vapi) {
+      console.log("Skipping Vapi initialization: Not in browser or Vapi not loaded");
+      return;
+    }
+
     try {
       console.log("Initializing Vapi SDK");
       vapiRef.current = new Vapi('d3fd5e81-606a-4d19-b737-bd00fd55a737');

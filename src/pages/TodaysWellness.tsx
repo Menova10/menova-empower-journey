@@ -1,568 +1,498 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardFooter 
-} from "@/components/ui/card";
-import { 
-  Form, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormControl, 
-  FormMessage 
-} from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, Check, X, RefreshCcw, Plus, ArrowRight } from "lucide-react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Check, Plus, RefreshCw } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { Toaster } from '@/components/ui/toaster';
+import { useVapi } from '@/contexts/VapiContext';
+import VapiAssistant from '@/components/VapiAssistant';
 
-// Define form schema for adding a new goal
-const formSchema = z.object({
-  goal: z.string().min(3, {
-    message: "Goal must be at least 3 characters.",
-  }),
-});
-
-// Define the Goal interface
 interface Goal {
   id: string;
   goal: string;
   completed: boolean;
   category: string;
-  date: string;
 }
 
-const TodaysWellness = () => {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user, session } = useAuth();
+const motivationalMessages = [
+  "Amazing job! You're taking great care of yourself.",
+  "Fantastic work! Keep nurturing your wellbeing.",
+  "Well done! Every step matters on your wellness journey.",
+  "Great achievement! You're making wonderful progress.",
+  "Excellent! Your dedication to self-care is inspiring."
+];
 
-  // Initialize form
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      goal: "",
-    },
-  });
+const categories = [
+  { value: 'general', label: 'General' },
+  { value: 'nutrition', label: 'Nutrition' },
+  { value: 'movement', label: 'Movement' },
+  { value: 'mindfulness', label: 'Mindfulness' },
+  { value: 'sleep', label: 'Sleep' },
+  { value: 'symptom', label: 'Symptom Management' },
+];
+
+const TodaysWellness = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [newGoal, setNewGoal] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('general');
+  const [loading, setLoading] = useState(true);
+  const [suggestedGoals, setSuggestedGoals] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [completedGoal, setCompletedGoal] = useState<Goal | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0); // Used to trigger animation
+  const { speak } = useVapi();
+  const vapiAssistantRef = React.useRef<any>(null);
 
   // Calculate progress
-  const calculateProgress = (goalsList: Goal[]) => {
-    if (goalsList.length === 0) return 0;
-    const completed = goalsList.filter((goal) => goal.completed).length;
-    return Math.round((completed / goalsList.length) * 100);
-  };
+  const completedGoals = goals.filter(g => g.completed).length;
+  const totalGoals = goals.length;
+  const progress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
-  // Fetch goals from Supabase
-  const fetchGoals = async () => {
-    if (!user) return;
-    
+  // Fetch user's goals for today
+  const fetchGoals = useCallback(async () => {
     try {
-      setLoading(true);
-      const today = new Date().toISOString().split("T")[0];
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
       const { data, error } = await supabase
-        .from("daily_goals")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("date", today)
-        .order("created_at", { ascending: true });
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
-      
       setGoals(data || []);
-      setProgress(calculateProgress(data || []));
     } catch (error) {
-      console.error("Error fetching goals:", error);
+      console.error('Error fetching goals:', error);
       toast({
-        title: "Error",
-        description: "Failed to load your daily goals. Please try again.",
-        variant: "destructive",
+        title: 'Error fetching goals',
+        description: 'Could not retrieve your goals. Please try again later.',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate, toast]);
 
-  // Fetch AI-generated goal suggestions
-  const fetchSuggestions = async () => {
-    if (!user || !session) return;
-    
+  // Fetch suggested goals from our edge function
+  const fetchSuggestedGoals = useCallback(async () => {
     try {
-      setSuggestionsLoading(true);
-      
-      const { data, error } = await supabase.functions.invoke("suggest-wellness-goals", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+      setLoadingSuggestions(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke('suggest-wellness-goals', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       if (error) throw error;
       
-      if (data.suggestions && data.suggestions.length > 0) {
-        setSuggestions(data.suggestions);
+      if (data?.suggestions && Array.isArray(data.suggestions)) {
+        setSuggestedGoals(data.suggestions);
+      } else {
+        console.error('Invalid suggestions format:', data);
+        setSuggestedGoals([]);
       }
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestions([
-        "Take a 15-minute walk outside",
+      console.error('Error fetching suggested goals:', error);
+      setSuggestedGoals([
         "Drink 8 glasses of water today",
+        "Take a 15-minute walk outside",
         "Practice deep breathing for 5 minutes",
-        "Eat a meal rich in calcium and vitamin D",
-        "Write down 3 things you're grateful for"
+        "Write down 3 things you're grateful for",
+        "Eat a meal rich in calcium and vitamin D"
       ]);
     } finally {
-      setSuggestionsLoading(false);
+      setLoadingSuggestions(false);
     }
-  };
-
-  // Initialize component
-  useEffect(() => {
-    if (user) {
-      fetchGoals();
-      fetchSuggestions();
-    } else {
-      // Redirect to login if not authenticated
-      navigate("/login", { state: { from: "/todays-wellness" } });
-    }
-  }, [user, navigate]);
+  }, []);
 
   // Add a new goal
-  const addGoal = async (values: z.infer<typeof formSchema>) => {
-    if (!user) return;
+  const addGoal = async () => {
+    if (!newGoal.trim()) return;
     
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+      
+      const today = new Date().toISOString().split('T')[0];
+      
       const { data, error } = await supabase
-        .from("daily_goals")
-        .insert([
-          {
-            user_id: user.id,
-            goal: values.goal,
-            completed: false,
-            date: new Date().toISOString().split("T")[0],
-          },
-        ])
+        .from('daily_goals')
+        .insert({
+          user_id: session.user.id,
+          goal: newGoal,
+          date: today,
+          category: selectedCategory
+        })
         .select();
-
+      
       if (error) throw error;
       
-      // Add the new goal to the list
-      if (data && data.length > 0) {
-        setGoals((prev) => {
-          const newGoals = [...prev, data[0]];
-          setProgress(calculateProgress(newGoals));
-          return newGoals;
-        });
-        
-        form.reset();
-        
+      if (data) {
+        setGoals([...goals, data[0]]);
+        setNewGoal('');
+        speak(`Added new goal: ${newGoal}`);
         toast({
-          title: "Success",
-          description: "Goal added successfully!",
+          title: 'Goal added',
+          description: 'Your wellness goal has been added for today.',
         });
       }
     } catch (error) {
-      console.error("Error adding goal:", error);
+      console.error('Error adding goal:', error);
       toast({
-        title: "Error",
-        description: "Failed to add goal. Please try again.",
-        variant: "destructive",
+        title: 'Error adding goal',
+        description: 'Could not add your goal. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
   // Add a suggested goal
-  const addSuggestedGoal = async (suggestion: string) => {
-    if (!user) return;
-    
+  const addSuggestedGoal = async (goal: string) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+        return;
+      }
+      
+      const today = new Date().toISOString().split('T')[0];
+      
       const { data, error } = await supabase
-        .from("daily_goals")
-        .insert([
-          {
-            user_id: user.id,
-            goal: suggestion,
-            completed: false,
-            date: new Date().toISOString().split("T")[0],
-          },
-        ])
+        .from('daily_goals')
+        .insert({
+          user_id: session.user.id,
+          goal: goal,
+          date: today,
+          category: 'suggested'
+        })
         .select();
-
+      
       if (error) throw error;
       
-      // Add the new goal to the list
-      if (data && data.length > 0) {
-        setGoals((prev) => {
-          const newGoals = [...prev, data[0]];
-          setProgress(calculateProgress(newGoals));
-          return newGoals;
+      if (data) {
+        setGoals([...goals, data[0]]);
+        speak(`Added suggested goal: ${goal}`);
+        toast({
+          title: 'Suggested goal added',
+          description: 'The suggested goal has been added to your daily goals.',
         });
         
-        // Remove the suggestion from the list
-        setSuggestions((prev) => prev.filter((item) => item !== suggestion));
+        // Remove from suggestions
+        setSuggestedGoals(suggestedGoals.filter(g => g !== goal));
+      }
+    } catch (error) {
+      console.error('Error adding suggested goal:', error);
+      toast({
+        title: 'Error adding goal',
+        description: 'Could not add the suggested goal. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Toggle goal completion status
+  const toggleGoalCompletion = async (goalId: string, currentStatus: boolean) => {
+    if (currentStatus === true) return; // Only allow completing goals, not uncompleting
+    
+    try {
+      const goalToUpdate = goals.find(g => g.id === goalId);
+      if (!goalToUpdate) return;
+      
+      const { error } = await supabase
+        .from('daily_goals')
+        .update({ completed: !currentStatus })
+        .eq('id', goalId);
+      
+      if (error) throw error;
+      
+      const updatedGoals = goals.map(g => 
+        g.id === goalId ? { ...g, completed: !currentStatus } : g
+      );
+      
+      setGoals(updatedGoals);
+      
+      // If this is a newly completed goal, show the celebration
+      if (!currentStatus) {
+        setCompletedGoal(goalToUpdate);
+        speak(`Great job completing your goal: ${goalToUpdate.goal}`);
         
+        // Select a random motivational message
+        const randomMessage = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
         toast({
-          title: "Success",
-          description: "Suggested goal added to your list!",
+          title: 'Goal completed!',
+          description: randomMessage,
         });
       }
     } catch (error) {
-      console.error("Error adding suggested goal:", error);
+      console.error('Error updating goal:', error);
       toast({
-        title: "Error",
-        description: "Failed to add suggested goal. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Toggle goal completion
-  const toggleGoalCompletion = async (goalId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from("daily_goals")
-        .update({ completed: !currentStatus })
-        .eq("id", goalId);
-
-      if (error) throw error;
-      
-      // Update the goal in the list
-      setGoals((prev) => {
-        const newGoals = prev.map((goal) =>
-          goal.id === goalId ? { ...goal, completed: !currentStatus } : goal
-        );
-        
-        const newProgress = calculateProgress(newGoals);
-        setProgress(newProgress);
-        
-        // Show completion message if all goals are completed
-        if (newProgress === 100) {
-          setShowCompletionMessage(true);
-        }
-        
-        return newGoals;
-      });
-    } catch (error) {
-      console.error("Error toggling goal completion:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update goal status. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Delete a goal
-  const deleteGoal = async (goalId: string) => {
-    try {
-      const { error } = await supabase
-        .from("daily_goals")
-        .delete()
-        .eq("id", goalId);
-
-      if (error) throw error;
-      
-      // Remove the goal from the list
-      setGoals((prev) => {
-        const newGoals = prev.filter((goal) => goal.id !== goalId);
-        setProgress(calculateProgress(newGoals));
-        return newGoals;
-      });
-      
-      toast({
-        title: "Success",
-        description: "Goal removed successfully.",
-      });
-    } catch (error) {
-      console.error("Error deleting goal:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete goal. Please try again.",
-        variant: "destructive",
+        title: 'Error updating goal',
+        description: 'Could not update your goal. Please try again.',
+        variant: 'destructive',
       });
     }
   };
 
   // Refresh suggested goals
-  const refreshSuggestions = async () => {
-    if (!user) return;
-    
-    setRefreshing(true);
-    await fetchSuggestions();
-    setRefreshing(false);
-    
-    toast({
-      title: "Success",
-      description: "Goal suggestions refreshed!",
-    });
+  const refreshSuggestions = () => {
+    fetchSuggestedGoals();
+    setRefreshKey(prevKey => prevKey + 1);
   };
 
-  // Get today's date in a readable format
-  const today = new Date().toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  // Initial data loading
+  useEffect(() => {
+    fetchGoals();
+    fetchSuggestedGoals();
+  }, [fetchGoals, fetchSuggestedGoals]);
+
+  // Open the chat assistant
+  const openAssistant = () => {
+    if (vapiAssistantRef.current) {
+      vapiAssistantRef.current.open();
+    }
+  };
 
   return (
-    <div className="container px-4 py-6 mx-auto max-w-6xl">
-      <h1 className="text-3xl font-semibold text-menova-text mb-6">Today's Wellness</h1>
-      <p className="text-gray-600 mb-8 flex items-center">
-        <Calendar className="mr-2 h-5 w-5 text-menova-green" />
-        {today}
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Goals list */}
-        <div className="md:col-span-2 space-y-6">
-          {/* New goal card */}
-          <Card className="bg-white/90 shadow-sm border-menova-green/30 overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[#7d6285]">Add New Goal</CardTitle>
-              <CardDescription>Set your wellness intentions for today</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(addGoal)} className="flex space-x-2">
-                  <FormField
-                    control={form.control}
-                    name="goal"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormControl>
-                          <Input 
-                            placeholder="E.g., Drink 8 glasses of water" 
-                            {...field} 
-                            className="border-menova-green/30 focus-visible:ring-menova-green"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit"
-                    className="bg-menova-green hover:bg-menova-green/80 text-white"
-                  >
-                    <Plus className="mr-1 h-4 w-4" /> Add
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Goals progress */}
-          <Card className="bg-white/90 shadow-sm border-menova-green/30 overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-[#7d6285]">Today's Progress</CardTitle>
-                <span className="text-sm font-medium">{progress}%</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Progress 
-                value={progress} 
-                className="h-3 bg-gray-100"
-                indicatorClassName="bg-menova-green"
+    <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Today's Wellness</h1>
+        <p className="text-center text-gray-600 mb-8">Your daily goals and activities</p>
+        
+        {/* Progress Bar */}
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8">
+          <div className="flex justify-between mb-2">
+            <h2 className="text-xl font-semibold text-menova-text">Your Progress</h2>
+            <span className="text-lg font-medium">{progress}%</span>
+          </div>
+          
+          <Progress 
+            value={progress} 
+            className="h-4 bg-gray-100" 
+          />
+          
+          <div className="mt-3 text-sm text-gray-600 text-center">
+            {completedGoals} of {totalGoals} goals completed
+          </div>
+        </div>
+        
+        {/* Add New Goal */}
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8">
+          <h2 className="text-xl font-semibold text-menova-text mb-4">Add New Goal</h2>
+          
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-1">
+                Goal Description
+              </label>
+              <input 
+                type="text" 
+                id="goal"
+                value={newGoal}
+                onChange={(e) => setNewGoal(e.target.value)}
+                placeholder="Enter a new wellness goal"
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+                onKeyDown={(e) => e.key === 'Enter' && addGoal()}
               />
-            </CardContent>
-          </Card>
-
-          {/* Goals list */}
-          <Card className="bg-white/90 shadow-sm border-menova-green/30 overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[#7d6285]">Your Goals</CardTitle>
-              <CardDescription>Track your daily wellness activities</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex justify-center py-6">
-                  <div className="animate-pulse space-y-2 w-full">
-                    <div className="h-10 bg-gray-200 rounded w-full"></div>
-                    <div className="h-10 bg-gray-200 rounded w-full"></div>
-                    <div className="h-10 bg-gray-200 rounded w-full"></div>
-                  </div>
+            </div>
+            
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                Category
+              </label>
+              <select
+                id="category"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+              >
+                {categories.map(category => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <Button 
+              onClick={addGoal} 
+              disabled={!newGoal.trim()}
+              className="w-full bg-menova-green hover:bg-menova-green/90 text-white flex items-center justify-center gap-2"
+            >
+              <Plus size={18} />
+              Add Goal
+            </Button>
+          </div>
+        </div>
+        
+        {/* Suggested Goals */}
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-menova-text">Suggested Goals</h2>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={refreshSuggestions}
+              className="border-menova-green text-menova-green hover:bg-menova-green/10"
+            >
+              <RefreshCw size={18} className={`${refreshKey > 0 ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+          
+          {loadingSuggestions ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="ml-auto h-8 w-8 bg-gray-200 rounded-full"></div>
                 </div>
-              ) : goals.length > 0 ? (
-                <div className="space-y-2">
-                  {goals.map((goal) => (
-                    <div 
-                      key={goal.id} 
-                      className={`flex items-center justify-between p-3 rounded-md border transition-all ${
-                        goal.completed 
-                          ? "bg-menova-lightgreen border-menova-green/40" 
-                          : "bg-white border-gray-200 hover:border-menova-green/30"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={goal.completed}
-                          onCheckedChange={() => toggleGoalCompletion(goal.id, goal.completed)}
-                          className={`${
-                            goal.completed 
-                              ? "bg-menova-green border-menova-green" 
-                              : "border-menova-green/30"
-                          } text-white`}
-                        />
-                        <span className={goal.completed ? "line-through text-gray-500" : ""}>
-                          {goal.goal}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => deleteGoal(goal.id)}
-                        className="text-gray-400 hover:text-red-500 transition-colors"
-                        aria-label="Delete goal"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-6 text-center text-gray-500">
-                  <p>You haven't set any goals for today yet.</p>
-                  <p className="mt-2 text-sm">Add a new goal above or choose from our suggestions.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Completion message */}
-          {showCompletionMessage && (
-            <Card className="bg-menova-lightgreen border-menova-green shadow-sm overflow-hidden animate-fade-in">
-              <CardContent className="pt-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="bg-menova-green rounded-full p-3 mb-4">
-                    <Check className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-menova-text mb-2">Amazing job!</h3>
-                  <p className="text-gray-600 mb-6">
-                    You've completed all your wellness goals for today. Keep up the great work!
-                  </p>
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    <Button
-                      variant="outline"
-                      className="border-menova-green text-menova-green hover:bg-menova-green/10"
-                      onClick={() => navigate('/check-in')}
-                    >
-                      Daily Check-In
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-menova-green text-menova-green hover:bg-menova-green/10"
-                      onClick={() => navigate('/resources')}
-                    >
-                      Explore Resources
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-menova-green text-menova-green hover:bg-menova-green/10"
-                      onClick={() => navigate('/chat')}
-                    >
-                      Start a Chat
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
+          ) : suggestedGoals.length > 0 ? (
+            <ul className="space-y-2">
+              {suggestedGoals.map((goal, index) => (
+                <li 
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  <span className="text-gray-700">{goal}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => addSuggestedGoal(goal)}
+                    className="text-menova-green hover:bg-menova-green/10 rounded-full"
+                  >
+                    <Plus size={20} />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600 text-center py-4">No suggested goals available. Click refresh to generate new suggestions.</p>
           )}
         </div>
-
-        {/* Suggestions column */}
-        <div className="space-y-6">
-          <Card className="bg-white/90 shadow-sm border-menova-green/30 overflow-hidden">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-[#7d6285]">Suggested Goals</CardTitle>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={refreshSuggestions}
-                  disabled={refreshing || suggestionsLoading}
-                  className="text-menova-green hover:text-menova-green/80 hover:bg-menova-green/10"
+        
+        {/* Today's Goals */}
+        <div className="bg-white/90 rounded-lg shadow-sm p-6">
+          <h2 className="text-xl font-semibold text-menova-text mb-4">Today's Goals</h2>
+          
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
+                  <div className="h-6 w-6 bg-gray-200 rounded-full mr-3"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              ))}
+            </div>
+          ) : goals.length > 0 ? (
+            <ul className="space-y-2">
+              {goals.map(goal => (
+                <li 
+                  key={goal.id}
+                  className={`flex items-center p-3 rounded-md transition-all ${
+                    goal.completed 
+                      ? 'bg-menova-green/10 text-menova-green' 
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
                 >
-                  <RefreshCcw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                  <span className="ml-1 sr-md:hidden">Refresh</span>
+                  <button
+                    onClick={() => toggleGoalCompletion(goal.id, goal.completed)}
+                    className={`w-6 h-6 rounded-full mr-3 flex items-center justify-center border ${
+                      goal.completed 
+                        ? 'bg-menova-green border-menova-green text-white' 
+                        : 'border-gray-300 hover:border-menova-green'
+                    }`}
+                    disabled={goal.completed}
+                  >
+                    {goal.completed && <Check size={14} />}
+                  </button>
+                  <span 
+                    className={`flex-1 ${
+                      goal.completed ? 'line-through text-menova-green' : 'text-gray-700'
+                    }`}
+                  >
+                    {goal.goal}
+                  </span>
+                  <span className="text-xs text-gray-500 uppercase px-2 py-1 bg-gray-100 rounded">
+                    {goal.category}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-600 text-center py-4">No goals for today. Start by adding some goals above!</p>
+          )}
+        </div>
+        
+        {/* Celebration Modal - Shown after completing a goal */}
+        {completedGoal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 p-4">
+            <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center animate-scale-in">
+              <div className="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <Check size={32} className="text-menova-green" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-menova-text mb-2">Goal Completed!</h3>
+              <p className="text-gray-600 mb-6">{motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)]}</p>
+              
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => navigate('/check-in')}
+                  variant="outline" 
+                  className="w-full border-menova-green text-menova-green hover:bg-menova-green/10"
+                >
+                  Go to Daily Check-In
+                </Button>
+                
+                <Button 
+                  onClick={() => navigate('/resources')}
+                  variant="outline" 
+                  className="w-full border-menova-green text-menova-green hover:bg-menova-green/10"
+                >
+                  Explore Resources
+                </Button>
+                
+                <Button 
+                  onClick={() => {
+                    setCompletedGoal(null);
+                    openAssistant();
+                  }}
+                  className="w-full bg-menova-green hover:bg-menova-green/90 text-white"
+                >
+                  Chat with MeNova
+                </Button>
+                
+                <Button 
+                  onClick={() => setCompletedGoal(null)}
+                  variant="ghost" 
+                  className="w-full text-gray-500 hover:text-gray-700"
+                >
+                  Close
                 </Button>
               </div>
-              <CardDescription>Personalized wellness suggestions for you</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {suggestionsLoading ? (
-                <div className="animate-pulse space-y-3">
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {suggestions.map((suggestion, index) => (
-                    <button
-                      key={index}
-                      className="flex justify-between items-center w-full p-3 text-left rounded-md border border-gray-200 hover:border-menova-green/30 transition-all bg-white hover:bg-menova-lightgreen/30"
-                      onClick={() => addSuggestedGoal(suggestion)}
-                    >
-                      <span>{suggestion}</span>
-                      <Plus className="h-4 w-4 text-menova-green" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/90 shadow-sm border-menova-green/30 overflow-hidden">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[#7d6285]">Wellness Tips</CardTitle>
-              <CardDescription>Daily insights for your journey</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3 text-gray-700">
-                <p className="text-sm">
-                  <span className="font-semibold text-menova-green">💧 Stay hydrated:</span> Drinking enough water can help minimize hot flashes and improve energy levels.
-                </p>
-                <p className="text-sm">
-                  <span className="font-semibold text-menova-green">🌿 Mindfulness:</span> Just 5 minutes of mindfulness practice can significantly reduce stress hormones.
-                </p>
-                <p className="text-sm">
-                  <span className="font-semibold text-menova-green">🚶‍♀️ Movement:</span> Regular movement helps strengthen bones and improves mood through endorphin release.
-                </p>
-              </div>
-            </CardContent>
-            <CardFooter className="pt-0">
-              <Button 
-                variant="outline" 
-                className="w-full border-menova-green text-menova-green hover:bg-menova-green/10"
-                onClick={() => navigate('/resources')}
-              >
-                Explore More Resources <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+            </div>
+          </div>
+        )}
       </div>
+      
+      <VapiAssistant ref={vapiAssistantRef} />
+      <Toaster />
     </div>
   );
 };
