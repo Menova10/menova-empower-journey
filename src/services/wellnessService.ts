@@ -1,7 +1,9 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Goal, SuggestedGoal, CategoryProgress } from '@/types/wellness';
+import { Goal, SuggestedGoal, CategoryProgress, normalizeCategory } from '@/types/wellness';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+
+// Re-export the normalizeCategory function from types
+export { normalizeCategory };
 
 // Fetch user's goals for today
 export const fetchTodaysGoals = async (userId: string): Promise<Goal[]> => {

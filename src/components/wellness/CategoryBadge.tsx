@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Apple, Brain, ActivitySquare, Plus } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { categories } from '@/types/wellness';
 
 interface CategoryBadgeProps {
@@ -10,14 +10,14 @@ interface CategoryBadgeProps {
 export const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category }) => {
   const categoryData = categories.find(c => c.value === category) || categories[3]; // Default to 'general'
   
-  // Map the icon string to the actual icon component
+  // Map the icon string to the actual icon component from Lucide
   const getIcon = () => {
     switch (categoryData.icon) {
-      case 'Apple': return Apple;
-      case 'Brain': return Brain;
-      case 'ActivitySquare': return ActivitySquare;
+      case 'Apple': return LucideIcons.Apple;
+      case 'Brain': return LucideIcons.Brain;
+      case 'ActivitySquare': return LucideIcons.ActivitySquare;
       case 'Plus': 
-      default: return Plus;
+      default: return LucideIcons.Plus;
     }
   };
   

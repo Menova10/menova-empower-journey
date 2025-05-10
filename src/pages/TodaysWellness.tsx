@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Calendar, ChartBar, Apple, Brain, ActivitySquare, Plus } from 'lucide-react';
+import { CalendarDays, Calendar, ChartBar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
@@ -15,7 +15,6 @@ import {
   CategoryProgress,
   WeeklyProgress,
   MonthlyProgress,
-  normalizeCategory,
   categories,
   motivationalMessages
 } from '@/types/wellness';
@@ -39,7 +38,8 @@ import {
   fetchSuggestedGoals,
   addNewGoal as serviceAddNewGoal,
   toggleGoalCompletion as serviceToggleGoalCompletion,
-  updateWellnessGoals
+  updateWellnessGoals,
+  normalizeCategory
 } from '@/services/wellnessService';
 
 // Helper functions
@@ -60,7 +60,6 @@ const TodaysWellness = () => {
   const [newGoal, setNewGoal] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('nourish');
   const [loading, setLoading] = useState(true);
-  // Update the type definition to include both string and object formats
   const [suggestedGoals, setSuggestedGoals] = useState<SuggestedGoal[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [completedGoal, setCompletedGoal] = useState<Goal | null>(null);
@@ -513,8 +512,9 @@ const TodaysWellness = () => {
 
   // Initial data loading
   useEffect(() => {
-    const fetchGoals = async () => {
+    const fetchInitialData = async () => {
       try {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           navigate('/login');
@@ -559,7 +559,6 @@ const TodaysWellness = () => {
           // Fallback to calculation from goals
           calculateCategoryProgress();
         }
-        
       } catch (error) {
         console.error('Error fetching goals:', error);
         toast({
@@ -572,23 +571,7 @@ const TodaysWellness = () => {
       }
     };
 
-    fetchGoals();
-    
-    const fetchSuggestedGoalsHandler = async () => {
-      try {
-        setLoadingSuggestions(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        
-        const suggestions = await fetchSuggestedGoals(session.user.id);
-        setSuggestedGoals(suggestions);
-      } catch (error) {
-        console.error('Error fetching suggested goals:', error);
-      } finally {
-        setLoadingSuggestions(false);
-      }
-    };
-    
+    fetchInitialData();
     fetchSuggestedGoalsHandler();
   }, [activeTab, calculateCategoryProgress, navigate, toast]);
 
