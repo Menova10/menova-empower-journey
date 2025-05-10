@@ -1,29 +1,4 @@
 
-project_id = "supabase"
-
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
-
-[db]
-port = 54322
-
-[realtime]
-enabled = true
-
-[studio]
-enabled = true
-port = 54323
-
-[storage]
-enabled = true
-
-[auth]
-enabled = true
-
-[inbucket]
-enabled = true
-
-[functions.daily-quote]
+project_id = "placeholder"
+[functions.enhanced-content-fetch]
 verify_jwt = false
