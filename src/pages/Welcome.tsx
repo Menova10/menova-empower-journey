@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -17,6 +16,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+
+// Helper function to normalize category names for consistency
+const normalizeCategory = (category: string): string => {
+  // Convert to lowercase for consistency
+  const lowerCategory = category.toLowerCase();
+  
+  // Map 'centre' to 'center' for consistency
+  if (lowerCategory === 'centre') return 'center';
+  
+  return lowerCategory;
+};
 
 const Welcome = () => {
   const navigate = useNavigate();
@@ -97,12 +107,36 @@ const Welcome = () => {
           play: 0
         };
         
+        // Process goals data to handle any duplicate categories
+        const normalizedGoals = new Map();
+        
         wellnessData.forEach(goal => {
-          if (goal.category in progress && goal.total > 0) {
-            progress[goal.category] = Math.round((goal.completed / goal.total) * 100);
+          const normalizedCategory = normalizeCategory(goal.category);
+          
+          if (normalizedGoals.has(normalizedCategory)) {
+            // If we already have this category, combine the values
+            const existing = normalizedGoals.get(normalizedCategory);
+            normalizedGoals.set(normalizedCategory, {
+              completed: existing.completed + goal.completed,
+              total: existing.total + goal.total
+            });
+          } else {
+            // Otherwise add it to our map
+            normalizedGoals.set(normalizedCategory, {
+              completed: goal.completed,
+              total: goal.total
+            });
           }
         });
         
+        // Calculate percentages from the normalized goals
+        for (const [category, data] of normalizedGoals.entries()) {
+          if (category in progress && data.total > 0) {
+            progress[category] = Math.round((data.completed / data.total) * 100);
+          }
+        }
+        
+        console.log("Welcome page category progress:", progress);
         setCategoryProgress(progress);
         return;
       }
