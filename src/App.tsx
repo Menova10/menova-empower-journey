@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -11,6 +12,7 @@ import Community from './pages/Community';
 import Resources from './pages/Resources';
 import ArticleView from './pages/ArticleView';
 import ContentHub from '../app/components/ContentHub';
+import CheckIn from './pages/CheckIn';
 import { VapiProvider } from './contexts/VapiContext';
 import './App.css';
 
@@ -30,6 +32,7 @@ function App() {
           <Route path="/resources" element={<Resources />} />
           <Route path="/content-hub" element={<ContentHub />} />
           <Route path="/article/:articleId" element={<ArticleView />} />
+          <Route path="/check-in" element={<CheckIn />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>

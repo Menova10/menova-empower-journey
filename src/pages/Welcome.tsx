@@ -354,7 +354,7 @@ const Welcome = () => {
                 <Button 
                   variant="outline" 
                   className="w-full border-menova-green text-menova-green hover:bg-menova-green/10"
-                  onClick={() => navigate('/mood-check')}
+                  onClick={() => navigate('/check-in')}
                 >
                   Check In
                 </Button>
