@@ -82,13 +82,20 @@ const WellnessDashboard = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
+        console.log("Fetching wellness goals...");
+        
         // Fetch wellness goals directly from wellness_goals table
         const { data: goalsData, error: goalsError } = await supabase
           .from('wellness_goals')
           .select('*')
           .eq('user_id', session.user.id);
 
-        if (goalsError) throw goalsError;
+        if (goalsError) {
+          console.error("Error fetching wellness goals:", goalsError);
+          throw goalsError;
+        }
+        
+        console.log("Goals data:", goalsData);
         
         if (goalsData && goalsData.length > 0) {
           // Use the data directly from the wellness_goals table
@@ -98,6 +105,8 @@ const WellnessDashboard = () => {
             total: goal.total
           })));
         } else {
+          console.log("No wellness goals found, creating defaults...");
+          
           // If no wellness_goals data, create and store default goals
           const defaultGoals = [
             { category: "nourish", completed: 0, total: 3, user_id: session.user.id },
@@ -110,7 +119,10 @@ const WellnessDashboard = () => {
             .from('wellness_goals')
             .insert(defaultGoals);
           
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error("Error inserting default wellness goals:", insertError);
+            throw insertError;
+          }
           
           // Use the default goals for display
           setGoals(defaultGoals.map(g => ({
@@ -193,7 +205,7 @@ const WellnessDashboard = () => {
             {goals.map((goal, index) => (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">{goal.category}</span>
+                  <span className="text-sm font-medium">{getCategoryLabel(goal.category)}</span>
                   <span className="text-sm font-medium">{goal.completed}/{goal.total}</span>
                 </div>
                 <Progress 

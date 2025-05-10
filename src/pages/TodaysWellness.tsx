@@ -341,23 +341,61 @@ const TodaysWellness = () => {
   // Update the wellness_goals table with the current category progress
   const updateWellnessGoals = async (userId: string, catCounts: CategoryProgress) => {
     try {
+      console.log("Updating wellness goals with:", catCounts);
+      
       // Only update the main categories: nourish, center, play
       for (const cat of categories.slice(0, 3)) {
         const catData = catCounts[cat.value];
         if (!catData) continue;
         
-        // Update the wellness_goals table using the unique constraint
-        const { error } = await supabase
+        console.log(`Updating ${cat.value}:`, catData);
+        
+        // First check if we have existing data
+        const { data: existingData } = await supabase
           .from('wellness_goals')
-          .upsert({
-            user_id: userId,
-            category: cat.value,
-            completed: catData.completed,
-            total: catData.total > 0 ? catData.total : 1 // Ensure we have at least 1 as total
-          }, { onConflict: 'user_id,category' });
-          
-        if (error) {
-          console.error(`Error updating progress for ${cat.value}:`, error);
+          .select('*')
+          .eq('user_id', userId)
+          .eq('category', cat.value)
+          .single();
+        
+        // If we have existing data, update it
+        if (existingData) {
+          const { error } = await supabase
+            .from('wellness_goals')
+            .update({
+              completed: catData.completed,
+              total: catData.total > 0 ? catData.total : 1 // Ensure we have at least 1 as total
+            })
+            .eq('id', existingData.id);
+            
+          if (error) {
+            console.error(`Error updating progress for ${cat.value}:`, error);
+            toast({
+              title: `Error updating ${cat.value} progress`,
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+        } 
+        // If we don't have existing data, insert it
+        else {
+          const { error } = await supabase
+            .from('wellness_goals')
+            .insert({
+              user_id: userId,
+              category: cat.value,
+              completed: catData.completed,
+              total: catData.total > 0 ? catData.total : 1 // Ensure we have at least 1 as total
+            });
+            
+          if (error) {
+            console.error(`Error inserting progress for ${cat.value}:`, error);
+            toast({
+              title: `Error creating ${cat.value} progress`,
+              description: error.message,
+              variant: "destructive",
+            });
+          }
         }
       }
     } catch (error) {
@@ -468,6 +506,78 @@ const TodaysWellness = () => {
     );
   };
 
+  // Force refresh wellness goals from the database
+  const forceRefreshWellnessGoals = async () => {
+    try {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      // Recalculate based on today's goals
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today);
+      
+      if (error) throw error;
+      
+      if (data) {
+        setGoals(data);
+        
+        // Calculate progress for each category
+        const catCounts: CategoryProgress = {};
+        
+        // Initialize categories
+        categories.forEach(cat => {
+          catCounts[cat.value] = {
+            completed: 0,
+            total: 0,
+            percentage: 0
+          };
+        });
+        
+        // Calculate progress for each category
+        data.forEach(goal => {
+          const category = goal.category;
+          if (category in catCounts) {
+            catCounts[category].total += 1;
+            if (goal.completed) {
+              catCounts[category].completed += 1;
+            }
+          }
+        });
+        
+        // Calculate percentages
+        Object.keys(catCounts).forEach(cat => {
+          const { completed, total } = catCounts[cat];
+          catCounts[cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        });
+        
+        setCategoryCounts(catCounts);
+        
+        // Update the database with our calculated values
+        await updateWellnessGoals(session.user.id, catCounts);
+        
+        toast({
+          title: 'Progress updated',
+          description: 'Your wellness progress has been refreshed.',
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing wellness goals:', error);
+      toast({
+        title: 'Error refreshing progress',
+        description: 'Could not refresh your progress. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -508,6 +618,18 @@ const TodaysWellness = () => {
                 </div>
               );
             })}
+          </div>
+          
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={forceRefreshWellnessGoals}
+              variant="outline"
+              className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
+              disabled={loading}
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+              Refresh Progress
+            </Button>
           </div>
         </div>
         
