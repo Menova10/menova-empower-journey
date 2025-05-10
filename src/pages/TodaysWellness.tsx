@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,13 +72,16 @@ const TodaysWellness = () => {
   const [activeTab, setActiveTab] = useState("daily");
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [monthlyGoals, setMonthlyGoals] = useState<Goal[]>([]);
+  
+  // Use a ref to prevent scrolling issues
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Calculate progress
   const completedGoals = goals.filter(g => g.completed).length;
   const totalGoals = goals.length;
   const progress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
-  // Calculate and update category progress
+  // Calculate and update category progress - using a more stable implementation
   const calculateCategoryProgress = useCallback(() => {
     const catCounts: CategoryProgress = {};
     
@@ -108,9 +111,15 @@ const TodaysWellness = () => {
       catCounts[cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     });
     
-    setCategoryCounts(catCounts);
     return catCounts;
   }, [goals]);
+
+  // Memoize category counts to prevent unnecessary re-renders
+  const updateCategoryCounts = useCallback(() => {
+    const newCounts = calculateCategoryProgress();
+    setCategoryCounts(newCounts);
+    return newCounts;
+  }, [calculateCategoryProgress]);
 
   // Fetch user's goals for today
   const fetchGoals = useCallback(async () => {
@@ -157,7 +166,7 @@ const TodaysWellness = () => {
         setCategoryCounts(progress);
       } else {
         // Fallback to calculation from goals
-        calculateCategoryProgress();
+        updateCategoryCounts();
       }
       
     } catch (error) {
@@ -170,10 +179,10 @@ const TodaysWellness = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, toast, activeTab, calculateCategoryProgress]);
+  }, [navigate, toast, activeTab, updateCategoryCounts]);
 
-  // Process weekly data to calculate progress
-  const processWeeklyData = (weeklyData: Goal[]) => {
+  // Process weekly data to calculate progress - keep logic the same but memoize better
+  const processWeeklyData = useCallback((weeklyData: Goal[]) => {
     const weekProgress: WeeklyProgress = {};
     const daysOfWeek = [];
     let currentDay = startOfWeek(new Date());
@@ -219,10 +228,10 @@ const TodaysWellness = () => {
     });
     
     setWeeklyProgress(weekProgress);
-  };
+  }, []);
 
-  // Process monthly data to calculate progress
-  const processMonthlyData = (monthlyData: Goal[]) => {
+  // Process monthly data to calculate progress - keep logic the same but memoize better
+  const processMonthlyData = useCallback((monthlyData: Goal[]) => {
     const monthProgress: MonthlyProgress = {};
     const start = startOfMonth(new Date());
     const end = endOfMonth(new Date());
@@ -269,7 +278,7 @@ const TodaysWellness = () => {
     });
     
     setMonthlyProgress(monthProgress);
-  };
+  }, []);
 
   // Add a new goal
   const addGoal = async () => {
@@ -285,8 +294,7 @@ const TodaysWellness = () => {
       const newGoalData = await serviceAddNewGoal(session.user.id, newGoal, selectedCategory);
       
       if (newGoalData) {
-        const updatedGoals = [...goals, newGoalData];
-        setGoals(updatedGoals);
+        setGoals(prevGoals => [...prevGoals, newGoalData]);
         setNewGoal('');
         speak(`Added new goal: ${newGoal}`);
         toast({
@@ -295,7 +303,7 @@ const TodaysWellness = () => {
         });
         
         // Update category progress and sync with wellness_goals table
-        const newCategoryCounts = calculateCategoryProgress();
+        const newCategoryCounts = updateCategoryCounts();
         await updateWellnessGoals(session.user.id, newCategoryCounts);
       }
     } catch (error) {
@@ -331,8 +339,7 @@ const TodaysWellness = () => {
       const newGoalData = await serviceAddNewGoal(session.user.id, goal.text, goal.category);
       
       if (newGoalData) {
-        const updatedGoals = [...goals, newGoalData];
-        setGoals(updatedGoals);
+        setGoals(prevGoals => [...prevGoals, newGoalData]);
         speak(`Added suggested goal: ${goal.text}`);
         toast({
           title: 'Suggested goal added',
@@ -343,7 +350,7 @@ const TodaysWellness = () => {
         setSuggestedGoals(suggestedGoals.filter(g => g.text !== goal.text));
         
         // Update category progress and sync with wellness_goals table
-        const newCategoryCounts = calculateCategoryProgress();
+        const newCategoryCounts = updateCategoryCounts();
         await updateWellnessGoals(session.user.id, newCategoryCounts);
       }
     } catch (error) {
@@ -373,14 +380,14 @@ const TodaysWellness = () => {
       await serviceToggleGoalCompletion(goalId, currentStatus);
       
       // Update local state
-      const updatedGoals = goals.map(g => 
-        g.id === goalId ? { ...g, completed: !currentStatus } : g
+      setGoals(prevGoals => 
+        prevGoals.map(g => 
+          g.id === goalId ? { ...g, completed: !currentStatus } : g
+        )
       );
       
-      setGoals(updatedGoals);
-      
       // Update category progress and sync with wellness_goals table
-      const newCategoryCounts = calculateCategoryProgress();
+      const newCategoryCounts = updateCategoryCounts();
       await updateWellnessGoals(session.user.id, newCategoryCounts);
       
       // If this is a newly completed goal, show the celebration
@@ -388,7 +395,6 @@ const TodaysWellness = () => {
         setCompletedGoal(goalToUpdate);
         speak(`Great job completing your goal: ${goalToUpdate.goal}`);
         
-        // Select a random motivational message from wellness.ts
         toast({
           title: 'Goal completed!',
           description: 'Great job on completing your goal!',
@@ -427,9 +433,9 @@ const TodaysWellness = () => {
   };
 
   // Handle tab change
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     setActiveTab(value);
-  };
+  }, []);
 
   // Force refresh wellness goals from the database
   const forceRefreshWellnessGoals = async () => {
@@ -510,74 +516,32 @@ const TodaysWellness = () => {
     }
   };
 
+  // Stabilize contentRef position after renders
+  useEffect(() => {
+    const savedPosition = contentRef.current?.scrollTop || 0;
+    
+    // Restore scroll position after render
+    return () => {
+      if (contentRef.current) {
+        contentRef.current.scrollTop = savedPosition;
+      }
+    };
+  }, [goals, activeTab]);
+
   // Initial data loading
   useEffect(() => {
     const fetchInitialData = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          navigate('/login');
-          return;
-        }
-  
-        // Fetch today's goals
-        const fetchedGoals = await fetchTodaysGoals(session.user.id);
-        setGoals(fetchedGoals);
-        
-        // If we have no goals for today, check if we have wellness goals in the database
-        // and create some default goals based on that
-        if (fetchedGoals.length === 0) {
-          const defaultGoals = await checkAndCreateDefaultGoals(session.user.id);
-          if (defaultGoals.length > 0) {
-            setGoals(defaultGoals);
-            toast({
-              title: 'Daily goals created',
-              description: 'We\'ve created some default goals based on your wellness plan.',
-            });
-          }
-        }
-  
-        // Also fetch weekly and monthly data when switching tabs
-        if (activeTab === 'weekly' || activeTab === 'all') {
-          const weeklyData = await fetchWeeklyGoals(session.user.id);
-          setWeeklyGoals(weeklyData);
-          processWeeklyData(weeklyData);
-        }
-  
-        if (activeTab === 'monthly' || activeTab === 'all') {
-          const monthlyData = await fetchMonthlyGoals(session.user.id);
-          setMonthlyGoals(monthlyData);
-          processMonthlyData(monthlyData);
-        }
-        
-        // Check for existing progress in wellness_goals table
-        const progress = await fetchWellnessGoalsProgress(session.user.id);
-        if (progress) {
-          setCategoryCounts(progress);
-        } else {
-          // Fallback to calculation from goals
-          calculateCategoryProgress();
-        }
-      } catch (error) {
-        console.error('Error fetching goals:', error);
-        toast({
-          title: 'Error fetching goals',
-          description: 'Could not retrieve your goals. Please try again later.',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
+      setLoading(true);
+      await fetchGoals();
     };
 
     fetchInitialData();
     fetchSuggestedGoalsHandler();
-  }, [activeTab, calculateCategoryProgress, navigate, toast]);
+  }, [fetchGoals]);
 
   // Calculate category progress whenever goals change
   useEffect(() => {
-    const newCategoryCounts = calculateCategoryProgress();
+    const newCategoryCounts = updateCategoryCounts();
     
     // Sync with database whenever goals change
     const syncWellnessGoals = async () => {
@@ -590,10 +554,10 @@ const TodaysWellness = () => {
     };
     
     syncWellnessGoals();
-  }, [goals, calculateCategoryProgress]);
+  }, [goals, updateCategoryCounts]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20" ref={contentRef}>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
         <p className="text-center text-gray-600 mb-8">Track your wellness journey</p>

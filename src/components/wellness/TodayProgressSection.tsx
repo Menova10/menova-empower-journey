@@ -1,8 +1,10 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Apple, Brain, ActivitySquare } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { CategoryProgress, categories } from '@/types/wellness';
+import * as LucideIcons from 'lucide-react';
 
 interface TodayProgressSectionProps {
   progress: number;
@@ -21,15 +23,14 @@ export const TodayProgressSection: React.FC<TodayProgressSectionProps> = ({
   forceRefreshWellnessGoals,
   loading
 }) => {
-  // Map the icon string to the actual icon component
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Apple': return Apple;
-      case 'Brain': return Brain;
-      case 'ActivitySquare': return ActivitySquare;
-      default: return Apple;
-    }
-  };
+  // Define category icons using useMemo to prevent re-renders
+  const categoryIcons = useMemo(() => {
+    return {
+      Apple: LucideIcons.Apple,
+      Brain: LucideIcons.Brain,
+      ActivitySquare: LucideIcons.ActivitySquare
+    };
+  }, []);
   
   return (
     <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
@@ -51,12 +52,12 @@ export const TodayProgressSection: React.FC<TodayProgressSectionProps> = ({
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
         {categories.slice(0, 3).map(category => {
           const catData = categoryCounts[category.value] || { completed: 0, total: 0, percentage: 0 };
-          const Icon = getIcon(category.icon);
+          const IconComponent = categoryIcons[category.icon as keyof typeof categoryIcons];
           
           return (
             <div key={category.value} className="flex flex-col items-center">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${category.color.replace('bg-', 'bg-opacity-20 bg-')}`}>
-                <Icon size={24} className={category.color.replace('bg-', 'text-').replace(' text-', '')} />
+                {IconComponent && <IconComponent size={24} className={category.color.replace('bg-', 'text-').replace(' text-', '')} />}
               </div>
               <div className="font-medium">{category.label}</div>
               <div className="text-xs text-gray-600">
