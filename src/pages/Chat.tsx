@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { Send, Mic, Volume2 } from 'lucide-react';
 import VapiAssistant from '@/components/VapiAssistant';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Chat = () => {
   const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'ai', timestamp: Date }[]>([]);
@@ -15,7 +14,6 @@ const Chat = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionType, setSessionType] = useState<'voice' | 'text'>('text');
   const [showVoiceUI, setShowVoiceUI] = useState(false);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const vapiRef = useRef<any>(null);
   const { user, isAuthenticated } = useAuthStore();
@@ -25,94 +23,39 @@ const Chat = () => {
   // Initialize session based on location state
   useEffect(() => {
     const locationState = location.state as any;
-    
-    // Check if we already have session data
-    const checkAuth = async () => {
-      try {
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session && session.user) {
-          // We have a session, proceed with chat initialization
-          
-          // If resuming a specific session
-          if (locationState?.sessionId) {
-            setSessionId(locationState.sessionId);
-            fetchExistingMessages(locationState.sessionId);
-          } 
-          
-          // Set session type (voice or text)
-          if (locationState?.sessionType === 'voice') {
-            setSessionType('voice');
-            setShowVoiceUI(true);
-            
-            // Auto-open voice assistant if coming from voice option
-            setTimeout(() => {
-              if (vapiRef.current) {
-                document.querySelector('.rounded-full.w-14.h-14')?.dispatchEvent(
-                  new MouseEvent('click', { bubbles: true })
-                );
-              }
-            }, 300);
-          } else {
-            setSessionType('text');
-          }
-          
-          // Add initial greeting when component mounts (if no existing messages)
-          if (!locationState?.sessionId) {
-            setMessages([
-              {
-                text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
-                sender: 'ai',
-                timestamp: new Date()
-              }
-            ]);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking authentication:", error);
-      } finally {
-        setIsAuthChecking(false);
-      }
-    };
-    
-    checkAuth();
-  }, [location.state]);
-
-  // Fetch existing messages for a session
-  const fetchExistingMessages = async (sessionId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('session_messages')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('timestamp', { ascending: true });
-        
-      if (error) {
-        console.error('Error fetching messages:', error);
-        return;
-      }
+    if (locationState) {
+      // If resuming a specific session
+      if (locationState.sessionId) {
+        setSessionId(locationState.sessionId);
+        // Fetch existing messages for this session
+      } 
       
-      if (data && data.length > 0) {
-        setMessages(data.map(msg => ({
-          text: msg.message,
-          sender: msg.sender as 'user' | 'ai',
-          timestamp: new Date(msg.timestamp)
-        })));
+      // Set session type (voice or text)
+      if (locationState.sessionType === 'voice') {
+        setSessionType('voice');
+        setShowVoiceUI(true);
       } else {
-        // If no messages, add initial greeting
-        setMessages([
-          {
-            text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
-            sender: 'ai',
-            timestamp: new Date()
-          }
-        ]);
+        setSessionType('text');
       }
-    } catch (error) {
-      console.error('Error:', error);
     }
-  };
+    
+    // Add initial greeting when component mounts
+    // Check if we were navigated here from an authenticated page
+    const comingFromAuthenticatedPage = locationState?.authenticated === true;
+    
+    if (!isAuthenticated && !comingFromAuthenticatedPage) {
+      navigate('/login');
+      return;
+    }
+    
+    setMessages([
+      {
+        text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
+        sender: 'ai',
+        timestamp: new Date()
+      }
+    ]);
+  }, [isAuthenticated, navigate, location.state]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -221,65 +164,6 @@ const Chat = () => {
     }
   };
 
-  // Render login prompt if not authenticated
-  if (!isAuthChecking && !isAuthenticated) {
-    return (
-      <div className="min-h-screen flex flex-col bg-cover bg-center bg-no-repeat" 
-           style={{ backgroundImage: "url('/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png')" }}>
-        {/* Header */}
-        <div className="bg-white/90 p-4 shadow-sm backdrop-blur-sm">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              className="text-menova-text hover:bg-menova-lightgreen"
-            >
-              ← Back
-            </Button>
-            <h1 className="text-xl font-semibold text-menova-green">Chat with MeNova</h1>
-          </div>
-        </div>
-        
-        {/* Login required message */}
-        <div className="flex-1 flex items-center justify-center p-6">
-          <Card className="w-full max-w-md border-none shadow-lg backdrop-blur-md bg-white/90">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                <img 
-                  src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
-                  alt="MeNova" 
-                  className="w-20 h-20 mx-auto rounded-full border-2 border-menova-green"
-                />
-              </div>
-              <CardTitle className="text-2xl font-bold text-menova-green">Sign In Required</CardTitle>
-              <CardDescription>
-                Please sign in to chat with MeNova
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button 
-                onClick={() => navigate('/login', { state: { returnTo: '/chat' } })}
-                className="w-full bg-menova-green hover:bg-menova-green/90"
-              >
-                Sign In
-              </Button>
-              <p className="text-center text-sm text-gray-500">
-                Don't have an account? 
-                <Button 
-                  variant="link" 
-                  className="text-menova-green p-0 h-auto font-normal ml-1"
-                  onClick={() => navigate('/login', { state: { returnTo: '/chat', tab: 'signup' } })}
-                >
-                  Sign Up
-                </Button>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col bg-cover bg-center bg-no-repeat" 
          style={{ backgroundImage: "url('/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png')" }}>
@@ -288,7 +172,7 @@ const Chat = () => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/check-in')}
+            onClick={() => navigate('/welcome')}
             className="text-menova-text hover:bg-menova-lightgreen"
           >
             ← Back
