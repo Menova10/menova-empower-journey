@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,17 @@ interface DailyInsight {
   author: string;
   isLoading: boolean;
 }
+
+// Standardize category names to prevent duplication
+const normalizeCategory = (category: string): string => {
+  // Convert to lowercase for consistency
+  const lowerCategory = category.toLowerCase();
+  
+  // Map 'centre' to 'center' for consistency
+  if (lowerCategory === 'centre') return 'center';
+  
+  return lowerCategory;
+};
 
 const WellnessDashboard = () => {
   const navigate = useNavigate();
@@ -98,12 +108,35 @@ const WellnessDashboard = () => {
         console.log("Goals data:", goalsData);
         
         if (goalsData && goalsData.length > 0) {
-          // Use the data directly from the wellness_goals table
-          setGoals(goalsData.map((goal: any) => ({
-            category: goal.category,
-            completed: goal.completed,
-            total: goal.total
-          })));
+          // Process goals data to merge any duplicate categories
+          const normalizedGoals = new Map<string, WellnessGoal>();
+          
+          goalsData.forEach((goal: any) => {
+            const normalizedCategory = normalizeCategory(goal.category);
+            
+            if (normalizedGoals.has(normalizedCategory)) {
+              // If we already have this category, combine the values
+              const existingGoal = normalizedGoals.get(normalizedCategory)!;
+              normalizedGoals.set(normalizedCategory, {
+                category: normalizedCategory,
+                completed: existingGoal.completed + goal.completed,
+                total: existingGoal.total + goal.total
+              });
+            } else {
+              // Otherwise add it to our map
+              normalizedGoals.set(normalizedCategory, {
+                category: normalizedCategory,
+                completed: goal.completed,
+                total: goal.total
+              });
+            }
+          });
+          
+          // Convert map back to array
+          setGoals(Array.from(normalizedGoals.values()));
+          
+          // Log the normalized goals
+          console.log("Normalized goals:", Array.from(normalizedGoals.values()));
         } else {
           console.log("No wellness goals found, creating defaults...");
           
@@ -191,7 +224,7 @@ const WellnessDashboard = () => {
         {/* Today's Wellness Card */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Wellness</h3>
-          <p className="text-sm text-gray-600 mb-4">Your daily goals and activities</p>
+          <p className="text-sm text-gray-600 mb-4">Daily summary from your wellness plan</p>
           
           <div className="space-y-4">
             <div className="space-y-1">
