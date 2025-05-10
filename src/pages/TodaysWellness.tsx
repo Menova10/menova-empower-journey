@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -192,7 +193,7 @@ const TodaysWellness = () => {
           user_id: session.user.id,
           goal: goal,
           date: today,
-          category: 'general'
+          category: 'nourish' // Changed from 'general' to 'nourish' for better categorization
         })
         .select();
       
@@ -219,6 +220,36 @@ const TodaysWellness = () => {
     }
   };
 
+  // Update the category progress in the wellness_goals table
+  const updateCategoryProgress = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Calculate progress for each category
+      for (const cat of categories.slice(0, 3)) { // Only the main categories: nourish, center, play
+        const catData = categoryCounts[cat.value];
+        if (!catData) continue;
+        
+        // Update the wellness_goals table
+        const { error } = await supabase
+          .from('wellness_goals')
+          .upsert({
+            user_id: session.user.id,
+            category: cat.value,
+            completed: catData.completed,
+            total: catData.total > 0 ? catData.total : 1 // Ensure we have at least 1 as total
+          }, { onConflict: 'user_id,category' });
+          
+        if (error) {
+          console.error(`Error updating progress for ${cat.value}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating category progress:', error);
+    }
+  };
+
   // Toggle goal completion status
   const toggleGoalCompletion = async (goalId: string, currentStatus: boolean) => {
     if (currentStatus === true) return; // Only allow completing goals, not uncompleting
@@ -234,11 +265,15 @@ const TodaysWellness = () => {
       
       if (error) throw error;
       
+      // Update local state
       const updatedGoals = goals.map(g => 
         g.id === goalId ? { ...g, completed: !currentStatus } : g
       );
       
       setGoals(updatedGoals);
+      
+      // Update category progress in wellness_goals table
+      await updateCategoryProgress();
       
       // If this is a newly completed goal, show the celebration
       if (!currentStatus) {
@@ -273,6 +308,13 @@ const TodaysWellness = () => {
     fetchGoals();
     fetchSuggestedGoals();
   }, [fetchGoals, fetchSuggestedGoals]);
+
+  // Update wellness_goals table whenever goals change
+  useEffect(() => {
+    if (goals.length > 0) {
+      updateCategoryProgress();
+    }
+  }, [goals]);
 
   // Open the chat assistant
   const openAssistant = () => {
@@ -329,7 +371,7 @@ const TodaysWellness = () => {
                   </div>
                   <div className="font-medium">{category.label}</div>
                   <div className="text-xs text-gray-600">
-                    {catData.completed} of {catData.total} ({catData.percentage}%)
+                    {catData.completed} of {catData.total || 0} ({catData.percentage}%)
                   </div>
                 </div>
               );

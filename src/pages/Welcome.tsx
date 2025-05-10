@@ -82,6 +82,31 @@ const Welcome = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
       
+      // First check the wellness_goals table for category progress
+      const { data: wellnessData, error: wellnessError } = await supabase
+        .from('wellness_goals')
+        .select('*')
+        .eq('user_id', session.user.id);
+        
+      if (!wellnessError && wellnessData && wellnessData.length > 0) {
+        // Use data from wellness_goals if available
+        const progress = {
+          nourish: 0,
+          center: 0,
+          play: 0
+        };
+        
+        wellnessData.forEach(goal => {
+          if (goal.category in progress && goal.total > 0) {
+            progress[goal.category] = Math.round((goal.completed / goal.total) * 100);
+          }
+        });
+        
+        setCategoryProgress(progress);
+        return;
+      }
+      
+      // Fallback to using daily_goals if wellness_goals data isn't available
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
       
       const { data, error } = await supabase

@@ -114,3 +114,8 @@
 .hover\:category-scale:hover .category-icon {
   transform: scale(1.2);
 }
+
+/* Debug outlines for category indicators */
+.debug-outline {
+  outline: 1px solid red;
+}
