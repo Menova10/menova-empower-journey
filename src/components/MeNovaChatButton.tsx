@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Volume2 } from 'lucide-react';
-import { useVapi } from '@/contexts/VapiContext';
 
 interface MeNovaChatButtonProps {
   className?: string;
@@ -17,15 +16,6 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showChatOptions, setShowChatOptions] = React.useState(false);
-  
-  // Safely use the Vapi context, with fallback for when it's not available
-  let startAssistant: () => void = () => {};
-  try {
-    const vapiContext = useVapi();
-    startAssistant = vapiContext.startAssistant;
-  } catch (error) {
-    console.log("VapiContext not available in this component");
-  }
   
   const handleChatOptionSelected = (type: 'voice' | 'text') => {
     setShowChatOptions(false);

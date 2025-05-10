@@ -39,7 +39,8 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     isSpeaking, 
     isListening, 
     startAssistant, 
-    stopAssistant, 
+    stopAssistant,
+    sendTextMessage,
     vapiRef 
   } = useVapi();
 
@@ -61,13 +62,13 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   // Check for auto-start parameter from location state
   useEffect(() => {
     const locationState = location.state as any;
-    if (locationState?.autoStartVoice && !autoStartTriggered && !open) {
+    if (locationState?.autoStartVoice && !autoStartTriggered) {
       // Auto-open dialog when requested from navigation
       console.log("Auto-starting voice assistant from location state");
       setAutoStartTriggered(true);
       setOpen(true);
     }
-  }, [location.state, autoStartTriggered, open]);
+  }, [location.state, autoStartTriggered]);
 
   // Handle dialog open state change
   useEffect(() => {
@@ -86,7 +87,37 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     if (onSpeaking) {
       onSpeaking(isSpeaking);
     }
-  }, [open, isSpeaking, isListening, startAssistant, stopAssistant, onSpeaking]);
+  }, [open, startAssistant, stopAssistant, onSpeaking]);
+
+  // Listen for Vapi messages
+  useEffect(() => {
+    // Set up message listener if Vapi is available
+    if (vapiRef.current && vapiRef.current.on) {
+      const messageHandler = (message: any) => {
+        if (message?.content?.text) {
+          console.log("Received message from Vapi:", message.content.text);
+          // Add AI message to the conversation
+          const aiMessage = {
+            text: message.content.text,
+            sender: 'ai' as const,
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, aiMessage]);
+          saveMessage(message.content.text, 'ai');
+        }
+      };
+
+      // Add the event listener
+      vapiRef.current.on("message", messageHandler);
+
+      // Cleanup function to remove the event listener
+      return () => {
+        if (vapiRef.current && vapiRef.current.off) {
+          vapiRef.current.off("message", messageHandler);
+        }
+      };
+    }
+  }, [vapiRef.current]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -188,10 +219,12 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     await saveMessage(messageToSend, 'user');
     setMessage('');
     
-    // Optionally send to Vapi for processing
+    // Send message to Vapi
     if (vapiRef.current) {
-      vapiRef.current.sendTextMessage && vapiRef.current.sendTextMessage(messageToSend);
+      sendTextMessage(messageToSend);
     }
+    
+    setIsProcessing(false);
   };
 
   const toggleMute = () => {
@@ -220,7 +253,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
 
       {/* Voice assistant dialog */}
       <Dialog open={open} onOpenChange={(isOpen) => {
-        // Only update the state if we're closing the dialog
+        // Only close the dialog, never open it from here
         if (!isOpen) {
           setOpen(false);
         }
