@@ -14,6 +14,7 @@ import ArticleView from './pages/ArticleView';
 import ContentHub from '../app/components/ContentHub';
 import CheckIn from './pages/CheckIn';
 import { VapiProvider } from './contexts/VapiContext';
+import { Toaster } from './components/ui/toaster';
 import './App.css';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
+      <Toaster />
     </VapiProvider>
   );
 }

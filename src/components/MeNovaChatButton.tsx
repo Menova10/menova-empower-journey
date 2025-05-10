@@ -17,7 +17,15 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showChatOptions, setShowChatOptions] = React.useState(false);
-  const { startAssistant } = useVapi();
+  
+  // Safely use the Vapi context, with fallback for when it's not available
+  let startAssistant: () => void = () => {};
+  try {
+    const vapiContext = useVapi();
+    startAssistant = vapiContext.startAssistant;
+  } catch (error) {
+    console.log("VapiContext not available in this component");
+  }
   
   const handleChatOptionSelected = (type: 'voice' | 'text') => {
     setShowChatOptions(false);
