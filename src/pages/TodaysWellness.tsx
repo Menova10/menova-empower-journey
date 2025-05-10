@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, Plus, RefreshCw, Apple, Brain, ActivitySquare, CalendarDays, CalendarWeek, ChartBar } from 'lucide-react';
+import { Check, Plus, RefreshCw, Apple, Brain, ActivitySquare, CalendarDays, Calendar, ChartBar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
@@ -809,7 +809,7 @@ const TodaysWellness = () => {
               <span>Daily</span>
             </TabsTrigger>
             <TabsTrigger value="weekly" className="flex items-center gap-2">
-              <CalendarWeek size={16} />
+              <Calendar size={16} />
               <span>Weekly</span>
             </TabsTrigger>
             <TabsTrigger value="monthly" className="flex items-center gap-2">
