@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Volume2 } from 'lucide-react';
 
 interface MeNovaChatButtonProps {
   className?: string;
@@ -17,14 +17,15 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
   const navigate = useNavigate();
   const [showChatOptions, setShowChatOptions] = React.useState(false);
   
-  const handleChatOptionSelected = (type: 'text') => {
+  const handleChatOptionSelected = (type: 'text' | 'voice') => {
     setShowChatOptions(false);
     
-    // Navigate to chat with text mode
+    // Navigate to chat with selected mode
     navigate('/chat', { 
       state: { 
         sessionType: type, 
-        authenticated: true
+        authenticated: true,
+        autoStartVoice: type === 'voice'
       } 
     });
   };
@@ -61,7 +62,7 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
+          <div className="py-4 space-y-3">
             <Button 
               onClick={() => handleChatOptionSelected('text')}
               className="flex items-center justify-center w-full gap-3 h-auto py-4 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
@@ -69,7 +70,20 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
             >
               <MessageCircle className="h-6 w-6 text-menova-green" />
               <div className="text-center">
-                <p className="font-medium">Open Chat</p>
+                <p className="font-medium">Text Chat</p>
+                <p className="text-sm text-gray-500">Type messages to MeNova</p>
+              </div>
+            </Button>
+            
+            <Button 
+              onClick={() => handleChatOptionSelected('voice')}
+              className="flex items-center justify-center w-full gap-3 h-auto py-4 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
+              variant="outline"
+            >
+              <Volume2 className="h-6 w-6 text-menova-green" />
+              <div className="text-center">
+                <p className="font-medium">Voice Chat</p>
+                <p className="text-sm text-gray-500">Talk with MeNova using your voice</p>
               </div>
             </Button>
           </div>
