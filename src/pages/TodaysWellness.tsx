@@ -20,6 +20,12 @@ interface Goal {
   date?: string;
 }
 
+// Add a new interface for suggested goals
+interface SuggestedGoal {
+  text: string;
+  category: string;
+}
+
 interface CategoryProgress {
   [key: string]: {
     completed: number;
@@ -82,7 +88,8 @@ const TodaysWellness = () => {
   const [newGoal, setNewGoal] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('nourish');
   const [loading, setLoading] = useState(true);
-  const [suggestedGoals, setSuggestedGoals] = useState<string[]>([]);
+  // Update the type definition to include both string and object formats
+  const [suggestedGoals, setSuggestedGoals] = useState<SuggestedGoal[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [completedGoal, setCompletedGoal] = useState<Goal | null>(null);
   const [refreshKey, setRefreshKey] = useState(0); // Used to trigger animation
@@ -464,9 +471,9 @@ const TodaysWellness = () => {
       
       if (data?.suggestions && Array.isArray(data.suggestions)) {
         // Check if suggestions are already categorized
-        if (data.suggestions[0] && typeof data.suggestions[0] === 'object' && data.suggestions[0].category) {
+        if (data.suggestions[0] && typeof data.suggestions[0] === 'object' && 'category' in data.suggestions[0]) {
           // Already categorized format
-          setSuggestedGoals(data.suggestions);
+          setSuggestedGoals(data.suggestions as SuggestedGoal[]);
         } else {
           // Need to categorize them ourselves
           const categorized = data.suggestions.map((goal: string) => {
@@ -567,7 +574,7 @@ const TodaysWellness = () => {
   };
 
   // Add a suggested goal
-  const addSuggestedGoal = async (goal: string | { text: string, category: string }) => {
+  const addSuggestedGoal = async (goal: SuggestedGoal) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -577,9 +584,9 @@ const TodaysWellness = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // Handle either string or object format
-      let goalText = typeof goal === 'string' ? goal : goal.text;
-      let category = typeof goal === 'string' ? 'general' : goal.category;
+      // Get the goal text and category
+      const goalText = goal.text;
+      const category = goal.category;
       
       // Check for duplicates before adding
       const existingGoal = goals.find(g => g.goal.toLowerCase() === goalText.toLowerCase());
@@ -613,16 +620,8 @@ const TodaysWellness = () => {
           description: 'The suggested goal has been added to your daily goals.',
         });
         
-        // Remove from suggestions (handle both formats)
-        if (typeof goal === 'string') {
-          setSuggestedGoals(suggestedGoals.filter(g => 
-            typeof g === 'string' ? g !== goal : g.text !== goal
-          ));
-        } else {
-          setSuggestedGoals(suggestedGoals.filter(g => 
-            typeof g === 'string' ? g !== goal.text : g.text !== goal.text
-          ));
-        }
+        // Remove from suggestions
+        setSuggestedGoals(suggestedGoals.filter(g => g.text !== goal.text));
         
         // Update category progress and sync with wellness_goals table
         const newCategoryCounts = calculateCategoryProgress();
@@ -913,11 +912,8 @@ const TodaysWellness = () => {
     return (
       <ul className="space-y-2">
         {suggestedGoals.map((goal, index) => {
-          const goalText = typeof goal === 'string' ? goal : goal.text;
-          const goalCategory = typeof goal === 'string' ? 'general' : goal.category;
-          
           // Find the category display information
-          const categoryInfo = categories.find(c => c.value === goalCategory) || categories[3];
+          const categoryInfo = categories.find(c => c.value === goal.category) || categories[3];
           
           return (
             <li 
@@ -927,7 +923,7 @@ const TodaysWellness = () => {
             >
               <div className="flex items-center gap-2 flex-1">
                 <div className={`w-2 h-2 rounded-full ${categoryInfo.color.replace('text-', 'bg-').split(' ')[1]}`}></div>
-                <span className="text-gray-700">{goalText}</span>
+                <span className="text-gray-700">{goal.text}</span>
               </div>
               <Button
                 variant="ghost"
