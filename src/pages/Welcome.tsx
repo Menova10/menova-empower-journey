@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -123,8 +124,8 @@ const Welcome = () => {
       if (data) {
         // Calculate percentage for each category
         const calculatePercentage = (category: string) => {
-          const categoryGoals = data.filter(g => g.category === category);
-          const completed = categoryGoals.filter(g => g.completed).length;
+          const categoryGoals = data.filter((g: any) => g.category === category);
+          const completed = categoryGoals.filter((g: any) => g.completed).length;
           const total = categoryGoals.length;
           return total > 0 ? Math.round((completed / total) * 100) : 0;
         };

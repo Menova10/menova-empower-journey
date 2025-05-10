@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,7 @@ const WellnessDashboard = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
-        // Fetch wellness goals
+        // Fetch wellness goals directly from wellness_goals table
         const { data: goalsData, error: goalsError } = await supabase
           .from('wellness_goals')
           .select('*')
@@ -90,27 +91,33 @@ const WellnessDashboard = () => {
         if (goalsError) throw goalsError;
         
         if (goalsData && goalsData.length > 0) {
+          // Use the data directly from the wellness_goals table
           setGoals(goalsData.map((goal: any) => ({
             category: goal.category,
             completed: goal.completed,
             total: goal.total
           })));
         } else {
-          // Provide default data if none exists
-          setGoals([
-            { category: "Nourish", completed: 2, total: 3 },
-            { category: "Centre", completed: 1, total: 1 },
-            { category: "Play", completed: 0, total: 2 }
-          ]);
-          
-          // Insert default goals for this user
+          // If no wellness_goals data, create and store default goals
           const defaultGoals = [
-            { category: "Nourish", completed: 2, total: 3, user_id: session.user.id },
-            { category: "Centre", completed: 1, total: 1, user_id: session.user.id },
-            { category: "Play", completed: 0, total: 2, user_id: session.user.id }
+            { category: "nourish", completed: 0, total: 3, user_id: session.user.id },
+            { category: "center", completed: 0, total: 3, user_id: session.user.id },
+            { category: "play", completed: 0, total: 3, user_id: session.user.id }
           ];
           
-          await supabase.from('wellness_goals').insert(defaultGoals);
+          // Insert default goals
+          const { error: insertError } = await supabase
+            .from('wellness_goals')
+            .insert(defaultGoals);
+          
+          if (insertError) throw insertError;
+          
+          // Use the default goals for display
+          setGoals(defaultGoals.map(g => ({
+            category: g.category,
+            completed: g.completed,
+            total: g.total
+          })));
         }
 
         // Fetch symptom data
@@ -148,8 +155,18 @@ const WellnessDashboard = () => {
   }, []);
 
   const handleAskAboutProgress = () => {
-    // Navigate to the new Today's Wellness page
+    // Navigate to the Today's Wellness page
     navigate('/todays-wellness');
+  };
+
+  // Helper function to get the proper label for a category
+  const getCategoryLabel = (category: string) => {
+    const labels: { [key: string]: string } = {
+      "nourish": "Nourish",
+      "center": "Center",
+      "play": "Play"
+    };
+    return labels[category] || category.charAt(0).toUpperCase() + category.slice(1);
   };
 
   return (

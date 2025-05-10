@@ -17,6 +17,14 @@ interface Goal {
   category: string;
 }
 
+interface CategoryProgress {
+  [key: string]: {
+    completed: number;
+    total: number;
+    percentage: number;
+  };
+}
+
 const motivationalMessages = [
   "Amazing job! You're taking great care of yourself.",
   "Fantastic work! Keep nurturing your wellbeing.",
@@ -46,26 +54,46 @@ const TodaysWellness = () => {
   const [refreshKey, setRefreshKey] = useState(0); // Used to trigger animation
   const { speak } = useVapi();
   const vapiAssistantRef = React.useRef<any>(null);
+  const [categoryCounts, setCategoryCounts] = useState<CategoryProgress>({});
 
   // Calculate progress
   const completedGoals = goals.filter(g => g.completed).length;
   const totalGoals = goals.length;
   const progress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
-  // Calculate progress by category
-  const categoryCounts = categories.reduce((acc, cat) => {
-    const categoryGoals = goals.filter(g => g.category === cat.value);
-    const completed = categoryGoals.filter(g => g.completed).length;
-    const total = categoryGoals.length;
+  // Calculate and update category progress
+  const calculateCategoryProgress = useCallback(() => {
+    const catCounts: CategoryProgress = {};
     
-    acc[cat.value] = {
-      completed,
-      total,
-      percentage: total > 0 ? Math.round((completed / total) * 100) : 0
-    };
+    // Initialize categories
+    categories.forEach(cat => {
+      catCounts[cat.value] = {
+        completed: 0,
+        total: 0,
+        percentage: 0
+      };
+    });
     
-    return acc;
-  }, {} as Record<string, { completed: number; total: number; percentage: number }>);
+    // Calculate progress for each category
+    goals.forEach(goal => {
+      const category = goal.category;
+      if (category in catCounts) {
+        catCounts[category].total += 1;
+        if (goal.completed) {
+          catCounts[category].completed += 1;
+        }
+      }
+    });
+    
+    // Calculate percentages
+    Object.keys(catCounts).forEach(cat => {
+      const { completed, total } = catCounts[cat];
+      catCounts[cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    });
+    
+    setCategoryCounts(catCounts);
+    return catCounts;
+  }, [goals]);
 
   // Fetch user's goals for today
   const fetchGoals = useCallback(async () => {
@@ -86,7 +114,16 @@ const TodaysWellness = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setGoals(data || []);
+      
+      // Set goals and calculate category progress
+      const fetchedGoals = data || [];
+      setGoals(fetchedGoals);
+      
+      // If we have no goals for today, check if we have wellness goals in the database
+      // and create some default goals based on that
+      if (fetchedGoals.length === 0) {
+        await checkAndCreateDefaultGoals(session.user.id);
+      }
     } catch (error) {
       console.error('Error fetching goals:', error);
       toast({
@@ -98,6 +135,57 @@ const TodaysWellness = () => {
       setLoading(false);
     }
   }, [navigate, toast]);
+
+  // Check for wellness goals and create default goals if needed
+  const checkAndCreateDefaultGoals = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('wellness_goals')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      
+      // If we have wellness goals data, create some default goals based on that
+      if (data && data.length > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        const defaultGoals = [];
+        
+        for (const wellnessGoal of data) {
+          // Create default goals for each category that has a wellness goal
+          if (wellnessGoal.total > 0) {
+            const goalText = `Complete a ${wellnessGoal.category} activity today`;
+            defaultGoals.push({
+              user_id: userId,
+              goal: goalText,
+              category: wellnessGoal.category,
+              date: today,
+              completed: false
+            });
+          }
+        }
+        
+        if (defaultGoals.length > 0) {
+          const { data: newGoals, error: insertError } = await supabase
+            .from('daily_goals')
+            .insert(defaultGoals)
+            .select();
+          
+          if (insertError) throw insertError;
+          
+          if (newGoals) {
+            setGoals(newGoals);
+            toast({
+              title: 'Daily goals created',
+              description: 'We\'ve created some default goals based on your wellness plan.',
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking wellness goals:', error);
+    }
+  };
 
   // Fetch suggested goals from our edge function
   const fetchSuggestedGoals = useCallback(async () => {
@@ -158,13 +246,18 @@ const TodaysWellness = () => {
       if (error) throw error;
       
       if (data) {
-        setGoals([...goals, data[0]]);
+        const updatedGoals = [...goals, data[0]];
+        setGoals(updatedGoals);
         setNewGoal('');
         speak(`Added new goal: ${newGoal}`);
         toast({
           title: 'Goal added',
           description: 'Your wellness goal has been added for today.',
         });
+        
+        // Update category progress and sync with wellness_goals table
+        const newCategoryCounts = calculateCategoryProgress();
+        await updateWellnessGoals(session.user.id, newCategoryCounts);
       }
     } catch (error) {
       console.error('Error adding goal:', error);
@@ -187,20 +280,41 @@ const TodaysWellness = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
+      // Determine the best category for this goal using keyword matching
+      let category = 'nourish'; // Default category
+      
+      if (goal.toLowerCase().includes('water') || 
+          goal.toLowerCase().includes('eat') || 
+          goal.toLowerCase().includes('food') || 
+          goal.toLowerCase().includes('nutrition')) {
+        category = 'nourish';
+      } else if (goal.toLowerCase().includes('meditat') || 
+                 goal.toLowerCase().includes('breath') || 
+                 goal.toLowerCase().includes('calm') || 
+                 goal.toLowerCase().includes('relax')) {
+        category = 'center';
+      } else if (goal.toLowerCase().includes('walk') || 
+                 goal.toLowerCase().includes('exercise') || 
+                 goal.toLowerCase().includes('stretch') || 
+                 goal.toLowerCase().includes('yoga')) {
+        category = 'play';
+      }
+      
       const { data, error } = await supabase
         .from('daily_goals')
         .insert({
           user_id: session.user.id,
           goal: goal,
           date: today,
-          category: 'nourish' // Changed from 'general' to 'nourish' for better categorization
+          category: category
         })
         .select();
       
       if (error) throw error;
       
       if (data) {
-        setGoals([...goals, data[0]]);
+        const updatedGoals = [...goals, data[0]];
+        setGoals(updatedGoals);
         speak(`Added suggested goal: ${goal}`);
         toast({
           title: 'Suggested goal added',
@@ -209,6 +323,10 @@ const TodaysWellness = () => {
         
         // Remove from suggestions
         setSuggestedGoals(suggestedGoals.filter(g => g !== goal));
+        
+        // Update category progress and sync with wellness_goals table
+        const newCategoryCounts = calculateCategoryProgress();
+        await updateWellnessGoals(session.user.id, newCategoryCounts);
       }
     } catch (error) {
       console.error('Error adding suggested goal:', error);
@@ -220,22 +338,19 @@ const TodaysWellness = () => {
     }
   };
 
-  // Update the category progress in the wellness_goals table
-  const updateCategoryProgress = async () => {
+  // Update the wellness_goals table with the current category progress
+  const updateWellnessGoals = async (userId: string, catCounts: CategoryProgress) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      // Calculate progress for each category
-      for (const cat of categories.slice(0, 3)) { // Only the main categories: nourish, center, play
-        const catData = categoryCounts[cat.value];
+      // Only update the main categories: nourish, center, play
+      for (const cat of categories.slice(0, 3)) {
+        const catData = catCounts[cat.value];
         if (!catData) continue;
         
-        // Update the wellness_goals table
+        // Update the wellness_goals table using the unique constraint
         const { error } = await supabase
           .from('wellness_goals')
           .upsert({
-            user_id: session.user.id,
+            user_id: userId,
             category: cat.value,
             completed: catData.completed,
             total: catData.total > 0 ? catData.total : 1 // Ensure we have at least 1 as total
@@ -246,7 +361,7 @@ const TodaysWellness = () => {
         }
       }
     } catch (error) {
-      console.error('Error updating category progress:', error);
+      console.error('Error updating wellness goals:', error);
     }
   };
 
@@ -257,6 +372,12 @@ const TodaysWellness = () => {
     try {
       const goalToUpdate = goals.find(g => g.id === goalId);
       if (!goalToUpdate) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/login');
+        return;
+      }
       
       const { error } = await supabase
         .from('daily_goals')
@@ -272,8 +393,9 @@ const TodaysWellness = () => {
       
       setGoals(updatedGoals);
       
-      // Update category progress in wellness_goals table
-      await updateCategoryProgress();
+      // Update category progress and sync with wellness_goals table
+      const newCategoryCounts = calculateCategoryProgress();
+      await updateWellnessGoals(session.user.id, newCategoryCounts);
       
       // If this is a newly completed goal, show the celebration
       if (!currentStatus) {
@@ -309,12 +431,22 @@ const TodaysWellness = () => {
     fetchSuggestedGoals();
   }, [fetchGoals, fetchSuggestedGoals]);
 
-  // Update wellness_goals table whenever goals change
+  // Calculate category progress whenever goals change
   useEffect(() => {
-    if (goals.length > 0) {
-      updateCategoryProgress();
-    }
-  }, [goals]);
+    const newCategoryCounts = calculateCategoryProgress();
+    
+    // Sync with database whenever goals change
+    const syncWellnessGoals = async () => {
+      if (goals.length > 0) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          await updateWellnessGoals(session.user.id, newCategoryCounts);
+        }
+      }
+    };
+    
+    syncWellnessGoals();
+  }, [goals, calculateCategoryProgress]);
 
   // Open the chat assistant
   const openAssistant = () => {
