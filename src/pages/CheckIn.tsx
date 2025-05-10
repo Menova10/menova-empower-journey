@@ -42,26 +42,37 @@ const CheckIn = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalSessions, setTotalSessions] = useState(0);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   
   const { user, isAuthenticated } = useAuthStore();
 
-  // Check authentication
+  // Check authentication without immediate redirect
   useEffect(() => {
-    if (!isAuthenticated) {
-      toast({
-        title: "Access denied",
-        description: "Please log in to view this page.",
-        variant: "destructive",
-      });
-      navigate('/login', { state: { returnTo: '/check-in' } });
-      return;
-    }
+    const checkAuth = async () => {
+      try {
+        // Check if we already have session data from Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session && session.user) {
+          // We have a session, so fetch the user's sessions
+          if (session.user.id) {
+            fetchSessionsCount(session.user.id);
+            fetchSessions(session.user.id);
+          }
+        } else {
+          // No session, but don't redirect yet - we'll handle this in the UI
+          console.log("No authenticated session found");
+        }
+      } catch (error) {
+        console.error("Error checking authentication:", error);
+      } finally {
+        setIsAuthChecking(false);
+        setLoading(false);
+      }
+    };
     
-    if (user) {
-      fetchSessionsCount(user.id);
-      fetchSessions(user.id);
-    }
-  }, [isAuthenticated, navigate, user, currentPage, pageSize]);
+    checkAuth();
+  }, []);
 
   // Fetch total count of user sessions
   const fetchSessionsCount = async (userId: string) => {
@@ -156,23 +167,37 @@ const CheckIn = () => {
 
   // Open chat options dialog
   const handleStartNewSession = () => {
+    // Check authentication before showing chat options
+    if (!isAuthenticated) {
+      // If not authenticated, redirect to login with returnTo set to this page
+      navigate('/login', { state: { returnTo: '/check-in' } });
+      return;
+    }
+    
     setShowChatOptions(true);
   };
   
   // Start voice or text chat session
   const handleChatOptionSelected = (type: 'voice' | 'text') => {
     setShowChatOptions(false);
-    // Instead of redirecting to login, we go directly to chat with the session type
+    
+    // Directly navigate to chat without authentication check (already checked in handleStartNewSession)
     navigate('/chat', { 
       state: { 
         sessionType: type,
-        authenticated: true // Flag to indicate we're coming from an authenticated page
+        authenticated: true
       } 
     });
   };
 
   // Resume or start a new session
   const handleStartSession = (sessionId?: string) => {
+    // Check authentication first
+    if (!isAuthenticated) {
+      navigate('/login', { state: { returnTo: '/check-in' } });
+      return;
+    }
+    
     // Get session type if resuming
     let sessionType = 'text'; // Default
     if (sessionId && sessions) {
@@ -186,7 +211,7 @@ const CheckIn = () => {
       state: { 
         sessionId,
         sessionType,
-        authenticated: true // Flag to indicate we're coming from an authenticated page
+        authenticated: true
       } 
     });
   };
@@ -206,6 +231,58 @@ const CheckIn = () => {
 
   // Calculate total pages
   const totalPages = Math.ceil(totalSessions / pageSize);
+
+  // Render login prompt if not authenticated
+  if (!isAuthChecking && !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-menova-beige to-white bg-menova-pattern bg-cover">
+        {/* Navbar */}
+        <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
+          <div className="flex items-center gap-4 cursor-pointer" onClick={() => navigate('/')}>
+            <img src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" alt="MeNova" className="h-10 w-10 rounded-full" />
+            <span className="text-xl font-semibold text-menova-green">MeNova</span>
+          </div>
+        </nav>
+
+        {/* Login prompt */}
+        <div className="flex-1 flex items-center justify-center p-6">
+          <Card className="w-full max-w-md border-none shadow-lg backdrop-blur-md bg-white/90">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4">
+                <img 
+                  src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
+                  alt="MeNova" 
+                  className="w-20 h-20 mx-auto rounded-full border-2 border-menova-green"
+                />
+              </div>
+              <CardTitle className="text-2xl font-bold text-menova-green">Sign In Required</CardTitle>
+              <CardDescription>
+                Please sign in to access your check-in history and chat with MeNova
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={() => navigate('/login', { state: { returnTo: '/check-in' } })}
+                className="w-full bg-menova-green hover:bg-menova-green/90"
+              >
+                Sign In
+              </Button>
+              <p className="text-center text-sm text-gray-500">
+                Don't have an account? 
+                <Button 
+                  variant="link" 
+                  className="text-menova-green p-0 h-auto font-normal ml-1"
+                  onClick={() => navigate('/login', { state: { returnTo: '/check-in', tab: 'signup' } })}
+                >
+                  Sign Up
+                </Button>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-menova-beige to-white bg-menova-pattern bg-cover">

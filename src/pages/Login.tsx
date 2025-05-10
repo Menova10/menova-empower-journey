@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +33,16 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>("login");
+
+  // Set active tab based on location state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.tab === "signup") {
+      setActiveTab("signup");
+    }
+  }, [location.state]);
 
   // Login form
   const loginForm = useForm<LoginFormValues>({
@@ -75,8 +85,10 @@ const Login = () => {
         title: "Welcome back!",
         description: "You've successfully logged in.",
       });
-      
-      navigate('/');
+
+      // Redirect to the returnTo path or default to '/'
+      const state = location.state as { returnTo?: string };
+      navigate(state?.returnTo || '/');
     } catch (error) {
       console.error('Error signing in:', error);
       toast({
@@ -117,7 +129,9 @@ const Login = () => {
         description: "Please check your email to verify your account.",
       });
       
-      navigate('/');
+      // Redirect to the returnTo path or default to '/'
+      const state = location.state as { returnTo?: string };
+      navigate(state?.returnTo || '/');
     } catch (error) {
       console.error('Error signing up:', error);
       toast({
@@ -155,7 +169,7 @@ const Login = () => {
       
       <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
       
-      <Tabs defaultValue="login" className="w-full">
+      <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="login">Login</TabsTrigger>
           <TabsTrigger value="signup">Sign Up</TabsTrigger>
