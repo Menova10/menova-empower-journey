@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { MessageCircle, Volume2 } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 interface MeNovaChatButtonProps {
   className?: string;
@@ -17,15 +17,14 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
   const navigate = useNavigate();
   const [showChatOptions, setShowChatOptions] = React.useState(false);
   
-  const handleChatOptionSelected = (type: 'voice' | 'text') => {
+  const handleChatOptionSelected = (type: 'text') => {
     setShowChatOptions(false);
     
-    // For voice option, configure to automatically open the voice assistant when page loads
+    // Navigate to chat with text mode
     navigate('/chat', { 
       state: { 
         sessionType: type, 
-        authenticated: true,
-        autoStartVoice: type === 'voice' // Add flag for auto-starting voice
+        authenticated: true
       } 
     });
   };
@@ -56,34 +55,21 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
       <Dialog open={showChatOptions} onOpenChange={setShowChatOptions}>
         <DialogContent className="sm:max-w-md bg-menova-beige">
           <DialogHeader>
-            <DialogTitle className="text-center">How would you like to chat with MeNova?</DialogTitle>
+            <DialogTitle className="text-center">Start a conversation with MeNova</DialogTitle>
             <DialogDescription className="text-center">
-              Choose your preferred mode of conversation
+              MeNova is here to help with your menopause journey
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="py-4">
             <Button 
               onClick={() => handleChatOptionSelected('text')}
-              className="flex flex-col items-center gap-3 h-auto py-6 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
+              className="flex items-center justify-center w-full gap-3 h-auto py-4 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
               variant="outline"
             >
-              <MessageCircle className="h-8 w-8 text-menova-green" />
+              <MessageCircle className="h-6 w-6 text-menova-green" />
               <div className="text-center">
-                <p className="font-medium">Text Chat</p>
-                <p className="text-xs text-gray-500">Type your messages</p>
-              </div>
-            </Button>
-            
-            <Button 
-              onClick={() => handleChatOptionSelected('voice')}
-              className="flex flex-col items-center gap-3 h-auto py-6 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
-              variant="outline"
-            >
-              <Volume2 className="h-8 w-8 text-menova-green" />
-              <div className="text-center">
-                <p className="font-medium">Voice Chat</p>
-                <p className="text-xs text-gray-500">Speak with MeNova</p>
+                <p className="font-medium">Open Chat</p>
               </div>
             </Button>
           </div>

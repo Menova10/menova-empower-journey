@@ -13,6 +13,7 @@ import Resources from './pages/Resources';
 import ArticleView from './pages/ArticleView';
 import ContentHub from '../app/components/ContentHub';
 import CheckIn from './pages/CheckIn';
+import MeNovaChatButton from './components/MeNovaChatButton';
 import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
 import './App.css';
@@ -36,6 +37,11 @@ function App() {
           <Route path="/check-in" element={<CheckIn />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        
+        {/* Global floating MeNovaChatButton that appears on all pages except the Chat page */}
+        <div className="chat-button-container">
+          <MeNovaChatButton variant="floating" />
+        </div>
       </Router>
       <Toaster />
     </VapiProvider>

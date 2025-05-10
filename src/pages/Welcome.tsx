@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -365,11 +364,6 @@ const Welcome = () => {
           </div>
         </section>
       </main>
-
-      {/* Fixed floating chatbot - kept for text chat functionality */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <MeNovaChatButton variant="floating" />
-      </div>
     </div>
   );
 };
