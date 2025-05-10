@@ -1,8 +1,29 @@
 
-project_id = "kiuaitdfimlmgvkybuxx"
+project_id = "supabase"
 
-[functions.notify-waitlist]
-verify_jwt = false
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
 
-[functions.approve-waitlist]
+[db]
+port = 54322
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+
+[inbucket]
+enabled = true
+
+[functions.daily-quote]
 verify_jwt = false

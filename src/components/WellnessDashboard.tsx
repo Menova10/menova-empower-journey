@@ -3,8 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import VapiAssistant from './VapiAssistant';
-import { useRef } from 'react';
+import { useToast } from "@/components/ui/use-toast";
 
 interface WellnessGoal {
   category: string;
@@ -19,19 +18,61 @@ interface SymptomRating {
 
 interface DailyInsight {
   quote: string;
+  author: string;
+  isLoading: boolean;
 }
 
 const WellnessDashboard = () => {
   const [goals, setGoals] = useState<WellnessGoal[]>([]);
   const [symptoms, setSymptoms] = useState<SymptomRating[]>([]);
-  const [insight, setInsight] = useState<DailyInsight>({ quote: "" });
+  const [insight, setInsight] = useState<DailyInsight>({ 
+    quote: "", 
+    author: "",
+    isLoading: true 
+  });
   const [loading, setLoading] = useState(true);
-  const vapiRef = useRef(null);
+  const { toast } = useToast();
 
   // Calculate overall progress
   const overallProgress = goals.length > 0 
     ? Math.round((goals.reduce((acc, goal) => acc + goal.completed, 0) / goals.reduce((acc, goal) => acc + goal.total, 0)) * 100) 
     : 0;
+
+  // Fetch daily inspirational quote
+  useEffect(() => {
+    const fetchDailyQuote = async () => {
+      try {
+        const response = await supabase.functions.invoke('daily-quote');
+        
+        if (response.error) {
+          throw new Error(response.error.message);
+        }
+        
+        if (response.data) {
+          setInsight({
+            quote: response.data.q,
+            author: response.data.a,
+            isLoading: false
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching daily quote:", error);
+        // Set fallback quote if API fails
+        setInsight({
+          quote: "Your body and mind are in harmony. Reflect on this balance today.",
+          author: "MeNova",
+          isLoading: false
+        });
+        toast({
+          title: "Could not load daily quote",
+          description: "Using a fallback quote for today.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchDailyQuote();
+  }, [toast]);
 
   useEffect(() => {
     const fetchWellnessData = async () => {
@@ -95,30 +136,6 @@ const WellnessDashboard = () => {
             { symptom: "Mood", intensity: 4 }
           ]);
         }
-
-        // Fetch daily insight
-        const { data: insightData, error: insightError } = await supabase
-          .from('daily_insights')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (insightError) throw insightError;
-        
-        if (insightData && insightData.length > 0) {
-          setInsight({ quote: insightData[0].quote });
-        } else {
-          // Provide default insight if none exists
-          const defaultQuote = "Your body is transitioning, but your spirit remains steadfast. Honor both with kindness today.";
-          setInsight({ quote: defaultQuote });
-          
-          // Insert a default insight for this user
-          await supabase.from('daily_insights').insert({
-            user_id: session.user.id,
-            quote: defaultQuote
-          });
-        }
       } catch (error) {
         console.error("Error fetching wellness data:", error);
       } finally {
@@ -130,20 +147,10 @@ const WellnessDashboard = () => {
   }, []);
 
   const handleAskAboutProgress = () => {
-    if (vapiRef.current) {
-      const message = `You've completed ${overallProgress}% of your daily goals. ${
-        goals.map(goal => `For ${goal.category}, you've completed ${goal.completed} out of ${goal.total} activities.`).join(' ')
-      }`;
-      
-      // @ts-ignore - The vapiRef.current.speak method exists but TypeScript doesn't recognize it
-      vapiRef.current.speak(message);
-    }
-  };
-
-  const handleTalkToMeNova = () => {
-    if (vapiRef.current) {
-      // @ts-ignore - The vapiRef.current.speak method exists but TypeScript doesn't recognize it
-      vapiRef.current.speak("Hello! I'm MeNova, your wellness companion. How can I help you today?");
+    if (window.confirm(`You've completed ${overallProgress}% of your daily goals.\n${
+      goals.map(goal => `For ${goal.category}, you've completed ${goal.completed} out of ${goal.total} activities.`).join('\n')
+    }`)) {
+      // This is just a simple alert replacement for now
     }
   };
 
@@ -231,25 +238,24 @@ const WellnessDashboard = () => {
           </div>
         </div>
         
-        {/* Today's Insight Card */}
+        {/* Today's Insight Card - Modified to fetch dynamic quotes */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6 flex flex-col">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Insight</h3>
-          <p className="text-sm text-gray-600 mb-6">MeNova's wisdom for you</p>
+          <p className="text-sm text-gray-600 mb-6">Daily wisdom for your journey</p>
           
           <div className="flex-1 flex flex-col items-center justify-center">
-            <blockquote className="text-center text-gray-700 italic mb-8">
-              "{insight.quote}"
-            </blockquote>
-            
-            <Button 
-              className="w-full bg-[#d9b6d9] hover:bg-[#d9b6d9]/80 text-white mb-4"
-              onClick={handleTalkToMeNova}
-            >
-              Talk to MeNova
-            </Button>
-            
-            <VapiAssistant ref={vapiRef} />
-            <span className="text-sm text-gray-500 mt-2">Speak to MeNova</span>
+            {insight.isLoading ? (
+              <div className="animate-pulse w-full">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto"></div>
+              </div>
+            ) : (
+              <blockquote className="text-center text-gray-700 italic mb-4">
+                <p className="mb-3">"{insight.quote}"</p>
+                <footer className="text-sm text-gray-500">— {insight.author}</footer>
+              </blockquote>
+            )}
           </div>
         </div>
       </div>

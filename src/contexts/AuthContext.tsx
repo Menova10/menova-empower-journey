@@ -162,8 +162,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setLoading(true);
-      await supabase.auth.signOut();
+      
+      // Force clear all local storage and auth data
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error) {
+        console.error('Error signing out:', error);
+        toast({
+          title: "Error",
+          description: "An error occurred while logging out: " + error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Clear all states
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      
+      // Redirect regardless of whether there was an error or not
       navigate('/');
+      
       toast({
         title: "Logged out",
         description: "You've been successfully logged out.",
@@ -172,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error signing out:', error);
       toast({
         title: "Error",
-        description: "An error occurred while logging out.",
+        description: "An unexpected error occurred while logging out.",
         variant: "destructive"
       });
     } finally {
