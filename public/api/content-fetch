@@ -1,0 +1,89 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "api-1",
+      "title": "API: Understanding Perimenopause Symptoms",
+      "description": "Learn about the early signs of perimenopause and how to manage them effectively.",
+      "category": ["Perimenopause", "Symptoms", "Health"],
+      "type": "article",
+      "thumbnail": "https://images.unsplash.com/photo-1559090286-36796926e134",
+      "url": "/article/perimenopause-symptoms",
+      "author": {
+        "name": "Dr. Sarah Johnson",
+        "avatar": "https://randomuser.me/api/portraits/women/44.jpg"
+      },
+      "fullContent": "<h2>What is Perimenopause?</h2><p>Perimenopause refers to the transition period leading up to menopause when the ovaries gradually begin to produce less estrogen.</p>"
+    },
+    {
+      "id": "api-2",
+      "title": "API: Hot Flashes: Causes and Relief Strategies",
+      "description": "Discover what triggers hot flashes and learn effective ways to manage them.",
+      "category": ["Hot Flashes", "Symptoms", "Relief"],
+      "type": "article",
+      "thumbnail": "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7",
+      "url": "/article/hot-flashes-management",
+      "author": {
+        "name": "Dr. Rebecca Lee",
+        "avatar": "https://randomuser.me/api/portraits/women/22.jpg"
+      }
+    },
+    {
+      "id": "api-3",
+      "title": "API: Nutrition During Menopause",
+      "description": "Key dietary changes to support your body through menopause.",
+      "category": ["Nutrition", "Diet", "Wellness"],
+      "type": "video",
+      "thumbnail": "https://images.unsplash.com/photo-1498837167922-ddd27525d352",
+      "url": "/video/menopause-nutrition",
+      "duration": "8:45",
+      "author": {
+        "name": "Emma Richards, RD",
+        "avatar": "https://randomuser.me/api/portraits/women/67.jpg"
+      }
+    },
+    {
+      "id": "api-4",
+      "title": "API: Sleep Disruptions During Menopause",
+      "description": "Why menopause affects your sleep and what you can do about it.",
+      "category": ["Sleep", "Insomnia", "Health"],
+      "type": "video",
+      "thumbnail": "https://images.unsplash.com/photo-1520206183501-bcd25647c97c",
+      "url": "/video/menopause-sleep-issues",
+      "duration": "12:20",
+      "author": {
+        "name": "Dr. Michael Chen",
+        "avatar": "https://randomuser.me/api/portraits/men/32.jpg"
+      }
+    },
+    {
+      "id": "api-5",
+      "title": "API: Hormone Replacement Therapy Explained",
+      "description": "A comprehensive guide to HRT options, benefits, and risks.",
+      "category": ["HRT", "Treatment", "Medical"],
+      "type": "article",
+      "thumbnail": "https://images.unsplash.com/photo-1576091160550-2173dba999ef",
+      "url": "/article/hormone-replacement-therapy",
+      "author": {
+        "name": "Dr. Elizabeth White",
+        "avatar": "https://randomuser.me/api/portraits/women/32.jpg"
+      }
+    },
+    {
+      "id": "api-6",
+      "title": "API: Meditation Techniques for Menopause Anxiety",
+      "description": "Simple meditation practices to help manage anxiety during menopause.",
+      "category": ["Mental Health", "Anxiety", "Meditation"],
+      "type": "video",
+      "thumbnail": "https://images.unsplash.com/photo-1506126613408-eca07ce68773",
+      "url": "/video/menopause-meditation",
+      "duration": "15:30",
+      "author": {
+        "name": "Lisa Thompson",
+        "avatar": "https://randomuser.me/api/portraits/women/12.jpg"
+      }
+    }
+  ],
+  "message": "Content fetched successfully",
+  "count": 6
+} 

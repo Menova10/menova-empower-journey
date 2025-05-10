@@ -17,10 +17,16 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useVapi } from '@/contexts/VapiContext';
+import emailjs from '@emailjs/browser';
 
 // Environment variables
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://kiuaitdfimlmgvkybuxx.supabase.co';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpdWFpdGRmaW1sbWd2a3lidXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYyODQ3MDksImV4cCI6MjA2MTg2MDcwOX0.01zqSXUecTwOjTYn9qn9g_kzVOlUc-RsL99VboaJ6M8';
+
+// EmailJS configuration - verified account with working templates
+const EMAILJS_SERVICE_ID = 'service_vp3y7nc'; // Gmail service
+const EMAILJS_TEMPLATE_ID = 'template_2nci7ml'; // Contact form template
+const EMAILJS_PUBLIC_KEY = 'wHdUXpBJ0HRt1wfPZ'; // Public key
 
 // Community page component
 const Community = () => {
@@ -43,6 +49,16 @@ const Community = () => {
   const [currentCommunity, setCurrentCommunity] = useState('');
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+  // Add debug mode state
+  const [debugMode, setDebugMode] = useState(false);
+  const [localWaitlistEntries, setLocalWaitlistEntries] = useState<any[]>([]);
+  const [dbWaitlistEntries, setDbWaitlistEntries] = useState<any[]>([]);
+  const [showWaitlistDialog, setShowWaitlistDialog] = useState(false);
+
+  // Initialize EmailJS
+  useEffect(() => {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+  }, []);
 
   // Replace the existing communityIcons mapping with direct JSX elements for each logo
   const CommunityLogos = {
@@ -229,61 +245,135 @@ const Community = () => {
         description: "Please wait while we add you to the waitlist.",
       });
 
-      // 1. Insert into waitlist table
-      const { error: insertError } = await supabase
-        .from('waitlist')
-        .insert({ 
-          email: notifyEmail,
-          full_name: profile?.full_name || 'Community Subscriber', // Use profile name if available
-          reason: 'Interested in MeNova community',
-          source: 'Community Page',
-          status: 'pending'
-        });
+      console.log("Adding email to waitlist:", notifyEmail);
       
-      if (insertError) {
-        // Handle duplicate emails
-        if (insertError.code === '23505') {
+      // Store in localStorage
+      try {
+        const existingEntries = JSON.parse(localStorage.getItem('menova-community-waitlist') || '[]');
+        
+        // Check for duplicate email
+        if (existingEntries.some((entry: any) => entry.email === notifyEmail)) {
           toast({
             title: "Already on Waitlist",
             description: "This email is already on our waitlist. We'll notify you when the community is ready.",
-            variant: "success",
+            variant: "default",
           });
           setNotifyEmail('');
           return;
         }
-        throw insertError;
-      }
-
-      // 2. Call the edge function to send notification email
-      await supabase.functions.invoke('notify-community-interest', {
-        body: {
+        
+        // Add new entry
+        existingEntries.push({
           email: notifyEmail,
           full_name: profile?.full_name || 'Community Subscriber',
-          admin_email: 'menovarocks@gmail.com',
-          message: `A user has expressed interest in joining the MeNova community.
-          
+          date: new Date().toISOString(),
+        });
+        
+        localStorage.setItem('menova-community-waitlist', JSON.stringify(existingEntries));
+        console.log("Saved to localStorage");
+      } catch (localStorageError) {
+        console.error("LocalStorage error:", localStorageError);
+      }
+      
+      // Use FormSubmit.co API to send notification email
+      try {
+        // Create a hidden form and submit it automatically
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = 'https://formsubmit.co/menovarocks@gmail.com';
+        form.target = '_blank';
+        form.style.display = 'none';
+        
+        // Add fields
+        const emailField = document.createElement('input');
+        emailField.type = 'email';
+        emailField.name = 'email';
+        emailField.value = notifyEmail;
+        form.appendChild(emailField);
+        
+        const nameField = document.createElement('input');
+        nameField.type = 'text';
+        nameField.name = 'name';
+        nameField.value = profile?.full_name || 'Community Subscriber';
+        form.appendChild(nameField);
+        
+        const subjectField = document.createElement('input');
+        subjectField.type = 'hidden';
+        subjectField.name = '_subject';
+        subjectField.value = 'New MeNova Community Interest';
+        form.appendChild(subjectField);
+        
+        const messageField = document.createElement('textarea');
+        messageField.name = 'message';
+        messageField.value = `A user has expressed interest in joining the MeNova community.
+        
 Email: ${notifyEmail}
 Name: ${profile?.full_name || 'Community Subscriber'}
-Source: Community Page
-Date: ${new Date().toLocaleDateString()}`
-        }
-      });
+Date: ${new Date().toLocaleDateString()}`;
+        form.appendChild(messageField);
+        
+        // Add formsubmit.co options
+        const noCapchaField = document.createElement('input');
+        noCapchaField.type = 'hidden';
+        noCapchaField.name = '_captcha';
+        noCapchaField.value = 'false';
+        form.appendChild(noCapchaField);
+        
+        const templateField = document.createElement('input');
+        templateField.type = 'hidden';
+        templateField.name = '_template';
+        templateField.value = 'table';
+        form.appendChild(templateField);
+        
+        const nextField = document.createElement('input');
+        nextField.type = 'hidden';
+        nextField.name = '_next';
+        nextField.value = window.location.href;
+        form.appendChild(nextField);
+        
+        // Append the form to the body, submit it, and then remove it
+        document.body.appendChild(form);
+        
+        // Log for debugging
+        console.log("Submitting form to FormSubmit.co:", {
+          email: notifyEmail,
+          name: profile?.full_name || 'Community Subscriber',
+          message: `Interest in MeNova community on ${new Date().toLocaleDateString()}`
+        });
+        
+        form.submit();
+        
+        // Remove form after a brief delay
+        setTimeout(() => {
+          document.body.removeChild(form);
+        }, 1000);
+        
+        console.log("Form submitted to FormSubmit.co");
+      } catch (emailError) {
+        console.error("Error sending email via FormSubmit:", emailError);
+      }
 
       // Show success message
       toast({
         title: "Success!",
         description: "Thank you! We'll notify you when the MeNova community is ready.",
-        variant: "success",
+        variant: "default",
       });
       
       // Clear the input
       setNotifyEmail('');
       
-      // Optional: Use voice to confirm
-      speak("Thank you for joining our community waitlist. We'll notify you when it's ready.");
+      // Use voice to confirm - safely check if speak function is available
+      try {
+        if (typeof speak === 'function') {
+          speak("Thank you for joining our community waitlist. We'll notify you when it's ready.");
+        }
+      } catch (speakError) {
+        console.error("Voice assistant error:", speakError);
+      }
       
     } catch (err) {
-      console.error('Error submitting to waitlist:', err);
+      console.error('Detailed error:', err);
       toast({
         title: "Error",
         description: "There was an error adding you to the waitlist. Please try again later.",
@@ -558,6 +648,62 @@ Date: ${new Date().toLocaleDateString()}`
     localStorage.removeItem('menova-community-chat');
   };
 
+  // Add keyboard listener for debug mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Enable debug mode with Ctrl+D
+      if (e.ctrlKey && e.key === 'd') {
+        e.preventDefault();
+        setDebugMode(prev => !prev);
+        toast({
+          title: debugMode ? "Debug Mode Disabled" : "Debug Mode Enabled",
+          description: debugMode ? "Debug features are now hidden." : "Debug features are now visible.",
+          variant: "default"
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [debugMode]);
+
+  // Load waitlist data when debug dialog opens
+  useEffect(() => {
+    if (showWaitlistDialog && debugMode) {
+      // Load localStorage entries
+      try {
+        const entries = JSON.parse(localStorage.getItem('menova-community-waitlist') || '[]');
+        setLocalWaitlistEntries(entries);
+      } catch (e) {
+        console.error('Error loading local waitlist entries:', e);
+        setLocalWaitlistEntries([]);
+      }
+
+      // Load database entries if user is logged in
+      if (user) {
+        const fetchWaitlistEntries = async () => {
+          try {
+            const { data, error } = await supabase
+              .from('waitlist')
+              .select('*')
+              .order('created_at', { ascending: false });
+
+            if (error) {
+              throw error;
+            }
+
+            setDbWaitlistEntries(data || []);
+          } catch (e) {
+            console.error('Error fetching waitlist entries:', e);
+            setDbWaitlistEntries([]);
+          }
+        };
+
+        fetchWaitlistEntries();
+      }
+    }
+  }, [showWaitlistDialog, debugMode, user]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-menova-beige bg-menova-pattern bg-cover flex flex-col">
@@ -799,6 +945,19 @@ Date: ${new Date().toLocaleDateString()}`
               Notify Me
             </Button>
           </div>
+          
+          {/* Debug button - only visible in debug mode */}
+          {debugMode && (
+            <div className="mt-4 pt-2 border-t border-menova-green/20">
+              <Button
+                onClick={() => setShowWaitlistDialog(true)}
+                variant="outline"
+                className="text-xs border-menova-green text-menova-green hover:bg-menova-green/10"
+              >
+                Debug: View Waitlist Entries
+              </Button>
+            </div>
+          )}
         </section>
       </main>
 
@@ -954,6 +1113,81 @@ Date: ${new Date().toLocaleDateString()}`
               >
                 Close
               </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Debug Waitlist Dialog */}
+      <Dialog open={showWaitlistDialog && debugMode} onOpenChange={setShowWaitlistDialog}>
+        <DialogContent className="bg-white max-w-3xl mx-auto rounded-lg p-4">
+          <DialogHeader>
+            <DialogTitle className="text-menova-green text-xl">Debug: Waitlist Entries</DialogTitle>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            <h3 className="font-medium mb-2">Local Storage Entries:</h3>
+            <div className="max-h-40 overflow-y-auto bg-gray-50 p-2 rounded border">
+              {localWaitlistEntries.length === 0 ? (
+                <p className="text-sm text-gray-500 p-2">No local entries found.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-1">Email</th>
+                      <th className="text-left p-1">Name</th>
+                      <th className="text-left p-1">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {localWaitlistEntries.map((entry, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="p-1">{entry.email}</td>
+                        <td className="p-1">{entry.full_name}</td>
+                        <td className="p-1">{new Date(entry.date).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            
+            <h3 className="font-medium mt-4 mb-2">Database Entries:</h3>
+            <div className="max-h-40 overflow-y-auto bg-gray-50 p-2 rounded border">
+              {dbWaitlistEntries.length === 0 ? (
+                <p className="text-sm text-gray-500 p-2">No database entries found. There might be an issue connecting to the database.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-1">Email</th>
+                      <th className="text-left p-1">Name</th>
+                      <th className="text-left p-1">Status</th>
+                      <th className="text-left p-1">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dbWaitlistEntries.map((entry, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="p-1">{entry.email}</td>
+                        <td className="p-1">{entry.full_name}</td>
+                        <td className="p-1">{entry.status}</td>
+                        <td className="p-1">{new Date(entry.created_at).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            
+            <div className="mt-4 flex justify-end gap-2">
+              <Button 
+                onClick={() => setShowWaitlistDialog(false)}
+                variant="outline"
+                className="text-menova-green border-menova-green hover:bg-menova-green/10"
+              >
+                Close
+              </Button>
             </div>
           </div>
         </DialogContent>

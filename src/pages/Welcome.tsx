@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -151,6 +150,12 @@ const Welcome = () => {
                 <DropdownMenuItem onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')} className="cursor-pointer">
                   Symptom Tracker
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Resources', '/resources')} className="cursor-pointer">
+                  Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleVoiceNavigation('Content Hub', '/content-hub')} className="cursor-pointer">
+                  Content Hub
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')} className="cursor-pointer">
                   Wellness Plan
                 </DropdownMenuItem>
@@ -223,70 +228,64 @@ const Welcome = () => {
       
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-white/95 p-4 shadow-md animate-in fade-in slide-in-from-top">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-menova-green">Explore</p>
-              <div className="pl-2 space-y-1 border-l-2 border-menova-green/20">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')}
-                >
-                  Symptom Tracker
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')}
-                >
-                  Wellness Plan
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => handleVoiceNavigation('Community', '/community')}
-                >
-                  Community
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-menova-green">Account</p>
-              <div className="pl-2 space-y-1 border-l-2 border-menova-green/20">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => navigate('/profile')}
-                >
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={() => navigate('/settings')}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full justify-start text-menova-text"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </Button>
-              </div>
-            </div>
+        <div className="md:hidden absolute top-16 left-0 right-0 bg-white shadow-md z-20">
+          <div className="flex flex-col space-y-1 p-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')}
+            >
+              Symptom Tracker
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => handleVoiceNavigation('Resources', '/resources')}
+            >
+              Resources
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => handleVoiceNavigation('Content Hub', '/content-hub')}
+            >
+              Content Hub
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')}
+            >
+              Wellness Plan
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => handleVoiceNavigation('Community', '/community')}
+            >
+              Community
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => handleVoiceNavigation('Chat', '/chat')}
+            >
+              Chat with MeNova
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
           </div>
         </div>
       )}

@@ -8,6 +8,9 @@ import SymptomTracker from './pages/SymptomTracker';
 import NotFound from './pages/NotFound';
 import Chat from './pages/Chat';
 import Community from './pages/Community';
+import Resources from './pages/Resources';
+import ArticleView from './pages/ArticleView';
+import ContentHub from '../app/components/ContentHub';
 import { VapiProvider } from './contexts/VapiContext';
 import './App.css';
 
@@ -24,6 +27,9 @@ function App() {
           <Route path="/symptom-tracker" element={<SymptomTracker />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/resources" element={<Resources />} />
+          <Route path="/content-hub" element={<ContentHub />} />
+          <Route path="/article/:articleId" element={<ArticleView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>

@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
@@ -184,7 +183,7 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Wellness Section */}
+        {/* Features Section */}
         <section className="pt-2">
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
             Your Daily Companion
@@ -200,39 +199,86 @@ const Index = () => {
                 Track patterns and gain insights
               </p>
             </button>
+            
+            <button
+              onClick={() => handleFeatureClick('/content-hub')}
+              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+            >
+              <span className="text-3xl block mb-2">📚</span>
+              <h3 className="text-base font-medium text-menova-text">Content Hub</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Personalized articles and videos
+              </p>
+            </button>
+            
+            <button
+              onClick={() => handleFeatureClick('/community')}
+              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
+            >
+              <span className="text-3xl block mb-2">👭</span>
+              <h3 className="text-base font-medium text-menova-text">Community</h3>
+              <p className="text-xs text-gray-600 mt-1">
+                Connect and share experiences
+              </p>
+            </button>
+            
             <button
               onClick={() => handleFeatureClick('/chat')}
               className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
             >
               <span className="text-3xl block mb-2">💬</span>
-              <h3 className="text-base font-medium text-menova-text">Empathetic Chat</h3>
+              <h3 className="text-base font-medium text-menova-text">MeNova Chat</h3>
               <p className="text-xs text-gray-600 mt-1">
-                Talk through what you're experiencing
-              </p>
-            </button>
-            <button
-              onClick={() => handleFeatureClick('/mood-check')}
-              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
-            >
-              <span className="text-3xl block mb-2">😊</span>
-              <h3 className="text-base font-medium text-menova-text">Daily Check-In</h3>
-              <p className="text-xs text-gray-600 mt-1">
-                Monitor your emotional wellbeing
-              </p>
-            </button>
-            <button
-              onClick={() => handleFeatureClick('/resources')}
-              className="p-5 bg-white rounded-lg text-center hover:shadow-md transition-shadow flex flex-col items-center"
-            >
-              <span className="text-3xl block mb-2">📚</span>
-              <h3 className="text-base font-medium text-menova-text">Resource Vault</h3>
-              <p className="text-xs text-gray-600 mt-1">
-                Evidence-based knowledge at your fingertips
+                AI assistant for your questions
               </p>
             </button>
           </div>
         </section>
-        
+
+        {/* Resources Section */}
+        <section className="bg-white rounded-lg p-6 mt-8">
+          <div className="flex flex-col md:flex-row gap-6 items-center">
+            <div className="md:w-3/5 space-y-3">
+              <h2 className="text-2xl font-semibold text-menova-text">AI-Powered Resources</h2>
+              <p className="text-gray-600">
+                Discover personalized menopause guides, articles, and videos tailored to your journey.
+                Our AI analyzes your symptoms and preferences to recommend the most relevant resources.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li className="flex items-center">
+                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
+                  Personalized menopause guides
+                </li>
+                <li className="flex items-center">
+                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
+                  AI-recommended articles based on your symptoms
+                </li>
+                <li className="flex items-center">
+                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
+                  Short explainer videos for quick learning
+                </li>
+                <li className="flex items-center">
+                  <span className="bg-green-100 text-green-700 p-1 rounded-full mr-2">✓</span>
+                  Voice readout for accessibility
+                </li>
+              </ul>
+              <Button
+                onClick={() => handleFeatureClick('/resources')}
+                className="bg-menova-green text-white hover:bg-menova-green/90"
+              >
+                Explore Resources
+              </Button>
+            </div>
+            <div className="md:w-2/5">
+              <img
+                src="https://images.unsplash.com/photo-1559090286-36796926e134"
+                alt="Resources"
+                className="rounded-lg shadow-md w-full object-cover h-64"
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Your Personalized Journey Awaits Section */}
         <section className="pt-2">
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
