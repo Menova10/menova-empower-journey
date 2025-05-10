@@ -11,7 +11,7 @@
 export async function getImagesFromFirecrawl(query: string, count: number = 3): Promise<string[]> {
   try {
     // Firecrawl credentials from environment variables
-    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY") || "fc-dff7fbf8a97a47f1a2a9c2aabad52107";
     const endpoint = Deno.env.get("FIRECRAWL_ENDPOINT") || "https://api.firecrawl.dev/v1/images";
     
     if (!apiKey) {
@@ -21,12 +21,16 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     
     console.log(`Fetching ${count} images for query: "${query}" from Firecrawl`);
     
+    // Add a timestamp parameter to prevent caching
+    const timestamp = new Date().getTime();
+    
     // Make the API request to Firecrawl
-    const response = await fetch(`${endpoint}?query=${encodeURIComponent(query)}&limit=${count}`, {
+    const response = await fetch(`${endpoint}?query=${encodeURIComponent(query)}&limit=${count}&t=${timestamp}`, {
       method: "GET",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store"
       }
     });
     
@@ -63,7 +67,7 @@ export async function scrapeContentWithFirecrawl(
 ): Promise<any[]> {
   try {
     // Firecrawl credentials from environment variables
-    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY") || "fc-dff7fbf8a97a47f1a2a9c2aabad52107";
     const endpoint = Deno.env.get("FIRECRAWL_ENDPOINT") || "https://api.firecrawl.dev/v1/scrape";
     
     if (!apiKey) {
@@ -75,17 +79,22 @@ export async function scrapeContentWithFirecrawl(
     const query = `${topic} ${contentType === 'video' ? 'video' : 'article'} menopause health`;
     console.log(`Scraping content for query: "${query}" from Firecrawl`);
     
+    // Add a timestamp to prevent caching
+    const timestamp = new Date().getTime();
+    
     // Make the API request to Firecrawl
-    const response = await fetch(endpoint, {
+    const response = await fetch(`${endpoint}?t=${timestamp}`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store"
       },
       body: JSON.stringify({
         query,
         limit: count,
-        type: contentType
+        type: contentType,
+        sites: contentType === 'article' ? ["healthline.com", "mayoclinic.org", "webmd.com", "medicalnewstoday.com"] : undefined
       })
     });
     

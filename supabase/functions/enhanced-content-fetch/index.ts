@@ -10,7 +10,7 @@ const corsHeaders = {
 
 // Handle OpenAI API requests for summarization
 async function summarizeWithOpenAI(text: string): Promise<string> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY");
+  const apiKey = Deno.env.get("OPENAI_API_KEY") || "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";
   
   if (!apiKey) {
     console.warn("OpenAI API key not found");
@@ -171,7 +171,7 @@ function generateFallbackContent(contentType: 'article' | 'video', topic: string
         id: crypto.randomUUID(),
         title: titleTemplate.replace('{topic}', subtopic),
         description: descTemplate.replace(/{topic}/g, combinedTopic),
-        url: `https://example.com/videos/${subtopic.replace(/\s+/g, '-').toLowerCase()}`,
+        url: `https://www.youtube.com/embed/${Math.random().toString(36).substring(2, 10)}`,
         type: 'video',
         thumbnail: getFallbackImage(combinedTopic),
         author: {
@@ -296,7 +296,8 @@ serve(async (req) => {
     
     // Try to get content using Firecrawl first
     try {
-      const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+      // Using the provided Firecrawl API key
+      const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY") || "fc-dff7fbf8a97a47f1a2a9c2aabad52107";
       if (firecrawlApiKey) {
         console.log("Found Firecrawl API key, attempting to fetch content");
         scrapedContent = await scrapeContentWithFirecrawl(topic, contentType as 'article' | 'video', count);
@@ -316,10 +317,15 @@ serve(async (req) => {
     // Process and enrich the content (whether from Firecrawl or fallback)
     const processedContent = await processContent(scrapedContent, contentType as 'article' | 'video');
     
+    // Add a cache-busting header to ensure fresh content
+    const headers = {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+    };
+    
     // Return the processed content
-    return new Response(JSON.stringify(processedContent), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return new Response(JSON.stringify(processedContent), { headers });
   } catch (error) {
     console.error("Error in enhanced-content-fetch:", error);
     
@@ -329,7 +335,11 @@ serve(async (req) => {
     );
     
     return new Response(JSON.stringify(fallbackContent), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+      }
     });
   }
 });

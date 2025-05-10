@@ -2,3 +2,4 @@
 project_id = "kiuaitdfimlmgvkybuxx"
 [functions.enhanced-content-fetch]
 verify_jwt = false
+
