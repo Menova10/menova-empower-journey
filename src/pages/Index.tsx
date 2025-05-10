@@ -2,10 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { MessageCircle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import VapiAssistant from '@/components/VapiAssistant';
 import { supabase } from '@/integrations/supabase/client';
+import MeNovaChatButton from '@/components/MeNovaChatButton';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -125,12 +126,9 @@ const Index = () => {
               MeNova provides empathetic support, personalized tracking,<br />
               and evidence-based resources for your unique menopause journey.
             </p>
-            <Button
-              onClick={() => handleFeatureClick('/chat')}
-              className="bg-menova-green text-white hover:bg-menova-green/90 rounded-full px-8 py-6 text-lg"
-            >
-              Speak to MeNova
-            </Button>
+            
+            {/* Replace the old button with our new chat button */}
+            <MeNovaChatButton />
           </div>
           
           <div className="md:w-2/5 flex justify-center relative">
@@ -297,15 +295,9 @@ const Index = () => {
         <p>© 2025 MeNova. Your companion through menopause.</p>
       </footer>
 
-      {/* Fixed floating chatbot */}
+      {/* Fixed floating chatbot - replaced with our new component */}
       <div className="fixed bottom-20 right-6 z-40">
-        <button 
-          onClick={() => handleFeatureClick('/chat')}
-          className="bg-menova-green hover:bg-menova-green/90 text-white rounded-full py-3 px-4 shadow-lg cursor-pointer flex items-center justify-center gap-2"
-        >
-          <MessageCircle size={18} />
-          <span className="text-sm font-medium">Text Chat</span>
-        </button>
+        <MeNovaChatButton variant="floating" />
       </div>
 
       {/* Floating Voice Assistant */}

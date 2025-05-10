@@ -10,6 +10,7 @@ import VapiAssistant from '@/components/VapiAssistant';
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
+import MeNovaChatButton from '@/components/MeNovaChatButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -380,15 +381,9 @@ const Welcome = () => {
         </section>
       </main>
 
-      {/* Fixed floating chatbot */}
+      {/* Fixed floating chatbot - replaced with our new component */}
       <div className="fixed bottom-20 right-6 z-40">
-        <button 
-          onClick={() => navigate('/chat')}
-          className="bg-menova-green hover:bg-menova-green/90 text-white rounded-full py-3 px-4 shadow-lg cursor-pointer flex items-center justify-center gap-2"
-        >
-          <MessageCircle size={18} />
-          <span className="text-sm font-medium">Text Chat</span>
-        </button>
+        <MeNovaChatButton variant="floating" />
       </div>
 
       {/* Floating Voice Assistant */}

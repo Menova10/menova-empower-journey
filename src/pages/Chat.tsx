@@ -6,6 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { Send, Mic, Volume2 } from 'lucide-react';
 import VapiAssistant from '@/components/VapiAssistant';
+import { toast } from '@/components/ui/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const Chat = () => {
   const [messages, setMessages] = useState<{ text: string, sender: 'user' | 'ai', timestamp: Date }[]>([]);
@@ -14,6 +16,7 @@ const Chat = () => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionType, setSessionType] = useState<'voice' | 'text'>('text');
   const [showVoiceUI, setShowVoiceUI] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const vapiRef = useRef<any>(null);
   const { user, isAuthenticated } = useAuthStore();
@@ -34,17 +37,25 @@ const Chat = () => {
       if (locationState.sessionType === 'voice') {
         setSessionType('voice');
         setShowVoiceUI(true);
+        
+        // Auto-open the voice assistant after a short delay
+        setTimeout(() => {
+          if (vapiRef.current) {
+            const assistantButton = document.querySelector('.rounded-full.w-14.h-14');
+            if (assistantButton instanceof HTMLElement) {
+              assistantButton.click();
+            }
+          }
+        }, 500);
       } else {
         setSessionType('text');
       }
     }
     
     // Add initial greeting when component mounts
-    // Check if we were navigated here from an authenticated page
-    const comingFromAuthenticatedPage = locationState?.authenticated === true;
-    
-    if (!isAuthenticated && !comingFromAuthenticatedPage) {
-      navigate('/login');
+    // Check if we are authenticated
+    if (!isAuthenticated && !locationState?.authenticated) {
+      setShowLoginPrompt(true);
       return;
     }
     
@@ -55,7 +66,7 @@ const Chat = () => {
         timestamp: new Date()
       }
     ]);
-  }, [isAuthenticated, navigate, location.state]);
+  }, [isAuthenticated, location.state]);
 
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -121,6 +132,12 @@ const Chat = () => {
   const handleSendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
     
+    // Check if authenticated
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     setIsLoading(true);
     
     // Add user message
@@ -151,17 +168,29 @@ const Chat = () => {
 
   // Handle switching between voice and text modes
   const toggleVoiceMode = () => {
+    // Check if authenticated
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     setShowVoiceUI(!showVoiceUI);
     setSessionType(showVoiceUI ? 'text' : 'voice');
     
     // If switching to voice, open the voice assistant
     if (!showVoiceUI && vapiRef.current) {
       setTimeout(() => {
-        document.querySelector('.rounded-full.w-14.h-14')?.dispatchEvent(
-          new MouseEvent('click', { bubbles: true })
-        );
+        const assistantButton = document.querySelector('.rounded-full.w-14.h-14');
+        if (assistantButton instanceof HTMLElement) {
+          assistantButton.click();
+        }
       }, 100);
     }
+  };
+  
+  const handleLogin = () => {
+    setShowLoginPrompt(false);
+    navigate('/login');
   };
 
   return (
@@ -261,6 +290,42 @@ const Chat = () => {
           </div>
         )}
       </div>
+      
+      {/* Login Prompt Dialog */}
+      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-center">Sign in to Chat with MeNova</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center space-y-4 py-4">
+            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-menova-green">
+              <img 
+                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
+                alt="MeNova" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <p className="text-center text-gray-600">
+              To continue your conversation with MeNova, please sign in to your account.
+            </p>
+            <div className="flex gap-4 w-full">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setShowLoginPrompt(false)}
+              >
+                Continue as Guest
+              </Button>
+              <Button 
+                className="flex-1 bg-menova-green hover:bg-menova-green/90"
+                onClick={handleLogin}
+              >
+                Sign In
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Voice Assistant - Always render but only make prominent when in voice mode */}
       <div className="fixed bottom-6 right-6 z-50">
