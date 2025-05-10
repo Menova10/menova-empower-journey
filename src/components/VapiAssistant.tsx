@@ -6,6 +6,7 @@ import { MessageCircle, Mic, MicOff, Speaker, Volume2, VolumeX, Send } from 'luc
 import { useVapi } from '@/contexts/VapiContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
+import { useLocation } from 'react-router-dom';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -25,6 +26,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [savingToTracker, setSavingToTracker] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [userSpeaking, setUserSpeaking] = useState(false);
@@ -38,6 +40,17 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     stopAssistant,
     vapiRef,
   } = useVapi();
+
+  // Check for auto-start parameter from location state
+  useEffect(() => {
+    const locationState = location.state as any;
+    if (locationState?.autoStartVoice) {
+      // Auto-open dialog when requested from navigation
+      setTimeout(() => {
+        handleAssistantClick();
+      }, 800);
+    }
+  }, [location.state]);
 
   // Check authentication status
   useEffect(() => {
@@ -271,6 +284,17 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       vapi.off && vapi.off("volume-level", volumeHandler);
     };
   }, [sdkLoaded, vapiRef]);
+
+  // Expose methods to parent components
+  useImperativeHandle(ref, () => ({
+    open: () => setOpen(true),
+    close: () => setOpen(false),
+    sendTextMessage: (text: string) => {
+      if (vapiRef.current) {
+        vapiRef.current.sendTextMessage && vapiRef.current.sendTextMessage(text);
+      }
+    }
+  }));
 
   return (
     <>

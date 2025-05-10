@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Volume2 } from 'lucide-react';
+import { useVapi } from '@/contexts/VapiContext';
 
 interface MeNovaChatButtonProps {
   className?: string;
@@ -16,10 +17,19 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showChatOptions, setShowChatOptions] = React.useState(false);
+  const { startAssistant } = useVapi();
   
   const handleChatOptionSelected = (type: 'voice' | 'text') => {
     setShowChatOptions(false);
-    navigate('/chat', { state: { sessionType: type, authenticated: true } });
+    
+    // For voice option, configure to automatically open the voice assistant when page loads
+    navigate('/chat', { 
+      state: { 
+        sessionType: type, 
+        authenticated: true,
+        autoStartVoice: type === 'voice' // Add flag for auto-starting voice
+      } 
+    });
   };
 
   return (

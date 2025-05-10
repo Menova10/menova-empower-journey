@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -41,9 +40,13 @@ const Chat = () => {
         // Auto-open the voice assistant after a short delay
         setTimeout(() => {
           if (vapiRef.current) {
-            const assistantButton = document.querySelector('.rounded-full.w-14.h-14');
-            if (assistantButton instanceof HTMLElement) {
-              assistantButton.click();
+            // Check if we should auto-start the voice based on the flag
+            if (locationState.autoStartVoice) {
+              // First, find and click the button to open the assistant dialog
+              const assistantButton = document.querySelector('.rounded-full.w-14.h-14');
+              if (assistantButton instanceof HTMLElement) {
+                assistantButton.click();
+              }
             }
           }
         }, 500);
@@ -52,13 +55,13 @@ const Chat = () => {
       }
     }
     
-    // Add initial greeting when component mounts
     // Check if we are authenticated
     if (!isAuthenticated && !locationState?.authenticated) {
       setShowLoginPrompt(true);
       return;
     }
     
+    // Add initial greeting when component mounts
     setMessages([
       {
         text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
