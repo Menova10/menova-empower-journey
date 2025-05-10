@@ -25,6 +25,11 @@ const Welcome = () => {
   const [loading, setLoading] = useState(true);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [categoryProgress, setCategoryProgress] = useState({
+    nourish: 0,
+    center: 0,
+    play: 0
+  });
 
   // Check if user is logged in
   useEffect(() => {
@@ -43,6 +48,7 @@ const Welcome = () => {
       
       setUser(session.user);
       await fetchProfile(session.user.id);
+      await fetchCategoryProgress();
     };
     
     checkUser();
@@ -67,6 +73,45 @@ const Welcome = () => {
       console.error('Error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch category progress
+  const fetchCategoryProgress = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+      
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      const { data, error } = await supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('date', today);
+
+      if (error) {
+        console.error('Error fetching category progress:', error);
+        return;
+      }
+
+      if (data) {
+        // Calculate percentage for each category
+        const calculatePercentage = (category: string) => {
+          const categoryGoals = data.filter(g => g.category === category);
+          const completed = categoryGoals.filter(g => g.completed).length;
+          const total = categoryGoals.length;
+          return total > 0 ? Math.round((completed / total) * 100) : 0;
+        };
+        
+        setCategoryProgress({
+          nourish: calculatePercentage('nourish'),
+          center: calculatePercentage('center'),
+          play: calculatePercentage('play')
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -111,6 +156,60 @@ const Welcome = () => {
       </div>
     );
   }
+
+  // Create a CategoryProgressRing component
+  const CategoryProgressRing = ({ 
+    category, 
+    percentage, 
+    icon: Icon, 
+    color 
+  }: { 
+    category: string; 
+    percentage: number; 
+    icon: React.ElementType; 
+    color: string; 
+  }) => {
+    const size = 80;
+    const strokeWidth = 6;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+    
+    return (
+      <div className="flex flex-col items-center">
+        <div className="relative hover:category-scale">
+          <svg height={size} width={size} className="category-progress-ring">
+            {/* Background circle */}
+            <circle 
+              stroke="#e9e9e9" 
+              fill="transparent"
+              strokeWidth={strokeWidth}
+              r={radius}
+              cx={size / 2}
+              cy={size / 2}
+            />
+            {/* Progress circle */}
+            <circle
+              stroke={color}
+              fill="transparent"
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={`${circumference} ${circumference}`}
+              strokeDashoffset={strokeDashoffset}
+              r={radius}
+              cx={size / 2}
+              cy={size / 2}
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center category-icon">
+            <Icon size={32} color={color} />
+          </div>
+        </div>
+        <span className="mt-2 text-sm font-medium capitalize">{category}</span>
+        <span className="text-xs text-gray-500">{percentage}% complete</span>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
@@ -283,7 +382,7 @@ const Welcome = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
         {/* Welcome Section */}
-        <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm">
+        <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm bg-gradient-to-br from-white to-green-50">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-menova-green">
               <img
@@ -303,6 +402,50 @@ const Welcome = () => {
           <p className="text-gray-600 leading-relaxed mb-4">
             How are you feeling today? MeNova is here to support you through your journey.
           </p>
+        </section>
+
+        {/* Today's Categories Progress */}
+        <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm bg-gradient-to-br from-white to-green-50">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-menova-text">Today's Wellness Categories</h2>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/todays-wellness')}
+              className="border-menova-green text-menova-green hover:bg-menova-green/10"
+            >
+              View All
+            </Button>
+          </div>
+          
+          <div className="flex flex-wrap justify-around gap-8 my-6">
+            <CategoryProgressRing 
+              category="nourish" 
+              percentage={categoryProgress.nourish} 
+              icon={Apple} 
+              color="#f97316" // orange-500
+            />
+            <CategoryProgressRing 
+              category="center" 
+              percentage={categoryProgress.center} 
+              icon={Yoga} 
+              color="#14b8a6" // teal-500
+            />
+            <CategoryProgressRing 
+              category="play" 
+              percentage={categoryProgress.play} 
+              icon={Running} 
+              color="#ea384c" // red-500
+            />
+          </div>
+          
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={() => navigate('/todays-wellness')}
+              className="bg-menova-green hover:bg-menova-green/90 text-white"
+            >
+              Add Today's Goals
+            </Button>
+          </div>
         </section>
 
         {/* New Wellness Dashboard Section */}

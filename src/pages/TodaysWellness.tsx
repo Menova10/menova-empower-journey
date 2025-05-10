@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Check, Plus, RefreshCw } from 'lucide-react';
+import { Check, Plus, RefreshCw, Apple, Yoga, Running } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
@@ -25,13 +25,12 @@ const motivationalMessages = [
   "Excellent! Your dedication to self-care is inspiring."
 ];
 
+// Improved categories with icons and colors
 const categories = [
-  { value: 'general', label: 'General' },
-  { value: 'nutrition', label: 'Nutrition' },
-  { value: 'movement', label: 'Movement' },
-  { value: 'mindfulness', label: 'Mindfulness' },
-  { value: 'sleep', label: 'Sleep' },
-  { value: 'symptom', label: 'Symptom Management' },
+  { value: 'nourish', label: 'Nourish', icon: Apple, color: 'bg-orange-200 text-orange-700' },
+  { value: 'center', label: 'Center', icon: Yoga, color: 'bg-teal-200 text-teal-700' },
+  { value: 'play', label: 'Play', icon: Running, color: 'bg-red-200 text-red-700' },
+  { value: 'general', label: 'General', icon: Plus, color: 'bg-gray-200 text-gray-700' },
 ];
 
 const TodaysWellness = () => {
@@ -39,7 +38,7 @@ const TodaysWellness = () => {
   const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newGoal, setNewGoal] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('general');
+  const [selectedCategory, setSelectedCategory] = useState('nourish');
   const [loading, setLoading] = useState(true);
   const [suggestedGoals, setSuggestedGoals] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
@@ -52,6 +51,21 @@ const TodaysWellness = () => {
   const completedGoals = goals.filter(g => g.completed).length;
   const totalGoals = goals.length;
   const progress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+
+  // Calculate progress by category
+  const categoryCounts = categories.reduce((acc, cat) => {
+    const categoryGoals = goals.filter(g => g.category === cat.value);
+    const completed = categoryGoals.filter(g => g.completed).length;
+    const total = categoryGoals.length;
+    
+    acc[cat.value] = {
+      completed,
+      total,
+      percentage: total > 0 ? Math.round((completed / total) * 100) : 0
+    };
+    
+    return acc;
+  }, {} as Record<string, { completed: number; total: number; percentage: number }>);
 
   // Fetch user's goals for today
   const fetchGoals = useCallback(async () => {
@@ -179,7 +193,7 @@ const TodaysWellness = () => {
           user_id: session.user.id,
           goal: goal,
           date: today,
-          category: 'suggested'
+          category: 'general'
         })
         .select();
       
@@ -268,6 +282,19 @@ const TodaysWellness = () => {
     }
   };
 
+  // Render a category badge
+  const CategoryBadge = ({ category }: { category: string }) => {
+    const categoryData = categories.find(c => c.value === category) || categories[3]; // Default to 'general'
+    const Icon = categoryData.icon;
+    
+    return (
+      <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${categoryData.color}`}>
+        <Icon size={12} />
+        <span>{categoryData.label}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -275,7 +302,7 @@ const TodaysWellness = () => {
         <p className="text-center text-gray-600 mb-8">Your daily goals and activities</p>
         
         {/* Progress Bar */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8">
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
           <div className="flex justify-between mb-2">
             <h2 className="text-xl font-semibold text-menova-text">Your Progress</h2>
             <span className="text-lg font-medium">{progress}%</span>
@@ -289,10 +316,30 @@ const TodaysWellness = () => {
           <div className="mt-3 text-sm text-gray-600 text-center">
             {completedGoals} of {totalGoals} goals completed
           </div>
+
+          {/* Category Progress */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {categories.slice(0, 3).map(category => {
+              const catData = categoryCounts[category.value] || { completed: 0, total: 0, percentage: 0 };
+              const Icon = category.icon;
+              
+              return (
+                <div key={category.value} className="flex flex-col items-center">
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${category.color.replace('bg-', 'bg-opacity-20 bg-')}`}>
+                    <Icon size={24} className={category.color.replace('bg-', 'text-').replace(' text-', '')} />
+                  </div>
+                  <div className="font-medium">{category.label}</div>
+                  <div className="text-xs text-gray-600">
+                    {catData.completed} of {catData.total} ({catData.percentage}%)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
         
         {/* Add New Goal */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8">
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
           <h2 className="text-xl font-semibold text-menova-text mb-4">Add New Goal</h2>
           
           <div className="space-y-4">
@@ -315,18 +362,23 @@ const TodaysWellness = () => {
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
                 Category
               </label>
-              <select
-                id="category"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
-              >
-                {categories.map(category => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {categories.slice(0, 3).map(category => (
+                  <button
+                    key={category.value}
+                    type="button"
+                    onClick={() => setSelectedCategory(category.value)}
+                    className={`p-3 rounded-md flex items-center justify-center gap-2 transition-all
+                      ${selectedCategory === category.value 
+                        ? `${category.color} border-2 border-${category.color.split(' ')[1].replace('text-', '')}` 
+                        : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                      }`}
+                  >
+                    <category.icon size={18} />
+                    <span>{category.label}</span>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
             
             <Button 
@@ -341,7 +393,7 @@ const TodaysWellness = () => {
         </div>
         
         {/* Suggested Goals */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8">
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-menova-text">Suggested Goals</h2>
             <Button 
@@ -368,7 +420,8 @@ const TodaysWellness = () => {
               {suggestedGoals.map((goal, index) => (
                 <li 
                   key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors"
+                  className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <span className="text-gray-700">{goal}</span>
                   <Button
@@ -388,7 +441,7 @@ const TodaysWellness = () => {
         </div>
         
         {/* Today's Goals */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6">
+        <div className="bg-white/90 rounded-lg shadow-sm p-6 bg-gradient-to-br from-white to-green-50">
           <h2 className="text-xl font-semibold text-menova-text mb-4">Today's Goals</h2>
           
           {loading ? (
@@ -402,14 +455,15 @@ const TodaysWellness = () => {
             </div>
           ) : goals.length > 0 ? (
             <ul className="space-y-2">
-              {goals.map(goal => (
+              {goals.map((goal, idx) => (
                 <li 
                   key={goal.id}
                   className={`flex items-center p-3 rounded-md transition-all ${
                     goal.completed 
                       ? 'bg-menova-green/10 text-menova-green' 
                       : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
+                  } animate-fade-in`}
+                  style={{ animationDelay: `${idx * 0.1}s` }}
                 >
                   <button
                     onClick={() => toggleGoalCompletion(goal.id, goal.completed)}
@@ -429,9 +483,7 @@ const TodaysWellness = () => {
                   >
                     {goal.goal}
                   </span>
-                  <span className="text-xs text-gray-500 uppercase px-2 py-1 bg-gray-100 rounded">
-                    {goal.category}
-                  </span>
+                  <CategoryBadge category={goal.category} />
                 </li>
               ))}
             </ul>
