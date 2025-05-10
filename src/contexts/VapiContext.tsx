@@ -11,7 +11,6 @@ type VapiContextType = {
   startAssistant: () => void;
   stopAssistant: () => void;
   speak: (text: string) => void;
-  sendTextMessage: (text: string) => void;
   vapiRef: React.MutableRefObject<any>;
 };
 
@@ -23,9 +22,6 @@ export const useVapi = (): VapiContextType => {
   return context;
 };
 
-// Global flag to track if a Vapi instance is already active
-let isVapiInstanceActive = false;
-
 export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -35,52 +31,43 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     try {
-      // Only initialize Vapi if there's no active instance
-      if (!isVapiInstanceActive) {
-        console.log("Initializing Vapi SDK");
-        vapiRef.current = new Vapi('d3fd5e81-606a-4d19-b737-bd00fd55a737');
-        isVapiInstanceActive = true;
+      console.log("Initializing Vapi SDK");
+      vapiRef.current = new Vapi('d3fd5e81-606a-4d19-b737-bd00fd55a737');
+      
+      // Set up event listeners for tracking state
+      if (vapiRef.current) {
+        vapiRef.current.on && vapiRef.current.on("speech-start", () => {
+          console.log("Speech started");
+          setIsSpeaking(true);
+        });
         
-        // Set up event listeners for tracking state
-        if (vapiRef.current) {
-          vapiRef.current.on && vapiRef.current.on("speech-start", () => {
-            console.log("Speech started");
-            setIsSpeaking(true);
-          });
-          
-          vapiRef.current.on && vapiRef.current.on("speech-end", () => {
-            console.log("Speech ended");
-            setIsSpeaking(false);
-          });
-          
-          vapiRef.current.on && vapiRef.current.on("listening-start", () => {
-            console.log("Listening started");
-            setIsListening(true);
-          });
-          
-          vapiRef.current.on && vapiRef.current.on("listening-end", () => {
-            console.log("Listening ended");
-            setIsListening(false);
-          });
-
-          vapiRef.current.on && vapiRef.current.on("message", (message: any) => {
-            console.log("Received message from Vapi:", message);
-            // You can handle incoming messages here if needed
-          });
-          
-          vapiRef.current.on && vapiRef.current.on("error", (err: any) => {
-            console.error("Vapi error:", err);
-            setError(err?.message || "An error occurred with the voice assistant");
-            toast({
-              title: "Voice Assistant Error",
-              description: err?.message || "Could not connect to voice assistant",
-              variant: "destructive",
-            });
-          });
-        }
+        vapiRef.current.on && vapiRef.current.on("speech-end", () => {
+          console.log("Speech ended");
+          setIsSpeaking(false);
+        });
         
-        setSdkLoaded(true);
+        vapiRef.current.on && vapiRef.current.on("listening-start", () => {
+          console.log("Listening started");
+          setIsListening(true);
+        });
+        
+        vapiRef.current.on && vapiRef.current.on("listening-end", () => {
+          console.log("Listening ended");
+          setIsListening(false);
+        });
+        
+        vapiRef.current.on && vapiRef.current.on("error", (err: any) => {
+          console.error("Vapi error:", err);
+          setError(err?.message || "An error occurred with the voice assistant");
+          toast({
+            title: "Voice Assistant Error",
+            description: err?.message || "Could not connect to voice assistant",
+            variant: "destructive",
+          });
+        });
       }
+      
+      setSdkLoaded(true);
     } catch (err) {
       console.error("Error initializing Vapi:", err);
       setError("Could not initialize voice assistant");
@@ -89,15 +76,7 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       if (vapiRef.current) {
         console.log("Stopping Vapi on cleanup");
-        // Make sure we're properly shutting down
-        try {
-          vapiRef.current?.stop();
-        } catch (e) {
-          console.error("Error stopping Vapi:", e);
-        }
-        // Reset the global flag when component unmounts
-        isVapiInstanceActive = false;
-        vapiRef.current = null;
+        vapiRef.current?.stop();
       }
     };
   }, []);
@@ -106,15 +85,7 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!vapiRef.current) return;
     try {
       console.log("Starting Vapi assistant");
-      // Before starting, ensure we're not already running
-      stopAssistant();
-      setTimeout(() => {
-        try {
-          vapiRef.current?.start("2e3da3a1-8a7c-41d0-8e65-ab33101bb6b7");
-        } catch (e) {
-          console.error("Error in delayed start:", e);
-        }
-      }, 300); // Give more time for cleanup
+      vapiRef.current.start("2e3da3a1-8a7c-41d0-8e65-ab33101bb6b7");
     } catch (e) {
       console.error("Error starting assistant:", e);
       setError('Could not start voice assistant');
@@ -129,29 +100,13 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const stopAssistant = () => {
     if (vapiRef.current) {
       console.log("Stopping Vapi assistant");
-      try {
-        vapiRef.current?.stop();
-      } catch (e) {
-        console.error("Error stopping Vapi:", e);
-      }
+      vapiRef.current?.stop();
     }
   };
 
   const speak = (text: string) => {
-    if (!vapiRef.current) return;
     console.log("Speaking text:", text);
-    // We'll use sendTextMessage instead as that's the proper API
-    sendTextMessage(text);
-  };
-  
-  const sendTextMessage = (text: string) => {
-    if (!vapiRef.current || !vapiRef.current.sendTextMessage) return;
-    console.log("Sending text message to Vapi:", text);
-    try {
-      vapiRef.current.sendTextMessage(text);
-    } catch (e) {
-      console.error("Error sending text message:", e);
-    }
+    vapiRef.current?.speak(text);
   };
 
   const value = {
@@ -162,7 +117,6 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     startAssistant,
     stopAssistant,
     speak,
-    sendTextMessage,
     vapiRef,
   };
 

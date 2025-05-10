@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -37,6 +36,20 @@ const Chat = () => {
       if (locationState.sessionType === 'voice') {
         setSessionType('voice');
         setShowVoiceUI(true);
+        
+        // Auto-open the voice assistant after a short delay
+        setTimeout(() => {
+          if (vapiRef.current) {
+            // Check if we should auto-start the voice based on the flag
+            if (locationState.autoStartVoice) {
+              // First, find and click the button to open the assistant dialog
+              const assistantButton = document.querySelector('.rounded-full.w-14.h-14');
+              if (assistantButton instanceof HTMLElement) {
+                assistantButton.click();
+              }
+            }
+          }
+        }, 500);
       } else {
         setSessionType('text');
       }
@@ -169,9 +182,12 @@ const Chat = () => {
     
     // If switching to voice, open the voice assistant
     if (!showVoiceUI && vapiRef.current) {
-      if (vapiRef.current.open) {
-        vapiRef.current.open();
-      }
+      setTimeout(() => {
+        const assistantButton = document.querySelector('.rounded-full.w-14.h-14');
+        if (assistantButton instanceof HTMLElement) {
+          assistantButton.click();
+        }
+      }, 100);
     }
   };
   
@@ -314,13 +330,9 @@ const Chat = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Voice Assistant - Only render it once, and show it only when in voice mode */}
+      {/* Voice Assistant - Always render but only make prominent when in voice mode */}
       <div className="fixed bottom-6 right-6 z-50">
-        {/* Pass autoOpen prop based on location state */}
-        <VapiAssistant 
-          ref={vapiRef}
-          autoOpen={location.state?.autoStartVoice || false} 
-        />
+        <VapiAssistant ref={vapiRef} />
       </div>
     </div>
   );
