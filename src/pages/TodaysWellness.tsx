@@ -1,20 +1,23 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Check, Plus, RefreshCw, Apple, Brain, ActivitySquare } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Check, Plus, RefreshCw, Apple, Brain, ActivitySquare, CalendarDays, CalendarWeek, ChartBar } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
 import VapiAssistant from '@/components/VapiAssistant';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format, startOfWeek, endOfWeek, addDays, startOfMonth, endOfMonth, differenceInDays } from 'date-fns';
 
 interface Goal {
   id: string;
   goal: string;
   completed: boolean;
   category: string;
+  date?: string;
 }
 
 interface CategoryProgress {
@@ -22,6 +25,26 @@ interface CategoryProgress {
     completed: number;
     total: number;
     percentage: number;
+  };
+}
+
+interface WeeklyProgress {
+  [key: string]: {
+    [category: string]: {
+      completed: number;
+      total: number;
+      percentage: number;
+    };
+  };
+}
+
+interface MonthlyProgress {
+  [key: string]: {
+    [category: string]: {
+      completed: number;
+      total: number;
+      percentage: number;
+    };
   };
 }
 
@@ -41,6 +64,17 @@ const categories = [
   { value: 'general', label: 'General', icon: Plus, color: 'bg-gray-200 text-gray-700' },
 ];
 
+// Helper function to normalize category names for consistency
+const normalizeCategory = (category: string): string => {
+  // Convert to lowercase for consistency
+  const lowerCategory = category.toLowerCase();
+  
+  // Map 'centre' to 'center' for consistency
+  if (lowerCategory === 'centre') return 'center';
+  
+  return lowerCategory;
+};
+
 const TodaysWellness = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -55,6 +89,11 @@ const TodaysWellness = () => {
   const { speak } = useVapi();
   const vapiAssistantRef = React.useRef<any>(null);
   const [categoryCounts, setCategoryCounts] = useState<CategoryProgress>({});
+  const [weeklyProgress, setWeeklyProgress] = useState<WeeklyProgress>({});
+  const [monthlyProgress, setMonthlyProgress] = useState<MonthlyProgress>({});
+  const [activeTab, setActiveTab] = useState("daily");
+  const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
+  const [monthlyGoals, setMonthlyGoals] = useState<Goal[]>([]);
 
   // Calculate progress
   const completedGoals = goals.filter(g => g.completed).length;
@@ -76,7 +115,7 @@ const TodaysWellness = () => {
     
     // Calculate progress for each category
     goals.forEach(goal => {
-      const category = goal.category;
+      const category = normalizeCategory(goal.category);
       if (category in catCounts) {
         catCounts[category].total += 1;
         if (goal.completed) {
@@ -124,6 +163,15 @@ const TodaysWellness = () => {
       if (fetchedGoals.length === 0) {
         await checkAndCreateDefaultGoals(session.user.id);
       }
+
+      // Also fetch weekly and monthly data when switching tabs
+      if (activeTab === 'weekly' || activeTab === 'all') {
+        await fetchWeeklyGoals(session.user.id);
+      }
+
+      if (activeTab === 'monthly' || activeTab === 'all') {
+        await fetchMonthlyGoals(session.user.id);
+      }
     } catch (error) {
       console.error('Error fetching goals:', error);
       toast({
@@ -134,7 +182,166 @@ const TodaysWellness = () => {
     } finally {
       setLoading(false);
     }
-  }, [navigate, toast]);
+  }, [navigate, toast, activeTab]);
+
+  // Fetch weekly goals
+  const fetchWeeklyGoals = async (userId: string) => {
+    try {
+      setLoading(true);
+      const startDate = format(startOfWeek(new Date()), 'yyyy-MM-dd');
+      const endDate = format(endOfWeek(new Date()), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      
+      if (data) {
+        setWeeklyGoals(data);
+        
+        // Process the weekly data
+        const weekProgress: WeeklyProgress = {};
+        const daysOfWeek = [];
+        let currentDay = startOfWeek(new Date());
+        const endDay = endOfWeek(new Date());
+        
+        while (currentDay <= endDay) {
+          const dayStr = format(currentDay, 'yyyy-MM-dd');
+          daysOfWeek.push(dayStr);
+          
+          weekProgress[dayStr] = {};
+          
+          // Initialize categories for this day
+          categories.forEach(cat => {
+            weekProgress[dayStr][cat.value] = {
+              completed: 0,
+              total: 0,
+              percentage: 0
+            };
+          });
+          
+          currentDay = addDays(currentDay, 1);
+        }
+        
+        // Populate with data
+        data.forEach(goal => {
+          const day = goal.date;
+          const category = normalizeCategory(goal.category);
+          
+          if (day in weekProgress && category in weekProgress[day]) {
+            weekProgress[day][category].total += 1;
+            if (goal.completed) {
+              weekProgress[day][category].completed += 1;
+            }
+          }
+        });
+        
+        // Calculate percentages
+        Object.keys(weekProgress).forEach(day => {
+          Object.keys(weekProgress[day]).forEach(cat => {
+            const { completed, total } = weekProgress[day][cat];
+            weekProgress[day][cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+          });
+        });
+        
+        setWeeklyProgress(weekProgress);
+      }
+    } catch (error) {
+      console.error('Error fetching weekly goals:', error);
+      toast({
+        title: 'Error fetching weekly data',
+        description: 'Could not retrieve your weekly progress. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch monthly goals
+  const fetchMonthlyGoals = async (userId: string) => {
+    try {
+      setLoading(true);
+      const startDate = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+      const endDate = format(endOfMonth(new Date()), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('daily_goals')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      
+      if (data) {
+        setMonthlyGoals(data);
+        
+        // Process the monthly data by week
+        const monthProgress: MonthlyProgress = {};
+        const start = startOfMonth(new Date());
+        const end = endOfMonth(new Date());
+        const totalDays = differenceInDays(end, start) + 1;
+        const totalWeeks = Math.ceil(totalDays / 7);
+        
+        // Initialize weeks
+        for (let i = 0; i < totalWeeks; i++) {
+          const weekLabel = `Week ${i + 1}`;
+          monthProgress[weekLabel] = {};
+          
+          // Initialize categories for this week
+          categories.forEach(cat => {
+            monthProgress[weekLabel][cat.value] = {
+              completed: 0,
+              total: 0,
+              percentage: 0
+            };
+          });
+        }
+        
+        // Populate with data
+        data.forEach(goal => {
+          const goalDate = new Date(goal.date);
+          const dayOfMonth = goalDate.getDate();
+          const weekNum = Math.floor((dayOfMonth - 1) / 7);
+          const weekLabel = `Week ${weekNum + 1}`;
+          const category = normalizeCategory(goal.category);
+          
+          if (weekLabel in monthProgress && category in monthProgress[weekLabel]) {
+            monthProgress[weekLabel][category].total += 1;
+            if (goal.completed) {
+              monthProgress[weekLabel][category].completed += 1;
+            }
+          }
+        });
+        
+        // Calculate percentages
+        Object.keys(monthProgress).forEach(week => {
+          Object.keys(monthProgress[week]).forEach(cat => {
+            const { completed, total } = monthProgress[week][cat];
+            monthProgress[week][cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+          });
+        });
+        
+        setMonthlyProgress(monthProgress);
+      }
+    } catch (error) {
+      console.error('Error fetching monthly goals:', error);
+      toast({
+        title: 'Error fetching monthly data',
+        description: 'Could not retrieve your monthly progress. Please try again later.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Check for wellness goals and create default goals if needed
   const checkAndCreateDefaultGoals = async (userId: string) => {
@@ -463,11 +670,16 @@ const TodaysWellness = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
 
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
   // Initial data loading
   useEffect(() => {
     fetchGoals();
     fetchSuggestedGoals();
-  }, [fetchGoals, fetchSuggestedGoals]);
+  }, [fetchGoals, fetchSuggestedGoals, activeTab]);
 
   // Calculate category progress whenever goals change
   useEffect(() => {
@@ -504,6 +716,12 @@ const TodaysWellness = () => {
         <span>{categoryData.label}</span>
       </div>
     );
+  };
+
+  // Format date for display
+  const formatDateForDisplay = (dateString: string) => {
+    const date = new Date(dateString);
+    return format(date, 'EEE, MMM d');
   };
 
   // Force refresh wellness goals from the database
@@ -581,211 +799,371 @@ const TodaysWellness = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Today's Wellness</h1>
-        <p className="text-center text-gray-600 mb-8">Your daily goals and activities</p>
+        <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
+        <p className="text-center text-gray-600 mb-8">Track your wellness journey</p>
         
-        {/* Progress Bar */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
-          <div className="flex justify-between mb-2">
-            <h2 className="text-xl font-semibold text-menova-text">Your Progress</h2>
-            <span className="text-lg font-medium">{progress}%</span>
-          </div>
+        <Tabs defaultValue="daily" onValueChange={handleTabChange} className="w-full">
+          <TabsList className="grid grid-cols-3 mb-8">
+            <TabsTrigger value="daily" className="flex items-center gap-2">
+              <CalendarDays size={16} />
+              <span>Daily</span>
+            </TabsTrigger>
+            <TabsTrigger value="weekly" className="flex items-center gap-2">
+              <CalendarWeek size={16} />
+              <span>Weekly</span>
+            </TabsTrigger>
+            <TabsTrigger value="monthly" className="flex items-center gap-2">
+              <ChartBar size={16} />
+              <span>Monthly</span>
+            </TabsTrigger>
+          </TabsList>
           
-          <Progress 
-            value={progress} 
-            className="h-4 bg-gray-100" 
-          />
-          
-          <div className="mt-3 text-sm text-gray-600 text-center">
-            {completedGoals} of {totalGoals} goals completed
-          </div>
-
-          {/* Category Progress */}
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {categories.slice(0, 3).map(category => {
-              const catData = categoryCounts[category.value] || { completed: 0, total: 0, percentage: 0 };
-              const Icon = category.icon;
+          {/* Daily View */}
+          <TabsContent value="daily" className="space-y-8">
+            {/* Progress Bar */}
+            <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
+              <div className="flex justify-between mb-2">
+                <h2 className="text-xl font-semibold text-menova-text">Today's Progress</h2>
+                <span className="text-lg font-medium">{progress}%</span>
+              </div>
               
-              return (
-                <div key={category.value} className="flex flex-col items-center">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${category.color.replace('bg-', 'bg-opacity-20 bg-')}`}>
-                    <Icon size={24} className={category.color.replace('bg-', 'text-').replace(' text-', '')} />
-                  </div>
-                  <div className="font-medium">{category.label}</div>
-                  <div className="text-xs text-gray-600">
-                    {catData.completed} of {catData.total || 0} ({catData.percentage}%)
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          
-          <div className="mt-4 flex justify-center">
-            <Button 
-              onClick={forceRefreshWellnessGoals}
-              variant="outline"
-              className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
-              disabled={loading}
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-              Refresh Progress
-            </Button>
-          </div>
-        </div>
-        
-        {/* Add New Goal */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
-          <h2 className="text-xl font-semibold text-menova-text mb-4">Add New Goal</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-1">
-                Goal Description
-              </label>
-              <input 
-                type="text" 
-                id="goal"
-                value={newGoal}
-                onChange={(e) => setNewGoal(e.target.value)}
-                placeholder="Enter a new wellness goal"
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
-                onKeyDown={(e) => e.key === 'Enter' && addGoal()}
+              <Progress 
+                value={progress} 
+                className="h-4 bg-gray-100" 
               />
-            </div>
-            
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {categories.slice(0, 3).map(category => (
-                  <button
-                    key={category.value}
-                    type="button"
-                    onClick={() => setSelectedCategory(category.value)}
-                    className={`p-3 rounded-md flex items-center justify-center gap-2 transition-all
-                      ${selectedCategory === category.value 
-                        ? `${category.color} border-2 border-${category.color.split(' ')[1].replace('text-', '')}` 
-                        : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                      }`}
-                  >
-                    <category.icon size={18} />
-                    <span>{category.label}</span>
-                  </button>
-                ))}
+              
+              <div className="mt-3 text-sm text-gray-600 text-center">
+                {completedGoals} of {totalGoals} goals completed
+              </div>
+
+              {/* Category Progress */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                {categories.slice(0, 3).map(category => {
+                  const catData = categoryCounts[category.value] || { completed: 0, total: 0, percentage: 0 };
+                  const Icon = category.icon;
+                  
+                  return (
+                    <div key={category.value} className="flex flex-col items-center">
+                      <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${category.color.replace('bg-', 'bg-opacity-20 bg-')}`}>
+                        <Icon size={24} className={category.color.replace('bg-', 'text-').replace(' text-', '')} />
+                      </div>
+                      <div className="font-medium">{category.label}</div>
+                      <div className="text-xs text-gray-600">
+                        {catData.completed} of {catData.total || 0} ({catData.percentage}%)
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="mt-4 flex justify-center">
+                <Button 
+                  onClick={forceRefreshWellnessGoals}
+                  variant="outline"
+                  className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
+                  disabled={loading}
+                >
+                  <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                  Refresh Progress
+                </Button>
               </div>
             </div>
             
-            <Button 
-              onClick={addGoal} 
-              disabled={!newGoal.trim()}
-              className="w-full bg-menova-green hover:bg-menova-green/90 text-white flex items-center justify-center gap-2"
-            >
-              <Plus size={18} />
-              Add Goal
-            </Button>
-          </div>
-        </div>
-        
-        {/* Suggested Goals */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-menova-text">Suggested Goals</h2>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={refreshSuggestions}
-              className="border-menova-green text-menova-green hover:bg-menova-green/10"
-            >
-              <RefreshCw size={18} className={`${refreshKey > 0 ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-          
-          {loadingSuggestions ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="ml-auto h-8 w-8 bg-gray-200 rounded-full"></div>
+            {/* Add New Goal */}
+            <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
+              <h2 className="text-xl font-semibold text-menova-text mb-4">Add New Goal</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-1">
+                    Goal Description
+                  </label>
+                  <input 
+                    type="text" 
+                    id="goal"
+                    value={newGoal}
+                    onChange={(e) => setNewGoal(e.target.value)}
+                    placeholder="Enter a new wellness goal"
+                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+                    onKeyDown={(e) => e.key === 'Enter' && addGoal()}
+                  />
                 </div>
-              ))}
-            </div>
-          ) : suggestedGoals.length > 0 ? (
-            <ul className="space-y-2">
-              {suggestedGoals.map((goal, index) => (
-                <li 
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors animate-fade-in"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <span className="text-gray-700">{goal}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => addSuggestedGoal(goal)}
-                    className="text-menova-green hover:bg-menova-green/10 rounded-full"
-                  >
-                    <Plus size={20} />
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-600 text-center py-4">No suggested goals available. Click refresh to generate new suggestions.</p>
-          )}
-        </div>
-        
-        {/* Today's Goals */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 bg-gradient-to-br from-white to-green-50">
-          <h2 className="text-xl font-semibold text-menova-text mb-4">Today's Goals</h2>
-          
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
-                  <div className="h-6 w-6 bg-gray-200 rounded-full mr-3"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                
+                <div>
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {categories.slice(0, 3).map(category => (
+                      <button
+                        key={category.value}
+                        type="button"
+                        onClick={() => setSelectedCategory(category.value)}
+                        className={`p-3 rounded-md flex items-center justify-center gap-2 transition-all
+                          ${selectedCategory === category.value 
+                            ? `${category.color} border-2 border-${category.color.split(' ')[1].replace('text-', '')}` 
+                            : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                          }`}
+                      >
+                        <category.icon size={18} />
+                        <span>{category.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : goals.length > 0 ? (
-            <ul className="space-y-2">
-              {goals.map((goal, idx) => (
-                <li 
-                  key={goal.id}
-                  className={`flex items-center p-3 rounded-md transition-all ${
-                    goal.completed 
-                      ? 'bg-menova-green/10 text-menova-green' 
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  } animate-fade-in`}
-                  style={{ animationDelay: `${idx * 0.1}s` }}
+                
+                <Button 
+                  onClick={addGoal} 
+                  disabled={!newGoal.trim()}
+                  className="w-full bg-menova-green hover:bg-menova-green/90 text-white flex items-center justify-center gap-2"
                 >
-                  <button
-                    onClick={() => toggleGoalCompletion(goal.id, goal.completed)}
-                    className={`w-6 h-6 rounded-full mr-3 flex items-center justify-center border ${
-                      goal.completed 
-                        ? 'bg-menova-green border-menova-green text-white' 
-                        : 'border-gray-300 hover:border-menova-green'
-                    }`}
-                    disabled={goal.completed}
-                  >
-                    {goal.completed && <Check size={14} />}
-                  </button>
-                  <span 
-                    className={`flex-1 ${
-                      goal.completed ? 'line-through text-menova-green' : 'text-gray-700'
-                    }`}
-                  >
-                    {goal.goal}
-                  </span>
-                  <CategoryBadge category={goal.category} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-600 text-center py-4">No goals for today. Start by adding some goals above!</p>
-          )}
-        </div>
+                  <Plus size={18} />
+                  Add Goal
+                </Button>
+              </div>
+            </div>
+            
+            {/* Suggested Goals */}
+            <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-menova-text">Suggested Goals</h2>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={refreshSuggestions}
+                  className="border-menova-green text-menova-green hover:bg-menova-green/10"
+                >
+                  <RefreshCw size={18} className={`${refreshKey > 0 ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              
+              {loadingSuggestions ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                      <div className="ml-auto h-8 w-8 bg-gray-200 rounded-full"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : suggestedGoals.length > 0 ? (
+                <ul className="space-y-2">
+                  {suggestedGoals.map((goal, index) => (
+                    <li 
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-md transition-colors animate-fade-in"
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <span className="text-gray-700">{goal}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => addSuggestedGoal(goal)}
+                        className="text-menova-green hover:bg-menova-green/10 rounded-full"
+                      >
+                        <Plus size={20} />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 text-center py-4">No suggested goals available. Click refresh to generate new suggestions.</p>
+              )}
+            </div>
+            
+            {/* Today's Goals */}
+            <div className="bg-white/90 rounded-lg shadow-sm p-6 bg-gradient-to-br from-white to-green-50">
+              <h2 className="text-xl font-semibold text-menova-text mb-4">Today's Goals</h2>
+              
+              {loading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="animate-pulse flex items-center p-3 rounded-md bg-gray-100">
+                      <div className="h-6 w-6 bg-gray-200 rounded-full mr-3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : goals.length > 0 ? (
+                <ul className="space-y-2">
+                  {goals.map((goal, idx) => (
+                    <li 
+                      key={goal.id}
+                      className={`flex items-center p-3 rounded-md transition-all ${
+                        goal.completed 
+                          ? 'bg-menova-green/10 text-menova-green' 
+                          : 'bg-gray-50 hover:bg-gray-100'
+                      } animate-fade-in`}
+                      style={{ animationDelay: `${idx * 0.1}s` }}
+                    >
+                      <button
+                        onClick={() => toggleGoalCompletion(goal.id, goal.completed)}
+                        className={`w-6 h-6 rounded-full mr-3 flex items-center justify-center border ${
+                          goal.completed 
+                            ? 'bg-menova-green border-menova-green text-white' 
+                            : 'border-gray-300 hover:border-menova-green'
+                        }`}
+                        disabled={goal.completed}
+                      >
+                        {goal.completed && <Check size={14} />}
+                      </button>
+                      <span 
+                        className={`flex-1 ${
+                          goal.completed ? 'line-through text-menova-green' : 'text-gray-700'
+                        }`}
+                      >
+                        {goal.goal}
+                      </span>
+                      <CategoryBadge category={goal.category} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 text-center py-4">No goals for today. Start by adding some goals above!</p>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Weekly View */}
+          <TabsContent value="weekly">
+            <div className="bg-white/90 rounded-lg shadow-sm p-6 bg-gradient-to-br from-white to-green-50">
+              <h2 className="text-xl font-semibold text-menova-text mb-4">Weekly Progress</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                {format(startOfWeek(new Date()), 'MMM d')} - {format(endOfWeek(new Date()), 'MMM d, yyyy')}
+              </p>
+              
+              {loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-200 rounded w-full mb-4"></div>
+                  <div className="h-64 bg-gray-200 rounded w-full"></div>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Day</TableHead>
+                      <TableHead>Nourish</TableHead>
+                      <TableHead>Center</TableHead>
+                      <TableHead>Play</TableHead>
+                      <TableHead>Goals</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.keys(weeklyProgress).sort().map((day) => {
+                      const dayGoals = weeklyGoals.filter(g => g.date === day);
+                      const completedCount = dayGoals.filter(g => g.completed).length;
+                      const totalCount = dayGoals.length;
+                      
+                      return (
+                        <TableRow key={day}>
+                          <TableCell className="font-medium">{formatDateForDisplay(day)}</TableCell>
+                          {categories.slice(0, 3).map(cat => (
+                            <TableCell key={cat.value}>
+                              {weeklyProgress[day][cat.value].total > 0 ? (
+                                <div className="flex flex-col">
+                                  <Progress
+                                    value={weeklyProgress[day][cat.value].percentage}
+                                    className="h-2 mb-1"
+                                  />
+                                  <span className="text-xs text-gray-600">
+                                    {weeklyProgress[day][cat.value].completed}/{weeklyProgress[day][cat.value].total}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">No goals</span>
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress
+                                value={totalCount > 0 ? (completedCount / totalCount) * 100 : 0}
+                                className="h-2 w-16"
+                              />
+                              <span className="text-xs">{completedCount}/{totalCount}</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </TabsContent>
+          
+          {/* Monthly View */}
+          <TabsContent value="monthly">
+            <div className="bg-white/90 rounded-lg shadow-sm p-6 bg-gradient-to-br from-white to-green-50">
+              <h2 className="text-xl font-semibold text-menova-text mb-4">Monthly Progress</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                {format(startOfMonth(new Date()), 'MMMM yyyy')}
+              </p>
+              
+              {loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-gray-200 rounded w-full mb-4"></div>
+                  <div className="h-64 bg-gray-200 rounded w-full"></div>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Nourish</TableHead>
+                      <TableHead>Center</TableHead>
+                      <TableHead>Play</TableHead>
+                      <TableHead>Overall</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {Object.keys(monthlyProgress).map((week) => {
+                      const weekTotal = categories.slice(0, 3).reduce(
+                        (acc, cat) => acc + monthlyProgress[week][cat.value].total, 0
+                      );
+                      const weekCompleted = categories.slice(0, 3).reduce(
+                        (acc, cat) => acc + monthlyProgress[week][cat.value].completed, 0
+                      );
+                      const weekPercentage = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
+                      
+                      return (
+                        <TableRow key={week}>
+                          <TableCell className="font-medium">{week}</TableCell>
+                          {categories.slice(0, 3).map(cat => (
+                            <TableCell key={cat.value}>
+                              {monthlyProgress[week][cat.value].total > 0 ? (
+                                <div className="flex flex-col">
+                                  <Progress
+                                    value={monthlyProgress[week][cat.value].percentage}
+                                    className="h-2 mb-1"
+                                  />
+                                  <span className="text-xs text-gray-600">
+                                    {monthlyProgress[week][cat.value].completed}/{monthlyProgress[week][cat.value].total}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-400">No goals</span>
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Progress
+                                value={weekPercentage}
+                                className="h-2 w-16"
+                              />
+                              <span className="text-xs">{weekCompleted}/{weekTotal}</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
         
         {/* Celebration Modal - Shown after completing a goal */}
         {completedGoal && (
