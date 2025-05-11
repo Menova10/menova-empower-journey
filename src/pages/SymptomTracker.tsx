@@ -254,7 +254,8 @@ const SymptomTracker = () => {
         </main>
         
         {/* Add custom styles for the pulse animation */}
-        <style jsx>{`
+        <style>
+          {`
           @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(165, 214, 167, 0.4); }
             70% { box-shadow: 0 0 0 10px rgba(165, 214, 167, 0); }
@@ -263,7 +264,8 @@ const SymptomTracker = () => {
           .text-shadow {
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
           }
-        `}</style>
+        `}
+        </style>
       </div>
     </TooltipProvider>
   );
