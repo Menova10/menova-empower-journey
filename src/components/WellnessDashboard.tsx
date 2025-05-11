@@ -14,6 +14,7 @@ interface WellnessGoal {
 interface SymptomRating {
   symptom: string;
   intensity: number;
+  lastUpdated?: string;
 }
 
 interface DailyInsight {
@@ -85,6 +86,12 @@ const WellnessDashboard = () => {
 
     fetchDailyQuote();
   }, [toast]);
+
+  // Format date for display
+  const formatLastUpdated = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
 
   useEffect(() => {
     const fetchWellnessData = async () => {
@@ -165,28 +172,57 @@ const WellnessDashboard = () => {
           })));
         }
 
-        // Fetch symptom data
+        // Fetch symptom data - IMPROVED to get the most recent entries for each symptom type
+        console.log("Fetching symptom data for user:", session.user.id);
         const { data: symptomData, error: symptomError } = await supabase
           .from('symptom_tracking')
           .select('*')
           .eq('user_id', session.user.id)
-          .order('recorded_at', { ascending: false })
-          .limit(3);
+          .order('recorded_at', { ascending: false });
 
         if (symptomError) throw symptomError;
+
+        // Log the raw symptom data to help debugging
+        console.log("User symptoms data:", symptomData);
         
         if (symptomData && symptomData.length > 0) {
-          setSymptoms([
-            { symptom: "Hot Flashes", intensity: symptomData.find((s: any) => s.symptom === 'hot_flashes')?.intensity || 3 },
-            { symptom: "Sleep Quality", intensity: symptomData.find((s: any) => s.symptom === 'sleep')?.intensity || 2 },
-            { symptom: "Mood", intensity: symptomData.find((s: any) => s.symptom === 'mood')?.intensity || 4 }
-          ]);
+          // Create a Map to store the most recent entry for each symptom type
+          const latestSymptoms = new Map();
+          
+          // Process all symptom entries
+          symptomData.forEach((entry: any) => {
+            // Normalize symptom names (convert hot_flashes to Hot Flashes, etc.)
+            let normalizedName = entry.symptom;
+            if (entry.symptom === 'hot_flashes') normalizedName = 'Hot Flashes';
+            else if (entry.symptom === 'sleep') normalizedName = 'Sleep Quality';
+            else if (entry.symptom === 'mood') normalizedName = 'Mood';
+            
+            // Only keep the first (most recent) entry for each symptom type
+            // since we ordered by recorded_at descending
+            if (!latestSymptoms.has(normalizedName)) {
+              latestSymptoms.set(normalizedName, {
+                symptom: normalizedName,
+                intensity: entry.intensity,
+                lastUpdated: entry.recorded_at
+              });
+            }
+          });
+          
+          // Prepare the symptom data for display
+          // Make sure we include Hot Flashes, Sleep Quality, and Mood
+          const displaySymptoms: SymptomRating[] = [
+            latestSymptoms.get('Hot Flashes') || { symptom: 'Hot Flashes', intensity: 0 },
+            latestSymptoms.get('Sleep Quality') || { symptom: 'Sleep Quality', intensity: 0 },
+            latestSymptoms.get('Mood') || { symptom: 'Mood', intensity: 0 }
+          ];
+          
+          setSymptoms(displaySymptoms);
         } else {
           // Provide default symptom data if none exists
           setSymptoms([
-            { symptom: "Hot Flashes", intensity: 3 },
-            { symptom: "Sleep Quality", intensity: 2 },
-            { symptom: "Mood", intensity: 4 }
+            { symptom: "Hot Flashes", intensity: 0 },
+            { symptom: "Sleep Quality", intensity: 0 },
+            { symptom: "Mood", intensity: 0 }
           ]);
         }
       } catch (error) {
@@ -260,45 +296,69 @@ const WellnessDashboard = () => {
           </div>
         </div>
         
-        {/* Symptom Overview Card */}
+        {/* Symptom Overview Card - IMPROVED */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Symptom Overview</h3>
-          <p className="text-sm text-gray-600 mb-6">This week's symptom trends</p>
+          <p className="text-sm text-gray-600 mb-4">This week's symptom trends</p>
           
-          <div className="space-y-6">
-            {symptoms.map((symptom, index) => (
-              <div key={index} className="flex items-center">
-                <div className="w-1/3 text-sm font-medium">{symptom.symptom}</div>
-                <div className="w-2/3 flex space-x-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <div 
-                      key={rating} 
-                      className={`h-6 w-6 rounded-full ${
-                        rating <= symptom.intensity
-                          ? symptom.symptom === "Hot Flashes" 
-                            ? "bg-[#FFDEE2]/80" 
-                            : symptom.symptom === "Sleep Quality" 
-                              ? "bg-menova-green/80" 
-                              : "bg-[#d9b6d9]/80"
-                          : "bg-gray-200"
-                      }`}
-                    />
-                  ))}
+          {loading ? (
+            <div className="space-y-6">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="flex items-center animate-pulse">
+                  <div className="w-1/3 h-4 bg-gray-200 rounded"></div>
+                  <div className="w-2/3 flex space-x-2">
+                    {[1, 2, 3, 4, 5].map(j => (
+                      <div key={j} className="h-6 w-6 rounded-full bg-gray-200"></div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-            
-            <Button 
-              variant="outline" 
-              className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 mt-4"
-              onClick={() => navigate('/symptom-tracker')}
-            >
-              View Full Tracker
-            </Button>
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {symptoms.map((symptom, index) => (
+                <div key={index} className="flex flex-col">
+                  <div className="flex items-center mb-1">
+                    <div className="w-1/3 text-sm font-medium">{symptom.symptom}</div>
+                    <div className="w-2/3 flex space-x-2">
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <div 
+                          key={rating} 
+                          className={`h-6 w-6 rounded-full ${
+                            rating <= symptom.intensity
+                              ? symptom.symptom === "Hot Flashes" 
+                                ? "bg-[#FFDEE2]" 
+                                : symptom.symptom === "Sleep Quality" 
+                                  ? "bg-menova-green" 
+                                  : "bg-[#d9b6d9]"
+                              : "bg-gray-200"
+                          } transition-all duration-300 ${
+                            rating <= symptom.intensity ? "scale-100" : "scale-90"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {symptom.lastUpdated && (
+                    <div className="text-xs text-gray-500 ml-1">
+                      Last updated: {formatLastUpdated(symptom.lastUpdated)}
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              <Button 
+                variant="outline" 
+                className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 mt-4"
+                onClick={() => navigate('/symptom-tracker')}
+              >
+                Update Symptoms
+              </Button>
+            </div>
+          )}
         </div>
         
-        {/* Today's Insight Card - Modified to fetch dynamic quotes */}
+        {/* Today's Insight Card */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6 flex flex-col">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Insight</h3>
           <p className="text-sm text-gray-600 mb-6">Daily wisdom for your journey</p>
