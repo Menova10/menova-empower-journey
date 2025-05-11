@@ -20,6 +20,8 @@ interface ResearchItem {
   summary: string;
   url: string;
   type: 'research';
+  isOpenAIGenerated?: boolean;
+  isStaticFallback?: boolean;
 }
 
 interface VideoItem {
@@ -31,6 +33,8 @@ interface VideoItem {
   url: string;
   thumbnail: string;
   type: 'video';
+  isOpenAIGenerated?: boolean;
+  isStaticFallback?: boolean;
 }
 
 type ContentItem = ResearchItem | VideoItem;
@@ -71,10 +75,24 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
         setVideos(Array.isArray(data.videos) && data.videos.length > 0 ? data.videos : []);
         setLastFetched(new Date());
         
+        // Determine which APIs were used based on the data
+        const usedOpenAI = data.research?.some(item => item.isOpenAIGenerated) || 
+                           data.videos?.some(item => item.isOpenAIGenerated);
+        const usedStaticFallback = data.research?.some(item => item.isStaticFallback) || 
+                                   data.videos?.some(item => item.isStaticFallback);
+        
+        // Generate appropriate message based on data source
+        let sourceMessage = "";
+        if (usedOpenAI && !usedStaticFallback) {
+          sourceMessage = " (sourced via OpenAI)";
+        } else if (usedStaticFallback) {
+          sourceMessage = " (using backup content)";
+        }
+        
         // Display toast notification with fetch results
         toast({
           title: "Research Updated",
-          description: `Found ${data.research.length} research articles ${data.videos.length > 0 ? `and ${data.videos.length} videos` : ''}`,
+          description: `Found ${data.research.length} research articles${data.videos.length > 0 ? ` and ${data.videos.length} videos` : ''}${sourceMessage}`,
         });
       } else {
         setResearch([]);
@@ -195,7 +213,13 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
               {filteredContent.map((item) => (
                 <Card 
                   key={item.id} 
-                  className="overflow-hidden hover:shadow-md transition-shadow backdrop-blur-sm bg-white/90 border border-[#e8f5e9]"
+                  className={`overflow-hidden hover:shadow-md transition-shadow backdrop-blur-sm bg-white/90 border ${
+                    item.isStaticFallback 
+                      ? 'border-amber-100' 
+                      : item.isOpenAIGenerated 
+                        ? 'border-blue-100' 
+                        : 'border-[#e8f5e9]'
+                  }`}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start gap-2">
@@ -203,9 +227,9 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
                         <CardTitle className="text-lg text-[#1b5e20] line-clamp-2">
                           {item.title}
                         </CardTitle>
-                        <div className="flex items-center mt-1 space-x-2">
+                        <div className="flex items-center flex-wrap mt-1 space-x-2">
                           <Badge variant="outline" className={`
-                            flex items-center gap-1
+                            flex items-center gap-1 mb-1
                             ${item.type === 'research' 
                               ? 'bg-[#e8f5e9] text-[#2e7d32] border-[#c5e1a5]'
                               : 'bg-[#e3f2fd] text-[#1565c0] border-[#90caf9]'
@@ -224,10 +248,22 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
                             )}
                           </Badge>
                           
-                          <Badge variant="outline" className="flex items-center gap-1 bg-gray-100 text-gray-700">
+                          <Badge variant="outline" className="flex items-center gap-1 bg-gray-100 text-gray-700 mb-1">
                             <Calendar className="h-3 w-3" />
                             <span>{item.year}</span>
                           </Badge>
+                          
+                          {item.isOpenAIGenerated && (
+                            <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-100 mb-1">
+                              AI Generated
+                            </Badge>
+                          )}
+                          
+                          {item.isStaticFallback && (
+                            <Badge variant="outline" className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-100 mb-1">
+                              Sample Content
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>

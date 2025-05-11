@@ -1,4 +1,6 @@
 
+// API connectivity testing edge function
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { testFirecrawlConnectivity } from "../_shared/firecrawl.ts";
 
@@ -7,6 +9,65 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Test OpenAI API connectivity
+async function testOpenAIConnectivity(): Promise<{
+  success: boolean;
+  message: string;
+  details?: any;
+}> {
+  try {
+    const openAIApiKey = Deno.env.get("OPENAI_API_KEY");
+    
+    if (!openAIApiKey) {
+      return {
+        success: false,
+        message: "OPENAI_API_KEY not found in environment variables"
+      };
+    }
+    
+    console.log("Testing OpenAI API connectivity");
+    
+    // Make a simple request to the OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openAIApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: "Test message, please respond with a short greeting." }
+        ],
+        max_tokens: 20
+      })
+    });
+    
+    const data = response.ok ? await response.json() : null;
+    
+    return {
+      success: response.ok,
+      message: response.ok ? "OpenAI API connection successful" : `OpenAI API error: ${response.status} ${response.statusText}`,
+      details: {
+        status: response.status,
+        statusText: response.statusText,
+        responseData: data
+      }
+    };
+  } catch (error) {
+    console.error("Error testing OpenAI connectivity:", error);
+    return {
+      success: false,
+      message: `OpenAI connectivity test error: ${error.message || error}`,
+      details: {
+        error: error.message || String(error),
+        stack: error.stack
+      }
+    };
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -14,108 +75,56 @@ serve(async (req) => {
   }
 
   try {
-    console.log("Testing API connectivity...");
+    // Get current timestamp
+    const timestamp = new Date().toISOString();
     
-    // Test Firecrawl connectivity with more verbose logging
-    console.log("Testing Firecrawl API connectivity...");
-    const firecrawlTest = await testFirecrawlConnectivity();
-    console.log("Firecrawl test result:", firecrawlTest);
+    // Test both APIs
+    const [firecrawlResult, openaiResult] = await Promise.all([
+      testFirecrawlConnectivity(),
+      testOpenAIConnectivity()
+    ]);
     
-    // Test OpenAI connectivity if present
-    let openaiTest = { success: false, message: "OPENAI_API_KEY not configured" };
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY");
-    
-    if (openaiApiKey) {
-      try {
-        console.log("Testing OpenAI API connectivity...");
-        const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${openaiApiKey}`
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: "Test" }],
-            max_tokens: 5
-          })
-        });
-        
-        // Get the response body as text for debugging
-        const responseText = await openaiResponse.text();
-        console.log(`OpenAI API response status: ${openaiResponse.status}`);
-        console.log(`OpenAI API response body: ${responseText}`);
-        
-        let responseData;
-        try {
-          // Try to parse the response as JSON if possible
-          responseData = JSON.parse(responseText);
-        } catch (e) {
-          console.log("Response was not valid JSON");
-          responseData = null;
-        }
-        
-        openaiTest = {
-          success: openaiResponse.ok,
-          message: openaiResponse.ok 
-            ? "OpenAI API connection successful" 
-            : `OpenAI API error: ${openaiResponse.status} ${openaiResponse.statusText}`,
-          details: {
-            status: openaiResponse.status,
-            statusText: openaiResponse.statusText,
-            responseData: responseData
-          }
-        };
-        
-        console.log("OpenAI test result:", openaiTest);
-      } catch (error) {
-        console.error("Error testing OpenAI API:", error);
-        openaiTest = {
-          success: false,
-          message: `OpenAI connectivity error: ${error.message || error}`,
-          details: {
-            error: error.message || String(error)
-          }
-        };
-      }
-    }
-    
-    // Collect environment info
+    // Get environment information for debugging
     const envInfo = {
-      hasFirecrawlKey: !!Deno.env.get("FIRECRAWL_API_KEY"),
-      firecrawlKeyFirstChars: Deno.env.get("FIRECRAWL_API_KEY") 
-        ? `${Deno.env.get("FIRECRAWL_API_KEY")?.substring(0, 3)}...` 
-        : "None",
-      hasOpenAIKey: !!Deno.env.get("OPENAI_API_KEY"),
-      timestamp: new Date().toISOString(),
-      deployEnvironment: Deno.env.get("SUPABASE_ENV") || "unknown"
+      hasFirecrawlKey: Boolean(Deno.env.get("FIRECRAWL_API_KEY")),
+      firecrawlKeyFirstChars: Deno.env.get("FIRECRAWL_API_KEY") ? 
+        `${Deno.env.get("FIRECRAWL_API_KEY")?.substring(0, 3)}...` : 
+        "missing",
+      hasOpenAIKey: Boolean(Deno.env.get("OPENAI_API_KEY")),
+      timestamp: timestamp,
+      deployEnvironment: Deno.env.get("DEPLOY_ENV") || "unknown"
     };
     
-    // Return test results
+    // Combined results
+    const results = {
+      timestamp,
+      firecrawl: firecrawlResult,
+      openai: openaiResult,
+      environment: envInfo
+    };
+
     return new Response(
-      JSON.stringify({
-        timestamp: new Date().toISOString(),
-        firecrawl: firecrawlTest,
-        openai: openaiTest,
-        environment: envInfo
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+      JSON.stringify(results),
+      { 
+        headers: { 
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+        } 
       }
     );
   } catch (error) {
-    console.error("Error in API connectivity test:", error);
+    console.error('Error in API connectivity test:', error);
     
     return new Response(
       JSON.stringify({ 
-        error: error.message || String(error), 
-        stack: error.stack,
+        error: 'Failed to test API connectivity',
+        message: error.message,
         timestamp: new Date().toISOString()
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
