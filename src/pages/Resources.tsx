@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
@@ -384,7 +385,7 @@ const Resources: React.FC = () => {
             </p>
           </div>
 
-          {/* Research Section - New Component */}
+          {/* Research Section - Removed the heading "Latest Research & Resources" as it will be removed from the component */}
           <div className="bg-white rounded-xl shadow-sm p-8 mb-10 border border-[#e8f5e9]">
             <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
           </div>

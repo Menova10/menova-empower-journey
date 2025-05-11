@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -151,11 +150,6 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-[#2e7d32]">Latest Research & Resources</h2>
-        <p className="text-muted-foreground">
-          Recent publications and educational content about menopause from trusted sources
-        </p>
-        
         <div className="flex items-center justify-between mt-4">
           <div className="text-xs text-muted-foreground">
             Last updated: {formatLastFetched()}
