@@ -29,7 +29,7 @@ export const TodaysGoalsSection: React.FC<TodaysGoalsSectionProps> = ({
           ))}
         </div>
       ) : goals.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
           {goals.map((goal, idx) => (
             <li 
               key={goal.id}

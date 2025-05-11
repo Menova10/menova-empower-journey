@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Calendar, ChartBar } from 'lucide-react';
+import { CalendarDays, Calendar, ChartBar, PlusCircle, BarChart2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
@@ -75,6 +74,7 @@ const TodaysWellness = () => {
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [monthlyGoals, setMonthlyGoals] = useState<Goal[]>([]);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [mainViewTab, setMainViewTab] = useState("progress"); // New state for main view tabs
   
   // Use a ref to prevent scrolling issues
   const contentRef = useRef<HTMLDivElement>(null);
@@ -482,6 +482,13 @@ const TodaysWellness = () => {
     }
   }, [activeTab]);
 
+  // Handle main view tab change
+  const handleMainViewTabChange = useCallback((value: string) => {
+    if (value !== mainViewTab) {
+      setMainViewTab(value);
+    }
+  }, [mainViewTab]);
+
   // Force refresh wellness goals from the database
   const forceRefreshWellnessGoals = async () => {
     try {
@@ -588,33 +595,77 @@ const TodaysWellness = () => {
         <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
         <p className="text-center text-gray-600 mb-6">Track your wellness journey</p>
         
-        <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-6 bg-white/80">
-            <TabsTrigger value="daily" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-              <CalendarDays size={16} />
-              <span>Daily</span>
+        {/* Main View Tabs */}
+        <Tabs defaultValue="progress" value={mainViewTab} onValueChange={handleMainViewTabChange} className="w-full mb-6">
+          <TabsList className="grid grid-cols-2 mb-6 bg-white/80">
+            <TabsTrigger value="progress" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
+              <BarChart2 size={16} />
+              <span>Progress</span>
             </TabsTrigger>
-            <TabsTrigger value="weekly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-              <Calendar size={16} />
-              <span>Weekly</span>
-            </TabsTrigger>
-            <TabsTrigger value="monthly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-              <ChartBar size={16} />
-              <span>Monthly</span>
+            <TabsTrigger value="add-goal" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
+              <PlusCircle size={16} />
+              <span>Add Goal</span>
             </TabsTrigger>
           </TabsList>
           
-          {/* Daily View */}
-          <TabsContent value="daily" className="space-y-6">
-            <TodayProgressSection 
-              progress={progress}
-              completedGoals={completedGoals}
-              totalGoals={totalGoals}
-              categoryCounts={categoryCounts}
-              forceRefreshWellnessGoals={forceRefreshWellnessGoals}
-              loading={loading}
-            />
-            
+          {/* Progress View */}
+          <TabsContent value="progress" className="space-y-6">
+            {/* Period Tabs */}
+            <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="grid grid-cols-3 mb-6 bg-white/80">
+                <TabsTrigger value="daily" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
+                  <CalendarDays size={16} />
+                  <span>Daily</span>
+                </TabsTrigger>
+                <TabsTrigger value="weekly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
+                  <Calendar size={16} />
+                  <span>Weekly</span>
+                </TabsTrigger>
+                <TabsTrigger value="monthly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
+                  <ChartBar size={16} />
+                  <span>Monthly</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Daily View */}
+              <TabsContent value="daily" className="space-y-6">
+                <TodayProgressSection 
+                  progress={progress}
+                  completedGoals={completedGoals}
+                  totalGoals={totalGoals}
+                  categoryCounts={categoryCounts}
+                  forceRefreshWellnessGoals={forceRefreshWellnessGoals}
+                  loading={loading}
+                />
+                
+                <TodaysGoalsSection
+                  goals={goals}
+                  loading={loading}
+                  toggleGoalCompletion={toggleGoalCompletion}
+                />
+              </TabsContent>
+              
+              {/* Weekly View */}
+              <TabsContent value="weekly">
+                <WeeklyProgressView
+                  loading={loading}
+                  weeklyProgress={weeklyProgress}
+                  weeklyGoals={weeklyGoals}
+                />
+              </TabsContent>
+              
+              {/* Monthly View */}
+              <TabsContent value="monthly">
+                <MonthlyProgressView
+                  loading={loading}
+                  monthlyProgress={monthlyProgress}
+                />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+          
+          {/* Add Goal View */}
+          <TabsContent value="add-goal" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <AddGoalSection
                 newGoal={newGoal}
@@ -632,29 +683,6 @@ const TodaysWellness = () => {
                 addSuggestedGoal={addSuggestedGoal}
               />
             </div>
-            
-            <TodaysGoalsSection
-              goals={goals}
-              loading={loading}
-              toggleGoalCompletion={toggleGoalCompletion}
-            />
-          </TabsContent>
-          
-          {/* Weekly View */}
-          <TabsContent value="weekly">
-            <WeeklyProgressView
-              loading={loading}
-              weeklyProgress={weeklyProgress}
-              weeklyGoals={weeklyGoals}
-            />
-          </TabsContent>
-          
-          {/* Monthly View */}
-          <TabsContent value="monthly">
-            <MonthlyProgressView
-              loading={loading}
-              monthlyProgress={monthlyProgress}
-            />
           </TabsContent>
         </Tabs>
         
