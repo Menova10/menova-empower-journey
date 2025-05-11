@@ -64,7 +64,7 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
           toast({
             title: "API Status",
             description: `Firecrawl: ${data.firecrawl?.success ? '✅' : '❌'} | OpenAI: ${data.openai?.success ? '✅' : '❌'}`,
-            variant: data.firecrawl?.success && data.openai?.success ? "default" : "warning"
+            variant: data.firecrawl?.success && data.openai?.success ? "default" : "destructive"
           });
         } else {
           toast({
@@ -130,7 +130,7 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
           </>
         )}
         
-        {error && <XCircle className="h-4 w-4 text-red-500" title={error} />}
+        {error && <XCircle className="h-4 w-4 text-red-500" aria-label={error} />}
       </div>
     );
   }
@@ -208,7 +208,7 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
         </div>
         
         {!status.firecrawl.success && !status.openai.success && (
-          <Alert variant="warning">
+          <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>API Connectivity Issues</AlertTitle>
             <AlertDescription>
