@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -74,13 +73,6 @@ const SymptomTracker = () => {
         {/* Navbar */}
         <nav className="flex justify-between items-center px-4 md:px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
           <MeNovaLogo />
-          <Button
-            variant="outline"
-            onClick={() => navigate('/welcome')}
-            className="border-menova-green text-menova-green hover:bg-menova-green/10"
-          >
-            Back to Dashboard
-          </Button>
         </nav>
 
         {/* Main Content */}
