@@ -23,6 +23,10 @@ serve(async (req) => {
     // Fetch data from multiple sources using Firecrawl
     console.log(`Fetching research data for: ${searchTerm}`);
     
+    // Check for API keys
+    const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    console.log(`Firecrawl API key available: ${firecrawlApiKey ? 'Yes' : 'No'}`);
+    
     // Fetch research articles using Firecrawl
     const researchPromise = fetchResearchWithFirecrawl(searchTerm, limit);
     
@@ -66,6 +70,7 @@ async function fetchResearchWithFirecrawl(searchTerm: string, limit: number) {
     
     // If Firecrawl returns results, process them
     if (scrapedArticles && Array.isArray(scrapedArticles) && scrapedArticles.length > 0) {
+      console.log(`Firecrawl returned ${scrapedArticles.length} research articles`);
       return scrapedArticles.map(article => {
         const year = article.publishedDate 
           ? new Date(article.publishedDate).getFullYear().toString()
@@ -82,6 +87,8 @@ async function fetchResearchWithFirecrawl(searchTerm: string, limit: number) {
           type: 'research'
         };
       });
+    } else {
+      console.log('No research articles returned from Firecrawl, trying alternative APIs');
     }
     
     // If no results from Firecrawl, try PubMed and Semantic Scholar APIs
@@ -91,18 +98,21 @@ async function fetchResearchWithFirecrawl(searchTerm: string, limit: number) {
     ]);
     
     const combinedResults = [...pubmedData, ...semanticScholarData];
+    console.log(`Alternative APIs returned ${combinedResults.length} research items`);
     
     // Return actual API data or empty array, not fallback data
     return combinedResults;
   } catch (error) {
     console.error('Error fetching research with Firecrawl:', error);
     // Try other APIs
+    console.log('Trying alternative research APIs after Firecrawl error');
     const [pubmedData, semanticScholarData] = await Promise.all([
       fetchPubMedData(searchTerm, Math.ceil(limit / 2)),
       fetchSemanticScholarData(searchTerm, Math.ceil(limit / 2))
     ]);
     
     const combinedResults = [...pubmedData, ...semanticScholarData];
+    console.log(`Alternative APIs returned ${combinedResults.length} research items after error`);
     
     // Return actual API data or empty array, not fallback data
     return combinedResults;
@@ -120,6 +130,7 @@ async function fetchVideosWithFirecrawl(searchTerm: string, limit: number) {
     
     // If Firecrawl returns results, process them
     if (scrapedVideos && Array.isArray(scrapedVideos) && scrapedVideos.length > 0) {
+      console.log(`Firecrawl returned ${scrapedVideos.length} videos`);
       return scrapedVideos.map(video => {
         const year = video.publishedDate 
           ? new Date(video.publishedDate).getFullYear().toString()
@@ -136,6 +147,8 @@ async function fetchVideosWithFirecrawl(searchTerm: string, limit: number) {
           type: 'video'
         };
       });
+    } else {
+      console.log('No videos returned from Firecrawl');
     }
     
     // Return empty array - no fallbacks
@@ -160,6 +173,7 @@ function getDomainFromUrl(url: string): string {
 // Fetch data from PubMed using eUtils API
 async function fetchPubMedData(searchTerm: string, limit: number) {
   try {
+    console.log(`Fetching PubMed data for: ${searchTerm}, limit: ${limit}`);
     // First, search for IDs
     const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(searchTerm)}&retmode=json&retmax=${limit}&sort=date`;
     
@@ -167,6 +181,7 @@ async function fetchPubMedData(searchTerm: string, limit: number) {
     const searchData = await searchResponse.json();
     
     if (!searchData.esearchresult?.idlist?.length) {
+      console.log('No PubMed IDs found');
       return [];
     }
     
@@ -178,6 +193,7 @@ async function fetchPubMedData(searchTerm: string, limit: number) {
     const summaryData = await summaryResponse.json();
     
     if (!summaryData.result) {
+      console.log('No PubMed summary data found');
       return [];
     }
     
@@ -201,6 +217,7 @@ async function fetchPubMedData(searchTerm: string, limit: number) {
         };
       });
     
+    console.log(`PubMed returned ${results.length} articles`);
     return results;
   } catch (error) {
     console.error('Error fetching PubMed data:', error);
@@ -211,16 +228,18 @@ async function fetchPubMedData(searchTerm: string, limit: number) {
 // Fetch data from Semantic Scholar
 async function fetchSemanticScholarData(searchTerm: string, limit: number) {
   try {
+    console.log(`Fetching Semantic Scholar data for: ${searchTerm}, limit: ${limit}`);
     const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(searchTerm)}&limit=${limit}&fields=title,authors,year,url,abstract`;
     
     const response = await fetch(url);
     const data = await response.json();
     
     if (!data.data || !Array.isArray(data.data)) {
+      console.log('No Semantic Scholar data found');
       return [];
     }
     
-    return data.data.map(paper => {
+    const results = data.data.map(paper => {
       return {
         id: paper.paperId,
         title: paper.title,
@@ -232,6 +251,9 @@ async function fetchSemanticScholarData(searchTerm: string, limit: number) {
         type: 'research'
       };
     });
+    
+    console.log(`Semantic Scholar returned ${results.length} articles`);
+    return results;
   } catch (error) {
     console.error('Error fetching Semantic Scholar data:', error);
     return [];

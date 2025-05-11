@@ -20,8 +20,8 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     
     console.log(`Fetching ${count} images for query: "${query}" from Firecrawl`);
     
-    // Updated API endpoint and request format based on Firecrawl v1 API
-    const response = await fetch("https://api.firecrawl.dev/v1/search/images", {
+    // Try the new API endpoint structure first
+    const response = await fetch("https://api.firecrawl.dev/images/search", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -29,13 +29,16 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
         "Cache-Control": "no-cache, no-store"
       },
       body: JSON.stringify({
-        text: query,
+        query: query,
         limit: count
       })
     });
     
     if (!response.ok) {
-      throw new Error(`Firecrawl API error: ${response.status} ${response.statusText}`);
+      console.error(`Firecrawl images API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Error response body: ${errorText.substring(0, 200)}`);
+      return [];
     }
     
     const data = await response.json();
@@ -48,17 +51,15 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
         .map(result => result.image.url)
         .slice(0, count);
       
-      // Only return images if we actually got some
-      if (imageUrls.length > 0) {
-        return imageUrls;
-      }
+      console.log(`Successfully fetched ${imageUrls.length} images from Firecrawl`);
+      return imageUrls;
     }
     
-    // Return empty array instead of fallback images if no results
+    console.log("No images found in Firecrawl response");
     return [];
   } catch (error) {
     console.error(`Error fetching images from Firecrawl: ${error}`);
-    return []; // Return empty array instead of fallback images
+    return [];
   }
 }
 
@@ -80,16 +81,19 @@ export async function scrapeContentWithFirecrawl(
     
     if (!apiKey) {
       console.warn("FIRECRAWL_API_KEY not found in environment variables");
-      return []; // Return empty array instead of throwing
+      return [];
     }
     
     // Create the search query
     console.log(`Scraping content for query: "${topic}" from Firecrawl`);
     
-    // Updated to use the correct API endpoint and request format based on Firecrawl v1 API
-    const searchEndpoint = contentType === 'video' 
-      ? "https://api.firecrawl.dev/v1/search/videos"
-      : "https://api.firecrawl.dev/v1/search/web";
+    // Updated to use the correct API endpoint
+    let searchEndpoint;
+    if (contentType === 'video') {
+      searchEndpoint = "https://api.firecrawl.dev/videos/search";
+    } else {
+      searchEndpoint = "https://api.firecrawl.dev/web/search";
+    }
     
     // Define site filters for different content types
     const siteFilters = contentType === 'article' 
@@ -97,6 +101,19 @@ export async function scrapeContentWithFirecrawl(
       : contentType === 'video' 
         ? ["youtube.com", "vimeo.com"] 
         : [];
+    
+    // Prepare request payload
+    const payload = {
+      query: `${topic} ${contentType === 'video' ? 'video' : ''} menopause health`,
+      limit: count
+    };
+    
+    // Only add sites filter if we have defined sites
+    if (siteFilters.length > 0) {
+      payload["sites"] = siteFilters;
+    }
+    
+    console.log(`Calling Firecrawl API at ${searchEndpoint} with payload:`, JSON.stringify(payload));
     
     // Make the API request to Firecrawl with the updated format
     const response = await fetch(searchEndpoint, {
@@ -106,18 +123,14 @@ export async function scrapeContentWithFirecrawl(
         "Content-Type": "application/json",
         "Cache-Control": "no-cache, no-store"
       },
-      body: JSON.stringify({
-        text: `${topic} ${contentType === 'video' ? 'video' : ''} menopause health`,
-        limit: count,
-        sites: siteFilters.length > 0 ? siteFilters : undefined
-      })
+      body: JSON.stringify(payload)
     });
     
     if (!response.ok) {
       console.error(`Firecrawl API responded with status: ${response.status}`);
       const errorText = await response.text();
-      console.error(`Error response body: ${errorText}`);
-      return []; // Return empty array instead of throwing
+      console.error(`Error response body: ${errorText.substring(0, 200)}`);
+      return [];
     }
     
     const data = await response.json();
@@ -145,19 +158,17 @@ export async function scrapeContentWithFirecrawl(
             image: result.image?.url || "",
             url: result.url || "",
             author: result.author || "",
-            siteName: result.siteName || new URL(result.url).hostname,
+            siteName: result.siteName || (result.url ? new URL(result.url).hostname : ""),
             publishedDate: result.date || new Date().toISOString()
           };
         }
       });
     }
     
-    // Return empty array if no results instead of fallback data
+    console.log(`Successfully fetched 0 items from Firecrawl`);
     return [];
   } catch (error) {
     console.error(`Error scraping content with Firecrawl: ${error}`);
-    return []; // Return empty array instead of throwing
+    return [];
   }
 }
-
-// Remove the fallback images function since we don't want to show dummy data

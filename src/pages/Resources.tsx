@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
@@ -8,13 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Play, PlayCircle, Volume2, X, Link as LinkIcon, Book, Video } from 'lucide-react';
+import { Play, PlayCircle, Volume2, X, Link as LinkIcon, Book, Video, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import VideoPlayer from '@/components/VideoPlayer';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import CompleteSymptomProfile from '@/components/CompleteSymptomProfile';
 import ResearchSection from '@/components/ResearchSection';
+import { useToast } from '@/components/ui/use-toast';
 
 // Define content item interface
 interface ContentItem {
@@ -43,6 +45,7 @@ const Resources: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { speak } = useVapi();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [content, setContent] = useState<ContentItem[]>([]);
@@ -51,6 +54,7 @@ const Resources: React.FC = () => {
   const [activeContent, setActiveContent] = useState<ContentItem | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [topics] = useState<string[]>([
     'menopause',
     'perimenopause',
@@ -135,21 +139,29 @@ const Resources: React.FC = () => {
     
     try {
       setLoading(true);
+      console.log(`Fetching ${type} content about "${topic}" (count: ${count})`);
       
-      // Fixed: Use query parameters in the correct way by passing them as URL parameters instead of using the query property
-      const params = new URLSearchParams();
-      if (type !== 'all') params.append('type', type);
-      if (topic) params.append('topic', topic);
-      params.append('count', count.toString());
+      // Build params object
+      const params = {
+        type: type !== 'all' ? type : undefined,
+        topic: topic,
+        count: count
+      };
       
       // Call the edge function with correct parameters
       const { data, error } = await supabase.functions.invoke('enhanced-content-fetch', {
-        body: { params: Object.fromEntries(params) }
+        body: { params }
       });
       
       if (error) {
         console.error('Edge function error:', error);
         return [];
+      }
+      
+      if (data && Array.isArray(data) && data.length > 0) {
+        console.log(`Successfully fetched ${data.length} ${type} items about "${topic}"`);
+      } else {
+        console.log(`No ${type} content found for "${topic}"`);
       }
       
       return data || [];
@@ -164,6 +176,7 @@ const Resources: React.FC = () => {
   // Fetch content based on user symptoms and topics
   const fetchAllContent = async () => {
     setLoading(true);
+    setError(null);
     
     try {
       // Combine user symptoms with general topics
@@ -176,6 +189,8 @@ const Resources: React.FC = () => {
       const selectedTopics = relevantTopics
         .sort(() => 0.5 - Math.random())
         .slice(0, 3);
+      
+      console.log("Selected topics for content fetch:", selectedTopics);
       
       // Fetch articles and videos for each selected topic
       const allContentPromises = selectedTopics.flatMap(topic => [
@@ -190,32 +205,55 @@ const Resources: React.FC = () => {
         .flat()
         .sort(() => 0.5 - Math.random());
       
-      setContent(allContent);
+      console.log(`Total content items fetched: ${allContent.length}`);
       
-      // Create personalized recommendations based on user symptoms
-      const personalizedContent = allContent.filter(item => 
-        userSymptoms.some(symptom => 
-          item.category.some(category => 
-            category.toLowerCase().includes(symptom.toLowerCase()) ||
-            symptom.toLowerCase().includes(category.toLowerCase())
-          )
-        )
-      );
-      
-      // If we don't have enough personalized content, add some general content
-      if (personalizedContent.length < 3) {
-        const additionalContent = allContent
-          .filter(item => !personalizedContent.includes(item))
-          .slice(0, 3 - personalizedContent.length);
-        
-        setRecommendedContent([...personalizedContent, ...additionalContent]);
+      if (allContent.length === 0) {
+        console.warn("No content returned from API - showing error state");
+        setError("We couldn't fetch any content at this time. This may be due to API connectivity issues. Please try again later.");
+        toast({
+          title: "Content Fetch Failed",
+          description: "We couldn't load any content. This may be due to API connectivity issues.",
+          variant: "destructive"
+        });
       } else {
-        setRecommendedContent(personalizedContent.slice(0, 6));
+        setContent(allContent);
+        
+        // Create personalized recommendations based on user symptoms
+        const personalizedContent = allContent.filter(item => 
+          userSymptoms.some(symptom => 
+            item.category.some(category => 
+              category.toLowerCase().includes(symptom.toLowerCase()) ||
+              symptom.toLowerCase().includes(category.toLowerCase())
+            )
+          )
+        );
+        
+        // If we don't have enough personalized content, add some general content
+        if (personalizedContent.length < 3) {
+          const additionalContent = allContent
+            .filter(item => !personalizedContent.includes(item))
+            .slice(0, 3 - personalizedContent.length);
+          
+          setRecommendedContent([...personalizedContent, ...additionalContent]);
+        } else {
+          setRecommendedContent(personalizedContent.slice(0, 6));
+        }
+        
+        setLastRefresh(new Date());
+        
+        toast({
+          title: "Content Updated",
+          description: `Loaded ${allContent.length} content items, including ${personalizedContent.length} personalized items`,
+        });
       }
-      
-      setLastRefresh(new Date());
     } catch (error) {
       console.error('Error fetching all content:', error);
+      setError("An error occurred while fetching content. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to fetch content. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -224,6 +262,7 @@ const Resources: React.FC = () => {
   // Fetch content when the component mounts or when user symptoms change
   useEffect(() => {
     if (userSymptoms.length > 0) {
+      console.log("Fetching content with symptoms:", userSymptoms);
       fetchAllContent();
     }
   }, [userSymptoms]);
@@ -277,13 +316,57 @@ const Resources: React.FC = () => {
     return date.toLocaleString();
   };
 
+  const handleDebugCheck = () => {
+    toast({
+      title: "API Status Check",
+      description: "Checking API connection status in console",
+    });
+    
+    console.log("=== API CONNECTIVITY CHECK ===");
+    console.log("User symptoms:", userSymptoms);
+    console.log("Selected topics:", topics);
+    console.log("Content items:", content.length);
+    console.log("Video items:", content.filter(item => item.type === 'video').length);
+    console.log("Article items:", content.filter(item => item.type === 'article').length);
+    console.log("Content fetch errors:", error);
+    console.log("Last refresh:", lastRefresh);
+    
+    // Check Supabase connection
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log("Auth session:", data ? "Active" : "None");
+      if (error) console.error("Auth error:", error);
+    });
+    
+    // Check Firecrawl integration
+    supabase.functions.invoke('fetch-menopause-research', {
+      body: { 
+        topic: "menopause api test", 
+        phase: "test",
+        limit: 2
+      }
+    }).then(({ data, error }) => {
+      if (error) {
+        console.error("Edge function test error:", error);
+      } else {
+        console.log("Edge function test response:", data);
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#f9fdf3] to-white pt-6">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex justify-between items-center mb-6">
           <MeNovaLogo />
           <div className="flex space-x-2">
-            {/* Add any header buttons/actions here */}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDebugCheck}
+              className="border-[#4caf50] text-[#4caf50] hover:bg-[#e8f5e9] hover:text-[#2e7d32]"
+            >
+              Check API Status
+            </Button>
           </div>
         </div>
         
@@ -336,6 +419,9 @@ const Resources: React.FC = () => {
                         src={item.thumbnail} 
                         alt={item.title} 
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
+                        }}
                       />
                       {item.type === 'video' && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -395,13 +481,20 @@ const Resources: React.FC = () => {
                   </Card>
                 )) : (
                   <div className="col-span-3">
-                    <CompleteSymptomProfile className="max-w-2xl mx-auto" />
-                    {loading ? (
-                      <p className="text-center mt-4 text-muted-foreground">Loading personalized content...</p>
+                    {error ? (
+                      <div className="bg-white/90 rounded-lg p-8 text-center border border-amber-200 shadow">
+                        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Content Unavailable</h3>
+                        <p className="text-gray-500 mb-4">{error}</p>
+                        <Button
+                          onClick={fetchAllContent}
+                          className="bg-[#4caf50] hover:bg-[#388e3c]"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
                     ) : (
-                      <p className="text-center mt-4 text-muted-foreground">
-                        No content found. Please check your internet connection or try again later.
-                      </p>
+                      <CompleteSymptomProfile className="max-w-2xl mx-auto" />
                     )}
                   </div>
                 )}
@@ -454,6 +547,9 @@ const Resources: React.FC = () => {
                             src={item.thumbnail} 
                             alt={item.title} 
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
+                            }}
                           />
                           {item.type === 'video' && (
                             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -527,7 +623,19 @@ const Resources: React.FC = () => {
                           </div>
                         </CardFooter>
                       </Card>
-                    )) : loading ? (
+                    )) : error ? (
+                      <div className="col-span-3 bg-white/90 rounded-lg p-8 text-center border border-amber-200 shadow">
+                        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">Content Unavailable</h3>
+                        <p className="text-gray-500 mb-4">{error}</p>
+                        <Button
+                          onClick={fetchAllContent}
+                          className="bg-[#4caf50] hover:bg-[#388e3c]"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    ) : loading ? (
                       <p className="col-span-3 text-center py-8 text-muted-foreground">Loading content...</p>
                     ) : (
                       <p className="col-span-3 text-center py-8 text-muted-foreground">
