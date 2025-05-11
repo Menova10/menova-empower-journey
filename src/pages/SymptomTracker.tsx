@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -78,6 +77,33 @@ const timePeriods = [
   }
 ];
 
+// Define TypeScript interfaces for symptom data
+interface SymptomEntry {
+  id: string;
+  symptom: string;
+  intensity: number;
+  source: string;
+  recorded_at: string;
+  notes?: string | null;
+  user_id: string;
+}
+
+interface SymptomAggregation {
+  sum: number;
+  count: number;
+}
+
+interface GroupedSymptoms {
+  [date: string]: {
+    [symptom: string]: SymptomAggregation;
+  };
+}
+
+interface ChartDataPoint {
+  date: string;
+  [symptom: string]: number | string;
+}
+
 const SymptomTracker = () => {
   const navigate = useNavigate();
   // Form state
@@ -89,11 +115,11 @@ const SymptomTracker = () => {
   const [successTip, setSuccessTip] = useState<string | null>(null);
   
   // History and filtering state
-  const [symptomHistory, setSymptomHistory] = useState<any[]>([]);
+  const [symptomHistory, setSymptomHistory] = useState<SymptomEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSymptom, setSelectedSymptom] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('weekly');
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 
   const handleRatingChange = (symptomId: string, value: number[]) => {
     setRatings(prev => ({ ...prev, [symptomId]: value[0] }));
@@ -157,9 +183,9 @@ const SymptomTracker = () => {
   };
   
   // Prepare data for chart visualization
-  const prepareChartData = (data: any[]) => {
+  const prepareChartData = (data: SymptomEntry[]) => {
     // Group by date and symptom, calculate average intensity
-    const grouped = data.reduce((acc: any, item) => {
+    const grouped: GroupedSymptoms = data.reduce((acc: GroupedSymptoms, item) => {
       // Format date based on selected period
       let dateKey;
       const date = new Date(item.recorded_at);
@@ -190,12 +216,12 @@ const SymptomTracker = () => {
     }, {});
     
     // Convert grouped data to chart format
-    const chartData = Object.entries(grouped).map(([date, symptoms]) => {
-      const entry: any = { date };
+    const chartData: ChartDataPoint[] = Object.entries(grouped).map(([date, symptoms]) => {
+      const entry: ChartDataPoint = { date };
       
       // Calculate average for each symptom
-      Object.entries(symptoms as any).forEach(([symptom, { sum, count }]) => {
-        entry[symptom] = Math.round((sum as number) / (count as number));
+      Object.entries(symptoms).forEach(([symptom, { sum, count }]) => {
+        entry[symptom] = Math.round(sum / count);
       });
       
       return entry;
