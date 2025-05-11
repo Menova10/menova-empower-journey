@@ -24,16 +24,19 @@ export const useVapi = (): VapiContextType => {
   return context;
 };
 
-// Create a dynamic import for Vapi to ensure it only loads in browser environment
-let Vapi: any = null;
-if (typeof window !== 'undefined') {
-  // This will only execute in browser environment
-  import('@vapi-ai/web').then(module => {
-    Vapi = module.default;
-  }).catch(error => {
-    console.error('Failed to load Vapi module:', error);
-  });
-}
+// Wrap Vapi import in a function to load it only when needed and in browser environment
+const loadVapi = async () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const module = await import('@vapi-ai/web');
+      return module.default;
+    } catch (error) {
+      console.error('Failed to load Vapi module:', error);
+      return null;
+    }
+  }
+  return null;
+};
 
 // The VapiProvider component
 export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,53 +48,64 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Only initialize Vapi if we're in the browser
-    if (typeof window === 'undefined' || !Vapi) {
-      console.log("Skipping Vapi initialization: Not in browser or Vapi not loaded");
+    if (typeof window === 'undefined') {
+      console.log("Skipping Vapi initialization: Not in browser");
       return;
     }
 
-    try {
-      console.log("Initializing Vapi SDK");
-      vapiRef.current = new Vapi('d3fd5e81-606a-4d19-b737-bd00fd55a737');
-      
-      // Set up event listeners for tracking state
-      if (vapiRef.current) {
-        vapiRef.current.on && vapiRef.current.on("speech-start", () => {
-          console.log("Speech started");
-          setIsSpeaking(true);
-        });
+    // Load Vapi dynamically
+    const initVapi = async () => {
+      try {
+        const Vapi = await loadVapi();
+        if (!Vapi) {
+          console.log("Skipping Vapi initialization: Failed to load Vapi");
+          return;
+        }
+
+        console.log("Initializing Vapi SDK");
+        vapiRef.current = new Vapi('d3fd5e81-606a-4d19-b737-bd00fd55a737');
         
-        vapiRef.current.on && vapiRef.current.on("speech-end", () => {
-          console.log("Speech ended");
-          setIsSpeaking(false);
-        });
-        
-        vapiRef.current.on && vapiRef.current.on("listening-start", () => {
-          console.log("Listening started");
-          setIsListening(true);
-        });
-        
-        vapiRef.current.on && vapiRef.current.on("listening-end", () => {
-          console.log("Listening ended");
-          setIsListening(false);
-        });
-        
-        vapiRef.current.on && vapiRef.current.on("error", (err: any) => {
-          console.error("Vapi error:", err);
-          setError(err?.message || "An error occurred with the voice assistant");
-          toast({
-            title: "Voice Assistant Error",
-            description: err?.message || "Could not connect to voice assistant",
-            variant: "destructive",
+        // Set up event listeners for tracking state
+        if (vapiRef.current) {
+          vapiRef.current.on && vapiRef.current.on("speech-start", () => {
+            console.log("Speech started");
+            setIsSpeaking(true);
           });
-        });
+          
+          vapiRef.current.on && vapiRef.current.on("speech-end", () => {
+            console.log("Speech ended");
+            setIsSpeaking(false);
+          });
+          
+          vapiRef.current.on && vapiRef.current.on("listening-start", () => {
+            console.log("Listening started");
+            setIsListening(true);
+          });
+          
+          vapiRef.current.on && vapiRef.current.on("listening-end", () => {
+            console.log("Listening ended");
+            setIsListening(false);
+          });
+          
+          vapiRef.current.on && vapiRef.current.on("error", (err: any) => {
+            console.error("Vapi error:", err);
+            setError(err?.message || "An error occurred with the voice assistant");
+            toast({
+              title: "Voice Assistant Error",
+              description: err?.message || "Could not connect to voice assistant",
+              variant: "destructive",
+            });
+          });
+        }
+        
+        setSdkLoaded(true);
+      } catch (err) {
+        console.error("Error initializing Vapi:", err);
+        setError("Could not initialize voice assistant");
       }
-      
-      setSdkLoaded(true);
-    } catch (err) {
-      console.error("Error initializing Vapi:", err);
-      setError("Could not initialize voice assistant");
-    }
+    };
+
+    initVapi();
     
     return () => {
       if (vapiRef.current) {
