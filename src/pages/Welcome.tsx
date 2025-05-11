@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -291,19 +292,19 @@ const Welcome = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48 bg-white border-menova-green/20">
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/symptom-tracker')} className="cursor-pointer">
                   Symptom Tracker
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Resources', '/resources')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/resources')} className="cursor-pointer">
                   Resources
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Content Hub', '/content-hub')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/content-hub')} className="cursor-pointer">
                   Content Hub
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/wellness-plan')} className="cursor-pointer">
                   Wellness Plan
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Community', '/community')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate('/community')} className="cursor-pointer">
                   Community
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -357,6 +358,10 @@ const Welcome = () => {
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/chat-history')} className="cursor-pointer">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat History
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
@@ -378,7 +383,7 @@ const Welcome = () => {
               variant="ghost" 
               size="sm" 
               className="w-full justify-start text-menova-text"
-              onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')}
+              onClick={() => navigate('/symptom-tracker')}
             >
               Symptom Tracker
             </Button>
@@ -386,7 +391,7 @@ const Welcome = () => {
               variant="ghost" 
               size="sm" 
               className="w-full justify-start text-menova-text"
-              onClick={() => handleVoiceNavigation('Resources', '/resources')}
+              onClick={() => navigate('/resources')}
             >
               Resources
             </Button>
@@ -394,7 +399,7 @@ const Welcome = () => {
               variant="ghost" 
               size="sm" 
               className="w-full justify-start text-menova-text"
-              onClick={() => handleVoiceNavigation('Content Hub', '/content-hub')}
+              onClick={() => navigate('/content-hub')}
             >
               Content Hub
             </Button>
@@ -402,7 +407,7 @@ const Welcome = () => {
               variant="ghost" 
               size="sm" 
               className="w-full justify-start text-menova-text"
-              onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')}
+              onClick={() => navigate('/wellness-plan')}
             >
               Wellness Plan
             </Button>
@@ -410,7 +415,7 @@ const Welcome = () => {
               variant="ghost" 
               size="sm" 
               className="w-full justify-start text-menova-text"
-              onClick={() => handleVoiceNavigation('Community', '/community')}
+              onClick={() => navigate('/community')}
             >
               Community
             </Button>
@@ -418,9 +423,17 @@ const Welcome = () => {
               variant="ghost" 
               size="sm" 
               className="w-full justify-start text-menova-text"
-              onClick={() => handleVoiceNavigation('Chat', '/chat')}
+              onClick={() => navigate('/chat')}
             >
               Chat with MeNova
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full justify-start text-menova-text"
+              onClick={() => navigate('/chat-history')}
+            >
+              Chat History
             </Button>
             <Button 
               variant="ghost" 

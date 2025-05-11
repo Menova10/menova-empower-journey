@@ -16,8 +16,9 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import { ScrollableContent } from '@/components/wellness/ScrollableContent';
 
-const CheckIn = () => {
+const ChatHistory = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedSession, setSelectedSession] = useState<any>(null);
@@ -62,7 +63,7 @@ const CheckIn = () => {
         console.error('Error fetching sessions:', error);
         toast({
           title: "Error",
-          description: "Failed to load your sessions.",
+          description: "Failed to load your chat history.",
           variant: "destructive",
         });
       } else {
@@ -155,16 +156,16 @@ const CheckIn = () => {
 
       {/* Breadcrumb */}
       <div className="px-6 pt-4 max-w-6xl mx-auto w-full">
-        <BreadcrumbTrail currentPath="/check-in" />
+        <BreadcrumbTrail currentPath="/chat-history" />
       </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
-        <h1 className="text-2xl font-bold text-menova-text">Daily Check-In</h1>
+        <h1 className="text-2xl font-bold text-menova-text">Chat History</h1>
         
         {/* Start New Session Button */}
         <div className="flex justify-between items-center">
-          <p className="text-gray-600">Review your past check-ins or start a new session.</p>
+          <p className="text-gray-600">Review your past conversations or start a new session.</p>
           <Button
             onClick={handleStartNewSession}
             className="bg-menova-green text-white hover:bg-menova-green/90 flex items-center gap-2"
@@ -183,17 +184,17 @@ const CheckIn = () => {
         {/* Sessions Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Check-In History</CardTitle>
+            <CardTitle>Your Conversation History</CardTitle>
             <CardDescription>
-              Browse your past sessions with MeNova
+              Browse your past chats with MeNova
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-center py-4">Loading your sessions...</p>
+              <p className="text-center py-4">Loading your conversations...</p>
             ) : sessions.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">You haven't had any check-ins yet.</p>
+                <p className="text-gray-500 mb-4">You haven't had any conversations yet.</p>
                 <Button 
                   onClick={handleStartNewSession} 
                   className="bg-menova-green text-white hover:bg-menova-green/90 flex items-center gap-2"
@@ -205,7 +206,7 @@ const CheckIn = () => {
                       className="w-full h-full object-cover" 
                     />
                   </div>
-                  Start Your First Check-In
+                  Start Your First Conversation
                 </Button>
               </div>
             ) : (
@@ -273,7 +274,7 @@ const CheckIn = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 max-h-96 overflow-y-auto p-2">
+              <ScrollableContent maxHeight="320px" className="space-y-4 p-2">
                 {sessionMessages.map((message) => (
                   <div 
                     key={message.id} 
@@ -290,7 +291,7 @@ const CheckIn = () => {
                     </div>
                   </div>
                 ))}
-              </div>
+              </ScrollableContent>
               <div className="flex justify-center mt-4">
                 <Button
                   onClick={() => handleStartSession(selectedSession.id)}
@@ -345,4 +346,4 @@ const CheckIn = () => {
   );
 };
 
-export default CheckIn;
+export default ChatHistory;
