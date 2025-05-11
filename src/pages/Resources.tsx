@@ -14,6 +14,7 @@ import VideoPlayer from '@/components/VideoPlayer';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import CompleteSymptomProfile from '@/components/CompleteSymptomProfile';
+import ResearchSection from '@/components/ResearchSection';
 
 // Define content item interface
 interface ContentItem {
@@ -295,6 +296,11 @@ const Resources: React.FC = () => {
               Discover personalized menopause guides, articles, and videos tailored to your journey
             </p>
           </div>
+
+          {/* Research Section - New Component */}
+          <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
+          
+          <Separator className="bg-[#e8f5e9]" />
 
           {/* AI Recommendations Section */}
           <section className="mb-8">
