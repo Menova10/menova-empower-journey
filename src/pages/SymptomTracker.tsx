@@ -71,7 +71,7 @@ const SymptomTracker = () => {
         <ConfettiEffect show={showConfetti} />
 
         {/* Navbar */}
-        <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
+        <nav className="flex justify-between items-center px-4 md:px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
           <MeNovaLogo />
           <Button
             variant="outline"
@@ -83,94 +83,96 @@ const SymptomTracker = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col max-w-3xl mx-auto w-full p-6 relative z-10">
-          <div className="flex items-center mb-6 gap-2">
-            <Flower className="text-menova-green h-8 w-8" />
-            <h1 className="text-2xl font-bold text-menova-text">Symptom Tracker</h1>
-          </div>
-          
-          {/* Quote */}
-          {!successTip && (
-            <div 
-              className="mb-6 text-center animate-fadeIn"
-            >
-              <p className="font-['Dancing_Script'],cursive text-lg text-menova-text italic text-shadow">
-                "Listening to your body is an act of self-compassion. Each symptom tracked is a step toward better wellness."
-              </p>
+        <main className="flex-1 flex flex-col w-full px-3 md:px-6 relative z-10">
+          <div className="max-w-5xl mx-auto w-full">
+            <div className="flex items-center mb-6 gap-2 mt-4">
+              <Flower className="text-menova-green h-8 w-8" />
+              <h1 className="text-2xl font-bold text-menova-text">Symptom Tracker</h1>
             </div>
-          )}
-          
-          {/* Success message with personalized tip */}
-          <SuccessMessage tip={successTip} />
-          
-          {/* Symptom Rating Form */}
-          <div className="animate-fadeIn">
-            <SymptomForm 
-              onSubmitSuccess={handleSubmitSuccess}
-              onRefreshHistory={refreshSymptomHistory}
-            />
-          </div>
-          
-          {/* History and Trends Section */}
-          <div className="animate-fadeIn space-y-6">
-            <h2 className="text-xl font-semibold text-menova-text flex items-center gap-2">
-              <Activity className="h-5 w-5 text-menova-green" />
-              Your Symptom History
-            </h2>
             
-            {/* Filters */}
-            <SymptomFilters 
-              selectedSymptom={selectedSymptom}
-              setSelectedSymptom={setSelectedSymptom}
-              selectedPeriod={selectedPeriod}
-              setSelectedPeriod={setSelectedPeriod}
-            />
+            {/* Quote */}
+            {!successTip && (
+              <div 
+                className="mb-6 text-center animate-fadeIn"
+              >
+                <p className="font-['Dancing_Script'],cursive text-lg text-menova-text italic text-shadow">
+                  "Listening to your body is an act of self-compassion. Each symptom tracked is a step toward better wellness."
+                </p>
+              </div>
+            )}
             
-            {/* Charts and Timeline */}
-            <Tabs defaultValue="chart">
-              <TabsList className="bg-menova-green/10 border border-menova-green/20">
-                <TabsTrigger value="chart" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
-                  Trend Chart
-                </TabsTrigger>
-                <TabsTrigger value="timeline" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
-                  Timeline
-                </TabsTrigger>
-              </TabsList>
+            {/* Success message with personalized tip */}
+            <SuccessMessage tip={successTip} />
+            
+            {/* Symptom Rating Form */}
+            <div className="animate-fadeIn">
+              <SymptomForm 
+                onSubmitSuccess={handleSubmitSuccess}
+                onRefreshHistory={refreshSymptomHistory}
+              />
+            </div>
+            
+            {/* History and Trends Section */}
+            <div className="animate-fadeIn space-y-6 my-8">
+              <h2 className="text-xl font-semibold text-menova-text flex items-center gap-2">
+                <Activity className="h-5 w-5 text-menova-green" />
+                Your Symptom History
+              </h2>
               
-              {/* Chart View */}
-              <TabsContent value="chart" className="animate-fadeIn">
-                <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Symptom Intensity Over Time</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <SymptomChart 
-                      loading={loading}
-                      chartData={chartData}
-                      selectedSymptom={selectedSymptom}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
+              {/* Filters */}
+              <SymptomFilters 
+                selectedSymptom={selectedSymptom}
+                setSelectedSymptom={setSelectedSymptom}
+                selectedPeriod={selectedPeriod}
+                setSelectedPeriod={setSelectedPeriod}
+              />
               
-              {/* Timeline View */}
-              <TabsContent value="timeline" className="animate-fadeIn">
-                <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      Symptom Timeline
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <SymptomTimeline 
-                      loading={loading}
-                      symptomHistory={symptomHistory}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+              {/* Charts and Timeline */}
+              <Tabs defaultValue="chart">
+                <TabsList className="bg-menova-green/10 border border-menova-green/20">
+                  <TabsTrigger value="chart" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
+                    Trend Chart
+                  </TabsTrigger>
+                  <TabsTrigger value="timeline" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
+                    Timeline
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Chart View */}
+                <TabsContent value="chart" className="animate-fadeIn">
+                  <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
+                    <CardHeader className="pb-0">
+                      <CardTitle className="text-lg">Symptom Intensity Over Time</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <SymptomChart 
+                        loading={loading}
+                        chartData={chartData}
+                        selectedSymptom={selectedSymptom}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                {/* Timeline View */}
+                <TabsContent value="timeline" className="animate-fadeIn">
+                  <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
+                    <CardHeader className="pb-0">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Symptom Timeline
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-4">
+                      <SymptomTimeline 
+                        loading={loading}
+                        symptomHistory={symptomHistory}
+                      />
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         </main>
         

@@ -24,7 +24,7 @@ const SymptomFilters = ({
   setSelectedPeriod
 }: SymptomFiltersProps) => {
   return (
-    <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
+    <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm w-full">
       <CardContent className="pt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>

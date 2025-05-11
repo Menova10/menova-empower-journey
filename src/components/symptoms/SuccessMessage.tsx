@@ -13,7 +13,7 @@ const SuccessMessage = ({ tip }: SuccessMessageProps) => {
 
   return (
     <div
-      className="mb-6 p-4 rounded-lg bg-gradient-to-r from-menova-green/10 to-menova-green/20 backdrop-blur-md border border-menova-green/20 animate-scaleIn"
+      className="mb-6 p-4 rounded-lg bg-gradient-to-r from-menova-green/10 to-menova-green/20 backdrop-blur-md border border-menova-green/20 animate-scaleIn w-full"
     >
       <h3 className="font-medium text-menova-text mb-2">Symptoms recorded successfully!</h3>
       <p className="text-sm text-gray-700 mb-3 font-['Dancing_Script'],cursive text-lg italic">

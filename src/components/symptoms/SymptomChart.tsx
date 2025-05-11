@@ -30,7 +30,7 @@ const SymptomChart = ({ loading, chartData, selectedSymptom }: SymptomChartProps
   }
 
   return (
-    <div className="h-64">
+    <div className="h-72 md:h-80">
       <ChartContainer 
         config={{
           hot_flashes: { color: "#FFDEE2" },
@@ -41,19 +41,30 @@ const SymptomChart = ({ loading, chartData, selectedSymptom }: SymptomChartProps
         }}
       >
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+          <BarChart 
+            data={chartData} 
+            margin={{ top: 10, right: 10, bottom: 30, left: 10 }}
+          >
             <XAxis 
               dataKey="date"
               tickLine={false}
               axisLine={{ stroke: '#e5e5e5' }}
               padding={{ left: 10, right: 10 }}
+              tick={{ fontSize: 12 }}
+              height={30}
             />
             <YAxis 
               tickLine={false}
               axisLine={{ stroke: '#e5e5e5' }}
               domain={[0, 5]}
               ticks={[1, 2, 3, 4, 5]}
-              label={{ value: 'Intensity', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+              label={{ 
+                value: 'Intensity', 
+                angle: -90, 
+                position: 'insideLeft', 
+                style: { textAnchor: 'middle', fontSize: 12 } 
+              }}
+              width={40}
             />
             <ChartTooltip
               content={
