@@ -65,7 +65,7 @@ export function prepareChartData(data: SymptomEntry[], selectedPeriod: string): 
     if (selectedPeriod === 'daily') {
       dateKey = format(date, 'HH:mm');
     } else if (selectedPeriod === 'weekly') {
-      dateKey = format(date, 'EEE');
+      dateKey = format(date, 'EEE, MMM d'); // Include month and day
     } else {
       dateKey = format(date, 'MMM dd');
     }

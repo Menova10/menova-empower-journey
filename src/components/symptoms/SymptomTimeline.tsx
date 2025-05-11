@@ -68,7 +68,7 @@ const SymptomTimeline = ({ loading, symptomHistory }: SymptomTimelineProps) => {
               </div>
               <div className="flex justify-between text-xs text-gray-500">
                 <span>
-                  {format(date, 'MMM d, yyyy')} at {format(date, 'h:mm a')}
+                  {format(date, 'EEEE, MMM d, yyyy')} at {format(date, 'h:mm a')}
                 </span>
                 {entry.notes && (
                   <Tooltip>
