@@ -12,7 +12,7 @@ import Community from './pages/Community';
 import Resources from './pages/Resources';
 import ArticleView from './pages/ArticleView';
 import ContentHub from '../app/components/ContentHub';
-import CheckIn from './pages/CheckIn';
+import ChatHistory from './pages/ChatHistory';
 import TodaysWellness from './pages/TodaysWellness';
 import MeNovaChatButton from './components/MeNovaChatButton';
 import { VapiProvider } from './contexts/VapiContext';
@@ -35,7 +35,7 @@ function App() {
           <Route path="/resources" element={<Resources />} />
           <Route path="/content-hub" element={<ContentHub />} />
           <Route path="/article/:articleId" element={<ArticleView />} />
-          <Route path="/check-in" element={<CheckIn />} />
+          <Route path="/chat-history" element={<ChatHistory />} />
           <Route path="/todays-wellness" element={<TodaysWellness />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
