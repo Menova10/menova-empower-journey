@@ -5,8 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Book, Video, ExternalLink, Calendar, Users } from 'lucide-react';
+import { Book, Video, ExternalLink, Calendar, Users, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import ApiStatusIndicator from './ApiStatusIndicator';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 interface ResearchItem {
   id: string;
@@ -46,6 +49,7 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const fetchResearchData = async () => {
     setIsLoading(true);
@@ -66,6 +70,12 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
         setResearch(Array.isArray(data.research) && data.research.length > 0 ? data.research : []);
         setVideos(Array.isArray(data.videos) && data.videos.length > 0 ? data.videos : []);
         setLastFetched(new Date());
+        
+        // Display toast notification with fetch results
+        toast({
+          title: "Research Updated",
+          description: `Found ${data.research.length} research articles ${data.videos.length > 0 ? `and ${data.videos.length} videos` : ''}`,
+        });
       } else {
         setResearch([]);
         setVideos([]);
@@ -76,6 +86,12 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
       setFetchError("Failed to fetch content. Please try again later.");
       setResearch([]);
       setVideos([]);
+      
+      toast({
+        title: "Error",
+        description: "Failed to fetch research content. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -135,11 +151,11 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
           >
             {isLoading ? (
               <span className="flex items-center gap-1">
-                <span className="animate-spin">⟳</span> Loading...
+                <RefreshCw className="h-4 w-4 animate-spin" /> Loading...
               </span>
             ) : (
               <span className="flex items-center gap-1">
-                ↻ Refresh Content
+                <RefreshCw className="h-4 w-4" /> Refresh Content
               </span>
             )}
           </Button>
@@ -257,13 +273,26 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
               ))}
             </div>
           ) : (
-            <div className="text-center py-10 border rounded-lg bg-white/90">
-              <p className="text-muted-foreground mb-4">
-                {fetchError || "No content available."}
-              </p>
+            <div className="text-center py-8 border rounded-lg bg-white/90">
+              {fetchError ? (
+                <Alert variant="warning" className="max-w-lg mx-auto">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>API Connection Issue</AlertTitle>
+                  <AlertDescription>
+                    <p className="mb-4">{fetchError}</p>
+                    <div className="space-y-2">
+                      <ApiStatusIndicator showDetails={true} />
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <p className="text-muted-foreground mb-4">
+                  No content available for this category.
+                </p>
+              )}
               <Button 
                 onClick={fetchResearchData}
-                className="bg-[#4caf50] hover:bg-[#388e3c]"
+                className="bg-[#4caf50] hover:bg-[#388e3c] mt-4"
               >
                 Search for Research
               </Button>

@@ -20,8 +20,9 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     
     console.log(`Fetching ${count} images for query: "${query}" from Firecrawl with API key: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
     
-    // Try the new API endpoint structure first
-    const response = await fetch("https://api.firecrawl.dev/images/search", {
+    // Use the correct API endpoint for Firecrawl
+    // Fixed endpoint URL - was using /images/search but should be /api/images
+    const response = await fetch("https://api.firecrawl.dev/api/images", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -87,12 +88,12 @@ export async function scrapeContentWithFirecrawl(
     // Create the search query
     console.log(`Scraping content for query: "${topic}" from Firecrawl with API key: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
     
-    // Updated to use the correct API endpoint
+    // Fixed endpoint URLs - using correct API paths based on Firecrawl documentation
     let searchEndpoint;
     if (contentType === 'video') {
-      searchEndpoint = "https://api.firecrawl.dev/videos/search";
+      searchEndpoint = "https://api.firecrawl.dev/api/videos";
     } else {
-      searchEndpoint = "https://api.firecrawl.dev/web/search";
+      searchEndpoint = "https://api.firecrawl.dev/api/web";
     }
     
     // Define site filters for different content types
@@ -195,8 +196,8 @@ export async function testFirecrawlConnectivity(): Promise<{
     console.log("Testing Firecrawl API connectivity with API key: " + 
       `${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
     
-    // Test the image search endpoint
-    const imageResponse = await fetch("https://api.firecrawl.dev/images/search", {
+    // Test the image search endpoint - UPDATED TO CORRECT ENDPOINTS
+    const imageResponse = await fetch("https://api.firecrawl.dev/api/images", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -208,8 +209,8 @@ export async function testFirecrawlConnectivity(): Promise<{
       })
     });
     
-    // Test the web search endpoint
-    const webResponse = await fetch("https://api.firecrawl.dev/web/search", {
+    // Test the web search endpoint - UPDATED TO CORRECT ENDPOINTS
+    const webResponse = await fetch("https://api.firecrawl.dev/api/web", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -255,4 +256,3 @@ export async function testFirecrawlConnectivity(): Promise<{
     };
   }
 }
-
