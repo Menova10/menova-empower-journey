@@ -58,17 +58,17 @@ serve(async (req) => {
 // Fetch research articles using Firecrawl
 async function fetchResearchWithFirecrawl(searchTerm: string, limit: number) {
   try {
-    // Use Firecrawl to fetch research articles from medical sources
-    const searchQuery = `${searchTerm} site:pubmed.ncbi.nlm.nih.gov OR site:semanticscholar.org OR site:medicalnewstoday.com`;
+    // Use Firecrawl to fetch research articles from medical sources with updated API format
+    console.log(`Fetching research articles for: ${searchTerm}`);
     
-    // Use the scrapeContentWithFirecrawl helper from _shared/firecrawl.ts
+    // Use the updated scrapeContentWithFirecrawl helper from _shared/firecrawl.ts
     const scrapedArticles = await scrapeContentWithFirecrawl(searchTerm, 'article', limit);
     
     // If Firecrawl returns results, process them
     if (scrapedArticles && Array.isArray(scrapedArticles) && scrapedArticles.length > 0) {
       return scrapedArticles.map(article => {
-        const year = article.datePublished 
-          ? new Date(article.datePublished).getFullYear().toString()
+        const year = article.publishedDate 
+          ? new Date(article.publishedDate).getFullYear().toString()
           : new Date().getFullYear().toString();
           
         return {
@@ -106,17 +106,17 @@ async function fetchResearchWithFirecrawl(searchTerm: string, limit: number) {
 // Fetch videos using Firecrawl
 async function fetchVideosWithFirecrawl(searchTerm: string, limit: number) {
   try {
-    // Use Firecrawl to fetch YouTube videos
-    const searchQuery = `${searchTerm} site:youtube.com OR site:ted.com`;
+    // Use Firecrawl to fetch YouTube videos with updated API format
+    console.log(`Fetching videos for: ${searchTerm}`);
     
-    // Use the scrapeContentWithFirecrawl helper from _shared/firecrawl.ts with type 'video'
+    // Use the updated scrapeContentWithFirecrawl helper from _shared/firecrawl.ts with type 'video'
     const scrapedVideos = await scrapeContentWithFirecrawl(searchTerm, 'video', limit);
     
     // If Firecrawl returns results, process them
     if (scrapedVideos && Array.isArray(scrapedVideos) && scrapedVideos.length > 0) {
       return scrapedVideos.map(video => {
-        const year = video.datePublished 
-          ? new Date(video.datePublished).getFullYear().toString()
+        const year = video.publishedDate 
+          ? new Date(video.publishedDate).getFullYear().toString()
           : new Date().getFullYear().toString();
           
         return {
@@ -126,7 +126,7 @@ async function fetchVideosWithFirecrawl(searchTerm: string, limit: number) {
           year: year,
           summary: video.description || video.title,
           url: video.url,
-          thumbnail: video.image || `https://i.ytimg.com/vi/${video.url.split('v=')[1] || 'default'}/mqdefault.jpg`,
+          thumbnail: video.thumbnail || `https://i.ytimg.com/vi/${video.url.split('v=')[1] || 'default'}/mqdefault.jpg`,
           type: 'video'
         };
       });

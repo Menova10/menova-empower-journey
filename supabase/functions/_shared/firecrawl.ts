@@ -11,8 +11,7 @@
 export async function getImagesFromFirecrawl(query: string, count: number = 3): Promise<string[]> {
   try {
     // Firecrawl credentials from environment variables
-    const apiKey = Deno.env.get("FIRECRAWL_API_KEY") || "fc-dff7fbf8a97a47f1a2a9c2aabad52107";
-    const endpoint = Deno.env.get("FIRECRAWL_ENDPOINT") || "https://api.firecrawl.dev/v1/images";
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
     
     if (!apiKey) {
       console.warn("FIRECRAWL_API_KEY not found in environment variables");
@@ -21,17 +20,18 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     
     console.log(`Fetching ${count} images for query: "${query}" from Firecrawl`);
     
-    // Add a timestamp parameter to prevent caching
-    const timestamp = new Date().getTime();
-    
-    // Make the API request to Firecrawl
-    const response = await fetch(`${endpoint}?query=${encodeURIComponent(query)}&limit=${count}&t=${timestamp}`, {
-      method: "GET",
+    // Updated API endpoint and request format based on Firecrawl v1 API
+    const response = await fetch("https://api.firecrawl.dev/v1/search/images", {
+      method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
         "Cache-Control": "no-cache, no-store"
-      }
+      },
+      body: JSON.stringify({
+        text: query,
+        limit: count
+      })
     });
     
     if (!response.ok) {
@@ -42,8 +42,11 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     console.log("Firecrawl image response:", JSON.stringify(data).substring(0, 200) + "...");
     
     // Extract image URLs from the response
-    if (data && data.images && Array.isArray(data.images)) {
-      return data.images.map((img: any) => img.url).slice(0, count);
+    if (data && data.results && Array.isArray(data.results)) {
+      return data.results
+        .filter(result => result.image && result.image.url)
+        .map(result => result.image.url)
+        .slice(0, count);
     }
     
     return getFallbackImages(count);
@@ -67,23 +70,30 @@ export async function scrapeContentWithFirecrawl(
 ): Promise<any[]> {
   try {
     // Firecrawl credentials from environment variables
-    const apiKey = Deno.env.get("FIRECRAWL_API_KEY") || "fc-dff7fbf8a97a47f1a2a9c2aabad52107";
-    const endpoint = Deno.env.get("FIRECRAWL_ENDPOINT") || "https://api.firecrawl.dev/v1/scrape";
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
     
     if (!apiKey) {
       console.warn("FIRECRAWL_API_KEY not found in environment variables");
       throw new Error("Firecrawl API key not configured");
     }
     
-    // Create the search query based on topic and content type
-    const query = `${topic} ${contentType === 'video' ? 'video' : 'article'} menopause health`;
-    console.log(`Scraping content for query: "${query}" from Firecrawl`);
+    // Create the search query
+    console.log(`Scraping content for query: "${topic}" from Firecrawl`);
     
-    // Add a timestamp to prevent caching
-    const timestamp = new Date().getTime();
+    // Updated to use the correct API endpoint and request format based on Firecrawl v1 API
+    const searchEndpoint = contentType === 'video' 
+      ? "https://api.firecrawl.dev/v1/search/videos"
+      : "https://api.firecrawl.dev/v1/search/web";
     
-    // Make the API request to Firecrawl
-    const response = await fetch(`${endpoint}?t=${timestamp}`, {
+    // Define site filters for different content types
+    const siteFilters = contentType === 'article' 
+      ? ["healthline.com", "mayoclinic.org", "webmd.com", "medicalnewstoday.com"] 
+      : contentType === 'video' 
+        ? ["youtube.com", "vimeo.com"] 
+        : [];
+    
+    // Make the API request to Firecrawl with the updated format
+    const response = await fetch(searchEndpoint, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -91,10 +101,9 @@ export async function scrapeContentWithFirecrawl(
         "Cache-Control": "no-cache, no-store"
       },
       body: JSON.stringify({
-        query,
+        text: `${topic} ${contentType === 'video' ? 'video' : ''} menopause health`,
         limit: count,
-        type: contentType,
-        sites: contentType === 'article' ? ["healthline.com", "mayoclinic.org", "webmd.com", "medicalnewstoday.com"] : undefined
+        sites: siteFilters.length > 0 ? siteFilters : undefined
       })
     });
     
@@ -108,8 +117,37 @@ export async function scrapeContentWithFirecrawl(
     const data = await response.json();
     console.log(`Firecrawl returned ${data.results?.length || 0} results for ${contentType}`);
     
-    // Return the scraped content
-    return data.results || [];
+    // Process and normalize the results based on content type
+    if (data.results && Array.isArray(data.results)) {
+      return data.results.map(result => {
+        // Format varies between video and article results
+        if (contentType === 'video') {
+          return {
+            title: result.title || `Video about ${topic}`,
+            description: result.description || result.snippet || "",
+            thumbnail: result.thumbnail || "",
+            url: result.url || "",
+            author: result.author || "",
+            publishedDate: result.date || new Date().toISOString(),
+            duration: result.duration || ""
+          };
+        } else {
+          return {
+            title: result.title || `Article about ${topic}`,
+            content: result.snippet || result.content || "",
+            description: result.description || result.snippet || "",
+            image: result.image?.url || "",
+            url: result.url || "",
+            author: result.author || "",
+            siteName: result.siteName || new URL(result.url).hostname,
+            publishedDate: result.date || new Date().toISOString()
+          };
+        }
+      });
+    }
+    
+    // Return empty array if no results
+    return [];
   } catch (error) {
     console.error(`Error scraping content with Firecrawl: ${error}`);
     throw error;

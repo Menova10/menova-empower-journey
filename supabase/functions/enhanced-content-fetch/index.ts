@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { getImagesFromFirecrawl, scrapeContentWithFirecrawl } from "../_shared/firecrawl.ts";
 
@@ -10,7 +9,7 @@ const corsHeaders = {
 
 // Handle OpenAI API requests for summarization
 async function summarizeWithOpenAI(text: string): Promise<string> {
-  const apiKey = Deno.env.get("OPENAI_API_KEY") || "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";
+  const apiKey = Deno.env.get("OPENAI_API_KEY");
   
   if (!apiKey) {
     console.warn("OpenAI API key not found");
@@ -18,6 +17,7 @@ async function summarizeWithOpenAI(text: string): Promise<string> {
   }
   
   try {
+    console.log("Sending request to OpenAI API for text summarization");
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -40,12 +40,14 @@ async function summarizeWithOpenAI(text: string): Promise<string> {
       })
     });
 
-    const data = await response.json();
-    
-    if (data.error) {
-      console.error("OpenAI API error:", data.error);
-      return text.length > 200 ? text.substring(0, 200) + "..." : text;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("OpenAI API error response:", JSON.stringify(errorData));
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
     }
+
+    const data = await response.json();
+    console.log("OpenAI summary successfully generated");
     
     return data.choices[0].message.content.trim();
   } catch (error) {
@@ -236,7 +238,15 @@ async function processContent(content: any[], contentType: 'article' | 'video'):
       
       // Summarize the description if it's an article and description is long
       if (contentType === 'article' && processedItem.description.length > 200) {
-        processedItem.description = await summarizeWithOpenAI(processedItem.description);
+        try {
+          processedItem.description = await summarizeWithOpenAI(processedItem.description);
+        } catch (err) {
+          console.error("Error summarizing content:", err);
+          // Keep the original description but truncate if needed
+          if (processedItem.description.length > 300) {
+            processedItem.description = processedItem.description.substring(0, 300) + "...";
+          }
+        }
       }
       
       processed.push(processedItem);
@@ -294,10 +304,10 @@ serve(async (req) => {
     
     let scrapedContent = [];
     
-    // Try to get content using Firecrawl first
+    // Try to get content using Firecrawl with updated API calls
     try {
-      // Using the provided Firecrawl API key
-      const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY") || "fc-dff7fbf8a97a47f1a2a9c2aabad52107";
+      // Using the provided Firecrawl API key from environment
+      const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
       if (firecrawlApiKey) {
         console.log("Found Firecrawl API key, attempting to fetch content");
         scrapedContent = await scrapeContentWithFirecrawl(topic, contentType as 'article' | 'video', count);
