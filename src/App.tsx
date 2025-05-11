@@ -14,6 +14,7 @@ import ArticleView from './pages/ArticleView';
 import ContentHub from '../app/components/ContentHub';
 import ChatHistory from './pages/ChatHistory';
 import TodaysWellness from './pages/TodaysWellness';
+import DailyCheckIn from './pages/DailyCheckIn';
 import MeNovaChatButton from './components/MeNovaChatButton';
 import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
@@ -37,6 +38,7 @@ function App() {
           <Route path="/article/:articleId" element={<ArticleView />} />
           <Route path="/chat-history" element={<ChatHistory />} />
           <Route path="/todays-wellness" element={<TodaysWellness />} />
+          <Route path="/check-in" element={<DailyCheckIn />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         
