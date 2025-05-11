@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +8,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { useVapi } from '@/contexts/VapiContext';
 import VapiAssistant from '@/components/VapiAssistant';
+import AuthBackground from '@/components/AuthBackground';
 
 // Import types
 import { 
@@ -581,29 +583,29 @@ const TodaysWellness = () => {
   }, [activeTab, fetchGoals, initialLoadComplete]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20" ref={contentRef}>
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <AuthBackground>
+      <div className="max-w-4xl mx-auto px-4 py-6 bg-white/70 backdrop-blur-sm rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
-        <p className="text-center text-gray-600 mb-8">Track your wellness journey</p>
+        <p className="text-center text-gray-600 mb-6">Track your wellness journey</p>
         
         <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid grid-cols-3 mb-8">
-            <TabsTrigger value="daily" className="flex items-center gap-2">
+          <TabsList className="grid grid-cols-3 mb-6 bg-white/80">
+            <TabsTrigger value="daily" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
               <CalendarDays size={16} />
               <span>Daily</span>
             </TabsTrigger>
-            <TabsTrigger value="weekly" className="flex items-center gap-2">
+            <TabsTrigger value="weekly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
               <Calendar size={16} />
               <span>Weekly</span>
             </TabsTrigger>
-            <TabsTrigger value="monthly" className="flex items-center gap-2">
+            <TabsTrigger value="monthly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
               <ChartBar size={16} />
               <span>Monthly</span>
             </TabsTrigger>
           </TabsList>
           
           {/* Daily View */}
-          <TabsContent value="daily" className="space-y-8">
+          <TabsContent value="daily" className="space-y-6">
             <TodayProgressSection 
               progress={progress}
               completedGoals={completedGoals}
@@ -613,21 +615,23 @@ const TodaysWellness = () => {
               loading={loading}
             />
             
-            <AddGoalSection
-              newGoal={newGoal}
-              setNewGoal={setNewGoal}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              addGoal={addGoal}
-            />
-            
-            <SuggestedGoalsSection
-              suggestedGoals={suggestedGoals}
-              loadingSuggestions={loadingSuggestions}
-              refreshKey={refreshKey}
-              refreshSuggestions={refreshSuggestions}
-              addSuggestedGoal={addSuggestedGoal}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <AddGoalSection
+                newGoal={newGoal}
+                setNewGoal={setNewGoal}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                addGoal={addGoal}
+              />
+              
+              <SuggestedGoalsSection
+                suggestedGoals={suggestedGoals}
+                loadingSuggestions={loadingSuggestions}
+                refreshKey={refreshKey}
+                refreshSuggestions={refreshSuggestions}
+                addSuggestedGoal={addSuggestedGoal}
+              />
+            </div>
             
             <TodaysGoalsSection
               goals={goals}
@@ -664,7 +668,7 @@ const TodaysWellness = () => {
       
       <VapiAssistant ref={vapiAssistantRef} />
       <Toaster />
-    </div>
+    </AuthBackground>
   );
 };
 

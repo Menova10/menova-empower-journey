@@ -33,7 +33,7 @@ export const TodayProgressSection: React.FC<TodayProgressSectionProps> = ({
   }, []);
   
   return (
-    <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
+    <div className="bg-white/90 rounded-lg shadow-md p-6 mb-6 bg-gradient-to-br from-white to-green-50 hover:shadow-lg transition-shadow duration-300">
       <div className="flex justify-between mb-2">
         <h2 className="text-xl font-semibold text-menova-text">Today's Progress</h2>
         <span className="text-lg font-medium">{progress}%</span>
@@ -55,8 +55,8 @@ export const TodayProgressSection: React.FC<TodayProgressSectionProps> = ({
           const IconComponent = categoryIcons[category.icon as keyof typeof categoryIcons];
           
           return (
-            <div key={category.value} className="flex flex-col items-center">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${category.color.replace('bg-', 'bg-opacity-20 bg-')}`}>
+            <div key={category.value} className="flex flex-col items-center bg-white/60 p-4 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 ${category.color.replace('bg-', 'bg-opacity-30 bg-')}`}>
                 {IconComponent && <IconComponent size={24} className={category.color.replace('bg-', 'text-').replace(' text-', '')} />}
               </div>
               <div className="font-medium">{category.label}</div>

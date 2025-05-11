@@ -16,7 +16,7 @@ export const TodaysGoalsSection: React.FC<TodaysGoalsSectionProps> = ({
   toggleGoalCompletion
 }) => {
   return (
-    <div className="bg-white/90 rounded-lg shadow-sm p-6 bg-gradient-to-br from-white to-green-50">
+    <div className="bg-white/90 rounded-lg shadow-md p-6 bg-gradient-to-br from-white to-green-50 hover:shadow-lg transition-shadow duration-300">
       <h2 className="text-xl font-semibold text-menova-text mb-4">Today's Goals</h2>
       
       {loading ? (
@@ -36,8 +36,8 @@ export const TodaysGoalsSection: React.FC<TodaysGoalsSectionProps> = ({
               className={`flex items-center p-3 rounded-md transition-all ${
                 goal.completed 
                   ? 'bg-menova-green/10 text-menova-green' 
-                  : 'bg-gray-50 hover:bg-gray-100'
-              } animate-fade-in`}
+                  : 'bg-white/80 hover:bg-gray-100'
+              } animate-fade-in shadow-sm hover:shadow-md`}
               style={{ animationDelay: `${idx * 0.1}s` }}
             >
               <button
@@ -63,7 +63,9 @@ export const TodaysGoalsSection: React.FC<TodaysGoalsSectionProps> = ({
           ))}
         </ul>
       ) : (
-        <p className="text-gray-600 text-center py-4">No goals for today. Start by adding some goals above!</p>
+        <div className="text-gray-600 text-center py-8 bg-white/50 rounded-lg">
+          <p>No goals for today. Start by adding some goals above!</p>
+        </div>
       )}
     </div>
   );
