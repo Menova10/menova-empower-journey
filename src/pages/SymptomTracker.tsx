@@ -7,8 +7,6 @@ import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { motion } from 'framer-motion';
-import Confetti from 'react-confetti';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Flower, Leaf } from 'lucide-react';
 
@@ -81,7 +79,7 @@ const SymptomTracker = () => {
         description: "Your symptoms have been successfully recorded",
       });
       
-      // Show confetti
+      // Show confetti effect (simplified)
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
       
@@ -103,7 +101,27 @@ const SymptomTracker = () => {
         {/* Floral overlay */}
         <div className="absolute inset-0 pointer-events-none opacity-10 bg-cover bg-center bg-[url('/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png')]" />
         
-        {showConfetti && <Confetti recycle={false} numberOfPieces={200} colors={['#A5D6A7', '#E8F5E9', '#FFDEE2', '#FDE1D3']} />}
+        {/* Simple confetti effect replacement */}
+        {showConfetti && (
+          <div className="fixed inset-0 pointer-events-none z-50">
+            {[...Array(30)].map((_, i) => (
+              <div 
+                key={i}
+                className="absolute animate-fall"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: `-${20 + Math.random() * 10}px`,
+                  width: `${10 + Math.random() * 10}px`,
+                  height: `${10 + Math.random() * 10}px`,
+                  backgroundColor: ['#A5D6A7', '#E8F5E9', '#FFDEE2', '#FDE1D3'][Math.floor(Math.random() * 4)],
+                  borderRadius: '50%',
+                  animationDelay: `${Math.random() * 1.5}s`,
+                  animationDuration: `${1 + Math.random() * 2}s`
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Navbar */}
         <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
@@ -126,24 +144,19 @@ const SymptomTracker = () => {
           
           {/* Quote */}
           {!successTip && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-6 text-center"
+            <div 
+              className="mb-6 text-center animate-fadeIn"
             >
               <p className="font-['Dancing_Script'],cursive text-lg text-menova-text italic text-shadow">
                 "Listening to your body is an act of self-compassion. Each symptom tracked is a step toward better wellness."
               </p>
-            </motion.div>
+            </div>
           )}
           
           {/* Success message with personalized tip */}
           {successTip && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-6 p-4 rounded-lg bg-gradient-to-r from-menova-green/10 to-menova-green/20 backdrop-blur-md border border-menova-green/20"
+            <div
+              className="mb-6 p-4 rounded-lg bg-gradient-to-r from-menova-green/10 to-menova-green/20 backdrop-blur-md border border-menova-green/20 animate-scaleIn"
             >
               <h3 className="font-medium text-menova-text mb-2">Symptoms recorded successfully!</h3>
               <p className="text-sm text-gray-700 mb-3 font-['Dancing_Script'],cursive text-lg italic">
@@ -174,14 +187,12 @@ const SymptomTracker = () => {
                   Talk to MeNova
                 </Button>
               </div>
-            </motion.div>
+            </div>
           )}
           
           {/* Symptom Rating Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+          <div
+            className="animate-fadeIn"
           >
             <Card className="mb-6 backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm hover:shadow-md transition-all">
               <CardHeader>
@@ -197,11 +208,9 @@ const SymptomTracker = () => {
                 
                 <div className="space-y-8">
                   {symptoms.map(symptom => (
-                    <motion.div 
+                    <div 
                       key={symptom.id} 
-                      className="space-y-2"
-                      whileHover={{ scale: 1.01 }}
-                      transition={{ duration: 0.2 }}
+                      className="space-y-2 hover:scale-[1.01] transition-transform duration-200"
                     >
                       <div className="flex justify-between">
                         <span className="font-medium">{symptom.name}</span>
@@ -228,14 +237,12 @@ const SymptomTracker = () => {
                         <span>Minimal</span>
                         <span>Severe</span>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
                 
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full mt-8"
+                <div
+                  className="w-full mt-8 hover:scale-[1.02] active:scale-[0.98] transition-transform"
                 >
                   <Button 
                     onClick={handleSubmit}
@@ -247,13 +254,13 @@ const SymptomTracker = () => {
                   >
                     {submitting ? 'Saving...' : 'Save Symptoms'}
                   </Button>
-                </motion.div>
+                </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </div>
         </main>
         
-        {/* Add custom styles for the pulse animation */}
+        {/* Add custom styles for the animations */}
         <style>
           {`
           @keyframes pulse {
@@ -263,6 +270,27 @@ const SymptomTracker = () => {
           }
           .text-shadow {
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+          }
+          @keyframes fall {
+            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg); opacity: 0.2; }
+          }
+          .animate-fall {
+            animation: fall 3s ease-in forwards;
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.6s ease-out forwards;
+          }
+          @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(10px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
+          .animate-scaleIn {
+            animation: scaleIn 0.3s ease-out forwards;
+          }
+          @keyframes scaleIn {
+            0% { opacity: 0; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1); }
           }
         `}
         </style>
