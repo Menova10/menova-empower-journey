@@ -20,15 +20,15 @@ interface SymptomChartProps {
   selectedSymptom: string;
 }
 
-// Improved color palette for better accessibility - higher contrast
+// Updated color palette for better visibility with yellows and oranges
 const accessibleColors = {
-  hot_flashes: '#E35C78', // Darker pink
+  hot_flashes: '#F97316', // Bright orange
   sleep: '#2E8540',       // Darker green
-  mood: '#9C27B0',        // Deeper purple
-  energy: '#E65100',      // Darker orange
-  anxiety: '#0277BD',     // Darker blue
-  brain_fog: '#795548',   // Brown
-  voice_assistant: '#00796B', // Teal
+  mood: '#9C27B0',        // Purple
+  energy: '#FEC6A1',      // Soft orange
+  anxiety: '#FEF7CD',     // Soft yellow 
+  brain_fog: '#FFB74D',   // Amber
+  voice_assistant: '#FFD54F', // Yellow
 };
 
 // Custom tick formatter to display dates in a readable format
@@ -134,28 +134,35 @@ const SymptomChart = ({ loading, chartData, selectedSymptom }: SymptomChartProps
             }}
           />
           
-          {displayedSymptoms.map(symptomId => (
-            <Line
-              key={symptomId}
-              type="monotone"
-              dataKey={symptomId}
-              name={symptomId}
-              stroke={accessibleColors[symptomId as keyof typeof accessibleColors] || getSymptomColor(symptomId)}
-              strokeWidth={2.5}
-              dot={{ 
-                r: 5, 
-                strokeWidth: 1, 
-                fill: 'white',
-                stroke: accessibleColors[symptomId as keyof typeof accessibleColors] || getSymptomColor(symptomId)
-              }}
-              activeDot={{ 
-                r: 7, 
-                stroke: '#fff',
-                strokeWidth: 2
-              }}
-              connectNulls
-            />
-          ))}
+          {displayedSymptoms.map(symptomId => {
+            // Ensure the stroke color is visible against white background
+            const color = accessibleColors[symptomId as keyof typeof accessibleColors] || getSymptomColor(symptomId);
+            // For very light colors (like soft yellow), add a stroke to improve visibility
+            const strokeWidth = color === '#FEF7CD' ? 3 : 2.5;
+            
+            return (
+              <Line
+                key={symptomId}
+                type="monotone"
+                dataKey={symptomId}
+                name={symptomId}
+                stroke={color}
+                strokeWidth={strokeWidth}
+                dot={{ 
+                  r: 5, 
+                  strokeWidth: 1, 
+                  fill: 'white',
+                  stroke: color
+                }}
+                activeDot={{ 
+                  r: 7, 
+                  stroke: '#fff',
+                  strokeWidth: 2
+                }}
+                connectNulls
+              />
+            );
+          })}
         </LineChart>
       </ResponsiveContainer>
     </div>
