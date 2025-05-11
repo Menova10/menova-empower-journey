@@ -65,10 +65,11 @@ const DailyCheckIn = () => {
       
       // Fetch the last 5 check-ins
       const { data, error } = await supabase
-        .from('daily_check_ins')
+        .from('symptom_tracking')
         .select('*')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
+        .eq('source', 'check-in') // Filter by source="check-in" for daily check-ins
+        .order('recorded_at', { ascending: false })
         .limit(5);
       
       if (error) {
@@ -110,15 +111,15 @@ const DailyCheckIn = () => {
         return;
       }
       
-      // Create the check-in record
+      // Create the check-in record in the symptom_tracking table
       const { error } = await supabase
-        .from('daily_check_ins')
+        .from('symptom_tracking')
         .insert({
           user_id: session.user.id,
-          mood: selectedMood,
           symptom: selectedSymptom,
           intensity: symptomIntensity,
-          notes: notes.trim() || null
+          notes: `Mood: ${selectedMood}${notes ? ` | Notes: ${notes}` : ''}`,
+          source: 'check-in' // Mark this as coming from a daily check-in
         });
       
       if (error) {
@@ -174,6 +175,14 @@ const DailyCheckIn = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Extract mood from notes field
+  const extractMoodFromNotes = (notes: string | null): string => {
+    if (!notes) return 'Unknown';
+    
+    const moodMatch = notes.match(/Mood: (\w+)/);
+    return moodMatch ? moodMatch[1] : 'Unknown';
   };
   
   return (
@@ -320,14 +329,16 @@ const DailyCheckIn = () => {
               <div className="relative pl-4">
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-menova-green/30 rounded-full"></div>
                 <div className="space-y-4">
-                  {pastCheckIns.map((checkIn, index) => (
+                  {pastCheckIns.map((checkIn) => (
                     <div key={checkIn.id} className="relative pl-6">
                       <div className="absolute left-[-4px] w-3 h-3 bg-menova-green rounded-full border-2 border-white"></div>
                       <Card>
                         <CardHeader className="pb-2">
                           <div className="flex justify-between items-start">
-                            <CardTitle className="text-md">{getMoodEmoji(checkIn.mood)}</CardTitle>
-                            <CardDescription>{getFormattedDate(checkIn.created_at)}</CardDescription>
+                            <CardTitle className="text-md">
+                              {extractMoodFromNotes(checkIn.notes)}
+                            </CardTitle>
+                            <CardDescription>{getFormattedDate(checkIn.recorded_at)}</CardDescription>
                           </div>
                         </CardHeader>
                         <CardContent>
@@ -342,7 +353,9 @@ const DailyCheckIn = () => {
                             {checkIn.notes && (
                               <div>
                                 <span className="text-sm font-medium">Notes:</span>
-                                <p className="text-sm text-gray-600 mt-1">{checkIn.notes}</p>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  {checkIn.notes.replace(/Mood: \w+\s*\|?\s*/, '')}
+                                </p>
                               </div>
                             )}
                           </div>
