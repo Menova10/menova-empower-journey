@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -253,7 +254,7 @@ const SymptomTracker = () => {
         </main>
         
         {/* Add custom styles for the pulse animation */}
-        <style>
+        <style jsx="true">
           {`
           @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(165, 214, 167, 0.4); }
