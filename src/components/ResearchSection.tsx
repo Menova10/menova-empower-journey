@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ApiStatusIndicator from './ApiStatusIndicator';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 interface ResearchItem {
   id: string;
@@ -189,123 +190,78 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
 
         <TabsContent value={activeTab} className="mt-4">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="overflow-hidden backdrop-blur-sm bg-white/90 border border-[#e8f5e9]">
-                  <CardHeader>
-                    <Skeleton className="h-4 w-3/4 mb-2" />
-                    <Skeleton className="h-3 w-full" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-20 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="w-full">
+              <Skeleton className="h-64 w-full" />
             </div>
           ) : filteredContent.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredContent.map((item) => (
-                <Card 
-                  key={item.id} 
-                  className={`overflow-hidden hover:shadow-md transition-shadow backdrop-blur-sm bg-white/90 border ${
-                    item.isStaticFallback 
-                      ? 'border-amber-100' 
-                      : item.isOpenAIGenerated 
-                        ? 'border-blue-100' 
-                        : 'border-[#e8f5e9]'
-                  }`}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <CardTitle className="text-lg text-[#1b5e20] line-clamp-2">
-                          {item.title}
-                        </CardTitle>
-                        <div className="flex items-center flex-wrap mt-1 space-x-2">
-                          <Badge variant="outline" className={`
-                            flex items-center gap-1 mb-1
-                            ${item.type === 'research' 
-                              ? 'bg-[#e8f5e9] text-[#2e7d32] border-[#c5e1a5]'
-                              : 'bg-[#e3f2fd] text-[#1565c0] border-[#90caf9]'
-                            }
-                          `}>
-                            {item.type === 'research' ? (
-                              <>
-                                <Book className="h-3 w-3" />
-                                <span>{item.source}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Video className="h-3 w-3" />
-                                <span>{item.channel}</span>
-                              </>
-                            )}
-                          </Badge>
-                          
-                          <Badge variant="outline" className="flex items-center gap-1 bg-gray-100 text-gray-700 mb-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>{item.year}</span>
-                          </Badge>
-                          
-                          {item.isOpenAIGenerated && (
-                            <Badge variant="outline" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-100 mb-1">
-                              AI Generated
-                            </Badge>
-                          )}
-                          
-                          {item.isStaticFallback && (
-                            <Badge variant="outline" className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-100 mb-1">
-                              Sample Content
-                            </Badge>
+            <div className="border rounded-md overflow-hidden">
+              <Table>
+                <TableHeader className="bg-[#f1f8e9]">
+                  <TableRow>
+                    <TableHead className="font-semibold text-[#2e7d32] w-1/2">Title & Description</TableHead>
+                    <TableHead className="font-semibold text-[#2e7d32]">Type</TableHead>
+                    <TableHead className="font-semibold text-[#2e7d32]">Year</TableHead>
+                    <TableHead className="font-semibold text-[#2e7d32]">Source</TableHead>
+                    <TableHead className="font-semibold text-[#2e7d32] text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredContent.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-[#f9fbf6]">
+                      <TableCell className="align-top">
+                        <div>
+                          <div className="font-medium text-[#1b5e20]">{item.title}</div>
+                          <div className="text-sm text-gray-600 line-clamp-2 mt-1">{item.summary}</div>
+                          {item.type === 'research' && item.authors && (
+                            <div className="flex items-center text-xs text-gray-500 mt-2">
+                              <Users className="h-3 w-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">{item.authors}</span>
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    {item.type === 'video' && item.thumbnail && (
-                      <div className="aspect-video mb-3 rounded-md overflow-hidden bg-gray-100">
-                        <img 
-                          src={item.thumbnail} 
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-                    <p className="text-gray-600 text-sm line-clamp-3">
-                      {item.summary}
-                    </p>
-                  </CardContent>
-                  
-                  <CardFooter className="pt-0 flex justify-between">
-                    {item.type === 'research' && item.authors && (
-                      <div className="flex items-center text-xs text-gray-500 max-w-[70%]">
-                        <Users className="h-3 w-3 mr-1 flex-shrink-0" />
-                        <span className="truncate">{item.authors}</span>
-                      </div>
-                    )}
-                    
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="ml-auto text-[#4caf50] hover:text-[#2e7d32] p-0 h-auto"
-                      onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      View {item.type === 'research' ? 'Publication' : 'Video'}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        {item.type === 'research' ? (
+                          <Badge variant="outline" className="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32] border-[#c5e1a5]">
+                            <Book className="h-3 w-3" />
+                            <span>Article</span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex items-center gap-1 bg-[#e3f2fd] text-[#1565c0] border-[#90caf9]">
+                            <Video className="h-3 w-3" />
+                            <span>Video</span>
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="align-top">
+                        <div className="flex items-center">
+                          <Calendar className="h-3 w-3 mr-1 text-gray-500" />
+                          <span>{item.year}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="align-top">
+                        {item.type === 'research' ? item.source : item.channel}
+                      </TableCell>
+                      <TableCell className="text-right align-top">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-[#4caf50] hover:text-[#2e7d32] p-0 h-auto"
+                          onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <div className="text-center py-8 border rounded-lg bg-white/90">
               {fetchError ? (
-                <Alert variant="warning" className="max-w-lg mx-auto">
+                <Alert variant="default" className="max-w-lg mx-auto">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>API Connection Issue</AlertTitle>
                   <AlertDescription>

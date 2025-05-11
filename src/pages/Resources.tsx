@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
@@ -17,6 +16,7 @@ import CompleteSymptomProfile from '@/components/CompleteSymptomProfile';
 import ResearchSection from '@/components/ResearchSection';
 import { useToast } from '@/components/ui/use-toast';
 import ApiStatusIndicator from '@/components/ApiStatusIndicator';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 
 // Define content item interface
 interface ContentItem {
@@ -385,108 +385,122 @@ const Resources: React.FC = () => {
             </p>
           </div>
 
-          {/* Research Section - Removed the heading "Latest Research & Resources" as it will be removed from the component */}
           <div className="bg-white rounded-xl shadow-sm p-8 mb-10 border border-[#e8f5e9]">
             <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
           </div>
           
           <Separator className="my-10 bg-[#e8f5e9]" />
 
-          {/* AI Recommendations Section */}
+          {/* Recommended For You Section - Tabular Format */}
           <section className="mb-10 bg-white rounded-xl shadow-sm p-8 border border-[#e8f5e9]">
-            <h2 className="text-2xl font-semibold mb-6 flex items-center">
-              <span className="text-[#388e3c]">Recommended For You</span>
-              <Badge variant="outline" className="ml-2 bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#c8e6c9]">
-                Based on Your Symptoms
-              </Badge>
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold flex items-center">
+                <span className="text-[#388e3c]">Recommended For You</span>
+                <Badge variant="outline" className="ml-2 bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#c8e6c9]">
+                  Based on Your Symptoms
+                </Badge>
+              </h2>
+            </div>
             
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="overflow-hidden backdrop-blur-sm bg-white/90 border border-[#e8f5e9] hover:shadow-lg transition-all duration-300">
-                    <Skeleton className="h-[180px] w-full" />
-                    <CardHeader>
-                      <Skeleton className="h-4 w-3/4 mb-2" />
-                      <Skeleton className="h-3 w-full" />
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
+              <Skeleton className="h-64 w-full" />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {recommendedContent.length > 0 ? recommendedContent.map((item) => (
-                  <Card 
-                    key={item.id} 
-                    className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer backdrop-blur-sm bg-white/90 border border-[#e8f5e9] hover:shadow-lg transition-all duration-300" 
-                    onClick={() => handleContentClick(item)}
-                  >
-                    <div className="relative h-[180px] overflow-hidden">
-                      <img 
-                        src={item.thumbnail} 
-                        alt={item.title} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
-                        }}
-                      />
-                      {item.type === 'video' && (
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                          <PlayCircle className="w-12 h-12 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">{item.title}</CardTitle>
-                          <div className="flex items-center mt-1 mb-2">
-                            {item.type === 'article' ? (
-                              <Badge variant="outline" className="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32]">
-                                <Book size={12} />
-                                Article
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="flex items-center gap-1 bg-[#e3f2fd] text-[#1565c0]">
-                                <Video size={12} />
-                                Video
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevent card click
-                            handleReadContent(item.description);
-                          }}
-                          title="Read aloud"
-                          className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
-                        >
-                          <Volume2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <CardDescription className="line-clamp-3">{item.description}</CardDescription>
-                    </CardHeader>
-                    <CardFooter className="flex justify-between pt-0">
-                      <div className="flex items-center">
-                        <Avatar className="h-6 w-6 mr-2">
-                          <AvatarImage src={item.author?.avatar} />
-                          <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-xs text-muted-foreground">
-                          {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
-                        </span>
-                      </div>
-                      {item.type === 'video' && item.duration && (
-                        <span className="text-xs text-muted-foreground flex items-center">
-                          <PlayCircle className="h-3 w-3 mr-1" /> {item.duration}
-                        </span>
-                      )}
-                    </CardFooter>
-                  </Card>
-                )) : (
+              <div className="w-full">
+                {recommendedContent.length > 0 ? (
+                  <div className="border rounded-md overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-[#f1f8e9]">
+                        <TableRow>
+                          <TableHead className="font-semibold text-[#2e7d32] w-[25%]">Thumbnail</TableHead>
+                          <TableHead className="font-semibold text-[#2e7d32] w-[45%]">Content</TableHead>
+                          <TableHead className="font-semibold text-[#2e7d32] w-[15%]">Author</TableHead>
+                          <TableHead className="font-semibold text-[#2e7d32] w-[15%] text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recommendedContent.map((item) => (
+                          <TableRow key={item.id} className="hover:bg-[#f9fbf6]" onClick={() => handleContentClick(item)}>
+                            <TableCell className="align-middle cursor-pointer">
+                              <div className="relative h-24 w-full rounded overflow-hidden">
+                                <img 
+                                  src={item.thumbnail} 
+                                  alt={item.title} 
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
+                                  }}
+                                />
+                                {item.type === 'video' && (
+                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <PlayCircle className="w-8 h-8 text-white" />
+                                  </div>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top cursor-pointer">
+                              <div>
+                                <h3 className="font-medium text-[#1b5e20] mb-1">{item.title}</h3>
+                                <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
+                                <div className="mt-2">
+                                  {item.type === 'article' ? (
+                                    <Badge variant="outline" className="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32] inline-flex">
+                                      <Book size={12} />
+                                      Article
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="flex items-center gap-1 bg-[#e3f2fd] text-[#1565c0] inline-flex">
+                                      <Video size={12} />
+                                      Video {item.duration && `• ${item.duration}`}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-middle">
+                              <div className="flex items-center">
+                                <Avatar className="h-6 w-6 mr-2">
+                                  <AvatarImage src={item.author?.avatar} />
+                                  <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                  {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right align-middle">
+                              <div className="flex items-center justify-end space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent card click
+                                    handleReadContent(item.description);
+                                  }}
+                                  title="Read aloud"
+                                  className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
+                                >
+                                  <Volume2 className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(item.url, '_blank', 'noopener,noreferrer');
+                                  }}
+                                  title="Open in new tab"
+                                  className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
+                                >
+                                  <LinkIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
                   <div className="col-span-3">
                     {error ? (
                       <div className="bg-white/90 rounded-lg p-8 text-center border border-amber-200 shadow">
@@ -560,7 +574,7 @@ const Resources: React.FC = () => {
           )}
           
           {/* Content Refresh Button */}
-          <div className="w-full flex justify-center mt-8">
+          <div className="w-full flex justify-center mt-8 mb-12">
             <Button 
               size="lg"
               className="bg-[#4caf50] hover:bg-[#388e3c] text-white shadow-md hover:shadow-lg transition-all duration-300"
