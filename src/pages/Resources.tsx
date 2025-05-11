@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -47,7 +46,6 @@ const Resources: React.FC = () => {
   const { speak } = useVapi();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
   const [content, setContent] = useState<ContentItem[]>([]);
   const [recommendedContent, setRecommendedContent] = useState<ContentItem[]>([]);
   const [userSymptoms, setUserSymptoms] = useState<string[]>([]);
@@ -292,10 +290,6 @@ const Resources: React.FC = () => {
     setShowVideoModal(false);
     setActiveContent(null);
   };
-
-  const filteredContent = activeTab === 'all' 
-    ? content 
-    : content.filter(item => item.type === activeTab);
   
   // Format refresh time
   const formatRefreshTime = (date: Date | null) => {
@@ -316,41 +310,42 @@ const Resources: React.FC = () => {
     return date.toLocaleString();
   };
 
-  const handleDebugCheck = () => {
+  const handleDebugCheck = async () => {
     toast({
       title: "API Status Check",
-      description: "Checking API connection status in console",
+      description: "Checking API connection status...",
     });
     
-    console.log("=== API CONNECTIVITY CHECK ===");
-    console.log("User symptoms:", userSymptoms);
-    console.log("Selected topics:", topics);
-    console.log("Content items:", content.length);
-    console.log("Video items:", content.filter(item => item.type === 'video').length);
-    console.log("Article items:", content.filter(item => item.type === 'article').length);
-    console.log("Content fetch errors:", error);
-    console.log("Last refresh:", lastRefresh);
-    
-    // Check Supabase connection
-    supabase.auth.getSession().then(({ data, error }) => {
-      console.log("Auth session:", data ? "Active" : "None");
-      if (error) console.error("Auth error:", error);
-    });
-    
-    // Check Firecrawl integration
-    supabase.functions.invoke('fetch-menopause-research', {
-      body: { 
-        topic: "menopause api test", 
-        phase: "test",
-        limit: 2
-      }
-    }).then(({ data, error }) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('test-api-connectivity', {});
+      
       if (error) {
-        console.error("Edge function test error:", error);
-      } else {
-        console.log("Edge function test response:", data);
+        console.error("API connectivity check error:", error);
+        toast({
+          title: "API Check Failed",
+          description: "Failed to connect to the API testing endpoint.",
+          variant: "destructive"
+        });
+        return;
       }
-    });
+      
+      console.log("=== API CONNECTIVITY TEST RESULTS ===", data);
+      
+      if (data) {
+        toast({
+          title: "API Status",
+          description: `Firecrawl API: ${data.firecrawl.success ? 'Connected ✅' : 'Failed ❌'}`,
+          duration: 5000,
+        });
+      }
+    } catch (err) {
+      console.error("Error running API connectivity test:", err);
+      toast({
+        title: "Error",
+        description: "Failed to run API connectivity test",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -500,152 +495,6 @@ const Resources: React.FC = () => {
                 )}
               </div>
             )}
-          </section>
-
-          <Separator className="bg-[#e8f5e9]" />
-
-          {/* Browse All Content */}
-          <section>
-            <Tabs defaultValue="all" onValueChange={setActiveTab}>
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-semibold text-[#388e3c] flex items-center">
-                  Browse All Resources
-                  <span className="text-xs text-gray-500 ml-2">
-                    {lastRefresh ? `Last updated: ${formatRefreshTime(lastRefresh)}` : ''}
-                  </span>
-                </h2>
-                <TabsList className="bg-[#f1f8e9]">
-                  <TabsTrigger value="all" className="data-[state=active]:bg-[#4caf50] data-[state=active]:text-white">All</TabsTrigger>
-                  <TabsTrigger value="article" className="data-[state=active]:bg-[#4caf50] data-[state=active]:text-white">Articles</TabsTrigger>
-                  <TabsTrigger value="video" className="data-[state=active]:bg-[#4caf50] data-[state=active]:text-white">Videos</TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <TabsContent value={activeTab}>
-                {loading ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <Card key={i} className="overflow-hidden backdrop-blur-sm bg-white/90 border border-[#e8f5e9]">
-                        <Skeleton className="h-[180px] w-full" />
-                        <CardHeader>
-                          <Skeleton className="h-4 w-3/4 mb-2" />
-                          <Skeleton className="h-3 w-full" />
-                        </CardHeader>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {filteredContent.length > 0 ? filteredContent.map((item) => (
-                      <Card 
-                        key={item.id} 
-                        className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer backdrop-blur-sm bg-white/90 border border-[#e8f5e9] hover:shadow-lg transition-all duration-300" 
-                        onClick={() => handleContentClick(item)}
-                      >
-                        <div className="relative h-[180px] overflow-hidden">
-                          <img 
-                            src={item.thumbnail} 
-                            alt={item.title} 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
-                            }}
-                          />
-                          {item.type === 'video' && (
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                              <PlayCircle className="w-12 h-12 text-white" />
-                            </div>
-                          )}
-                          <div className="absolute top-2 right-2">
-                            {item.type === 'article' ? (
-                              <Badge className="bg-[#e8f5e9] text-[#2e7d32] border-none">
-                                <Book size={12} className="mr-1" /> Article
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-[#e3f2fd] text-[#1565c0] border-none">
-                                <Video size={12} className="mr-1" /> Video
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg">{item.title}</CardTitle>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation(); // Prevent card click
-                                handleReadContent(item.description);
-                              }}
-                              title="Read aloud"
-                              className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
-                            >
-                              <Volume2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <CardDescription>{item.description}</CardDescription>
-                          
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {item.category.slice(0, 3).map((category, idx) => (
-                              <Badge 
-                                key={idx} 
-                                variant="outline" 
-                                className="text-xs bg-[#f1f8e9] text-[#388e3c] border-[#c5e1a5]"
-                              >
-                                {category}
-                              </Badge>
-                            ))}
-                          </div>
-                        </CardHeader>
-                        <CardFooter className="flex justify-between pt-0">
-                          <div className="flex items-center">
-                            <Avatar className="h-6 w-6 mr-2">
-                              <AvatarImage src={item.author?.avatar} />
-                              <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-xs text-muted-foreground">
-                              {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
-                            </span>
-                          </div>
-                          <div className="flex items-center">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-6 text-xs text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9] p-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.open(item.url, '_blank', 'noopener,noreferrer');
-                              }}
-                            >
-                              <LinkIcon className="h-3 w-3 mr-1" /> Source
-                            </Button>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    )) : error ? (
-                      <div className="col-span-3 bg-white/90 rounded-lg p-8 text-center border border-amber-200 shadow">
-                        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Content Unavailable</h3>
-                        <p className="text-gray-500 mb-4">{error}</p>
-                        <Button
-                          onClick={fetchAllContent}
-                          className="bg-[#4caf50] hover:bg-[#388e3c]"
-                        >
-                          Try Again
-                        </Button>
-                      </div>
-                    ) : loading ? (
-                      <p className="col-span-3 text-center py-8 text-muted-foreground">Loading content...</p>
-                    ) : (
-                      <p className="col-span-3 text-center py-8 text-muted-foreground">
-                        No content available. Please check your internet connection or try refreshing.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
           </section>
           
           {/* Video Modal */}

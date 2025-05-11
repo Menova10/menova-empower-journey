@@ -11,7 +11,6 @@ import Chat from './pages/Chat';
 import Community from './pages/Community';
 import Resources from './pages/Resources';
 import ArticleView from './pages/ArticleView';
-import ContentHub from '../app/components/ContentHub';
 import ChatHistory from './pages/ChatHistory';
 import TodaysWellness from './pages/TodaysWellness';
 import DailyCheckIn from './pages/DailyCheckIn';
@@ -34,7 +33,6 @@ function App() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/community" element={<Community />} />
           <Route path="/resources" element={<Resources />} />
-          <Route path="/content-hub" element={<ContentHub />} />
           <Route path="/article/:articleId" element={<ArticleView />} />
           <Route path="/chat-history" element={<ChatHistory />} />
           <Route path="/todays-wellness" element={<TodaysWellness />} />

@@ -16,7 +16,8 @@ serve(async (req) => {
   try {
     console.log("Testing API connectivity...");
     
-    // Test Firecrawl connectivity
+    // Test Firecrawl connectivity with more verbose logging
+    console.log("Testing Firecrawl API connectivity...");
     const firecrawlTest = await testFirecrawlConnectivity();
     console.log("Firecrawl test result:", firecrawlTest);
     
@@ -40,6 +41,20 @@ serve(async (req) => {
           })
         });
         
+        // Get the response body as text for debugging
+        const responseText = await openaiResponse.text();
+        console.log(`OpenAI API response status: ${openaiResponse.status}`);
+        console.log(`OpenAI API response body: ${responseText}`);
+        
+        let responseData;
+        try {
+          // Try to parse the response as JSON if possible
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.log("Response was not valid JSON");
+          responseData = null;
+        }
+        
         openaiTest = {
           success: openaiResponse.ok,
           message: openaiResponse.ok 
@@ -47,7 +62,8 @@ serve(async (req) => {
             : `OpenAI API error: ${openaiResponse.status} ${openaiResponse.statusText}`,
           details: {
             status: openaiResponse.status,
-            statusText: openaiResponse.statusText
+            statusText: openaiResponse.statusText,
+            responseData: responseData
           }
         };
         
@@ -67,7 +83,12 @@ serve(async (req) => {
     // Collect environment info
     const envInfo = {
       hasFirecrawlKey: !!Deno.env.get("FIRECRAWL_API_KEY"),
-      hasOpenAIKey: !!Deno.env.get("OPENAI_API_KEY")
+      firecrawlKeyFirstChars: Deno.env.get("FIRECRAWL_API_KEY") 
+        ? `${Deno.env.get("FIRECRAWL_API_KEY")?.substring(0, 3)}...` 
+        : "None",
+      hasOpenAIKey: !!Deno.env.get("OPENAI_API_KEY"),
+      timestamp: new Date().toISOString(),
+      deployEnvironment: Deno.env.get("SUPABASE_ENV") || "unknown"
     };
     
     // Return test results
