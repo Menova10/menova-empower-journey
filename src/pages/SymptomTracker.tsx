@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   Tabs,
@@ -11,7 +11,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Flower, Leaf, Activity, Clock } from 'lucide-react';
+import { Flower, Smile, Book, Activity } from 'lucide-react';
 import { fetchSymptomHistory, prepareChartData } from '@/services/symptomService';
 import { SymptomEntry, ChartDataPoint } from '@/types/symptoms';
 import SymptomForm from '@/components/symptoms/SymptomForm';
@@ -34,6 +34,7 @@ const SymptomTracker = () => {
   const [selectedSymptom, setSelectedSymptom] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('weekly');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [activeTab, setActiveTab] = useState<string>("today");
 
   // Handle success after submitting the form
   const handleSubmitSuccess = (tip: string) => {
@@ -83,96 +84,105 @@ const SymptomTracker = () => {
         </nav>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col w-full px-3 md:px-6 relative z-10">
-          <div className="max-w-5xl mx-auto w-full">
-            <div className="flex items-center mb-6 gap-2 mt-4">
+        <main className="flex-1 flex flex-col w-full px-3 md:px-6 lg:px-10 relative z-10">
+          <div className="max-w-6xl mx-auto w-full py-4">
+            <div className="flex items-center mb-6 gap-2 mt-2">
               <Flower className="text-menova-green h-8 w-8" />
               <h1 className="text-2xl font-bold text-menova-text">Symptom Tracker</h1>
             </div>
             
-            {/* Quote */}
-            {!successTip && (
-              <div 
-                className="mb-6 text-center animate-fadeIn"
-              >
-                <p className="font-['Dancing_Script'],cursive text-lg text-menova-text italic text-shadow">
-                  "Listening to your body is an act of self-compassion. Each symptom tracked is a step toward better wellness."
-                </p>
-              </div>
-            )}
-            
             {/* Success message with personalized tip */}
             <SuccessMessage tip={successTip} />
             
-            {/* Symptom Rating Form */}
-            <div className="animate-fadeIn">
-              <SymptomForm 
-                onSubmitSuccess={handleSubmitSuccess}
-                onRefreshHistory={refreshSymptomHistory}
-              />
-            </div>
-            
-            {/* History and Trends Section */}
-            <div className="animate-fadeIn space-y-6 my-8">
-              <h2 className="text-xl font-semibold text-menova-text flex items-center gap-2">
-                <Activity className="h-5 w-5 text-menova-green" />
-                Your Symptom History
-              </h2>
+            {/* Main Tabs Interface */}
+            <Tabs defaultValue="today" value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="bg-menova-green/10 border border-menova-green/20 w-full justify-start mb-6">
+                <TabsTrigger value="today" className="data-[state=active]:bg-menova-green data-[state=active]:text-white flex gap-2 py-2 px-4">
+                  <Smile className="h-4 w-4" /> How are you feeling today?
+                </TabsTrigger>
+                <TabsTrigger value="history" className="data-[state=active]:bg-menova-green data-[state=active]:text-white flex gap-2 py-2 px-4">
+                  <Book className="h-4 w-4" /> Symptom History
+                </TabsTrigger>
+              </TabsList>
               
-              {/* Filters */}
-              <SymptomFilters 
-                selectedSymptom={selectedSymptom}
-                setSelectedSymptom={setSelectedSymptom}
-                selectedPeriod={selectedPeriod}
-                setSelectedPeriod={setSelectedPeriod}
-              />
+              {/* Today's Symptoms Tab */}
+              <TabsContent value="today" className="animate-fadeIn">
+                {!successTip && (
+                  <div className="mb-6 text-center">
+                    <p className="font-['Dancing_Script'],cursive text-lg text-menova-text italic text-shadow">
+                      "Listening to your body is an act of self-compassion. Each symptom tracked is a step toward better wellness."
+                    </p>
+                  </div>
+                )}
+                <div className="animate-fadeIn">
+                  <SymptomForm 
+                    onSubmitSuccess={(tip) => {
+                      handleSubmitSuccess(tip);
+                      // Switch to history tab after submission
+                      setActiveTab("history");
+                    }}
+                    onRefreshHistory={refreshSymptomHistory}
+                  />
+                </div>
+              </TabsContent>
               
-              {/* Charts and Timeline */}
-              <Tabs defaultValue="chart">
-                <TabsList className="bg-menova-green/10 border border-menova-green/20">
-                  <TabsTrigger value="chart" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
-                    Trend Chart
-                  </TabsTrigger>
-                  <TabsTrigger value="timeline" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
-                    Timeline
-                  </TabsTrigger>
-                </TabsList>
-                
-                {/* Chart View */}
-                <TabsContent value="chart" className="animate-fadeIn">
+              {/* History Tab */}
+              <TabsContent value="history" className="animate-fadeIn">
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold text-menova-text flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-menova-green" />
+                    Your Symptom History
+                  </h2>
+                  
+                  {/* Filters */}
+                  <SymptomFilters 
+                    selectedSymptom={selectedSymptom}
+                    setSelectedSymptom={setSelectedSymptom}
+                    selectedPeriod={selectedPeriod}
+                    setSelectedPeriod={setSelectedPeriod}
+                  />
+                  
+                  {/* Charts and Timeline */}
                   <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
-                    <CardHeader className="pb-0">
-                      <CardTitle className="text-lg">Symptom Intensity Over Time</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <SymptomChart 
-                        loading={loading}
-                        chartData={chartData}
-                        selectedSymptom={selectedSymptom}
-                      />
+                    <CardContent className="pt-6">
+                      <Tabs defaultValue="chart" className="w-full">
+                        <TabsList className="bg-menova-green/10 border border-menova-green/20 mb-4">
+                          <TabsTrigger value="chart" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
+                            Trend Chart
+                          </TabsTrigger>
+                          <TabsTrigger value="timeline" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
+                            Timeline
+                          </TabsTrigger>
+                        </TabsList>
+                        
+                        {/* Chart View */}
+                        <TabsContent value="chart" className="animate-fadeIn">
+                          <div className="pt-2">
+                            <h3 className="text-lg font-medium mb-2">Symptom Intensity Over Time</h3>
+                            <SymptomChart 
+                              loading={loading}
+                              chartData={chartData}
+                              selectedSymptom={selectedSymptom}
+                            />
+                          </div>
+                        </TabsContent>
+                        
+                        {/* Timeline View */}
+                        <TabsContent value="timeline" className="animate-fadeIn">
+                          <div className="pt-2">
+                            <h3 className="text-lg font-medium mb-2">Symptom Timeline</h3>
+                            <SymptomTimeline 
+                              loading={loading}
+                              symptomHistory={symptomHistory}
+                            />
+                          </div>
+                        </TabsContent>
+                      </Tabs>
                     </CardContent>
                   </Card>
-                </TabsContent>
-                
-                {/* Timeline View */}
-                <TabsContent value="timeline" className="animate-fadeIn">
-                  <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
-                    <CardHeader className="pb-0">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Symptom Timeline
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-4">
-                      <SymptomTimeline 
-                        loading={loading}
-                        symptomHistory={symptomHistory}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
         
