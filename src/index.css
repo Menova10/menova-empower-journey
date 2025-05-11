@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,6 +50,12 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* MeNova green theme colors */
+    --menova-green: #4caf50;
+    --menova-green-dark: #2e7d32;
+    --menova-green-light: #c8e6c9;
+    --menova-green-bg: #f9fdf3;
   }
 
   .dark {
@@ -97,6 +104,33 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* MeNova app specific styles */
+  .app-container {
+    @apply bg-gradient-to-b from-[#f9fdf3] to-white;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-md hover:scale-[1.01];
+  }
+}
+
+@layer components {
+  .menova-card {
+    @apply bg-white rounded-xl border border-[#e8f5e9] shadow-sm hover:shadow-md transition-all duration-300;
+  }
+  
+  .menova-button-primary {
+    @apply bg-[#4caf50] hover:bg-[#388e3c] text-white shadow-sm hover:shadow-md transition-all;
+  }
+  
+  .menova-button-outline {
+    @apply border-[#4caf50] text-[#4caf50] hover:bg-[#e8f5e9] hover:text-[#2e7d32] transition-all;
+  }
+  
+  .section-title {
+    @apply text-2xl font-bold text-[#2e7d32] mb-4;
   }
 }
 

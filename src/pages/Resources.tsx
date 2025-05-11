@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
@@ -16,6 +15,7 @@ import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import CompleteSymptomProfile from '@/components/CompleteSymptomProfile';
 import ResearchSection from '@/components/ResearchSection';
 import { useToast } from '@/components/ui/use-toast';
+import ApiStatusIndicator from '@/components/ApiStatusIndicator';
 
 // Define content item interface
 interface ContentItem {
@@ -365,40 +365,35 @@ const Resources: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f9fdf3] to-white pt-6">
-      <div className="container mx-auto px-4 md:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-[#f9fdf3] to-white">
+      <div className="container mx-auto px-4 md:px-6 py-8">
         <div className="flex justify-between items-center mb-6">
           <MeNovaLogo />
           <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleDebugCheck}
-              className="border-[#4caf50] text-[#4caf50] hover:bg-[#e8f5e9] hover:text-[#2e7d32]"
-            >
-              Check API Status
-            </Button>
+            <ApiStatusIndicator compact={true} />
           </div>
         </div>
         
         <BreadcrumbTrail currentPath={location.pathname} />
         
-        <div className="flex flex-col gap-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#2e7d32]">Resources</h1>
-            <p className="text-muted-foreground mt-2">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold tracking-tight text-[#2e7d32] mb-2">Resources</h1>
+            <p className="text-lg text-muted-foreground">
               Discover personalized menopause guides, articles, and videos tailored to your journey
             </p>
           </div>
 
           {/* Research Section - New Component */}
-          <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
+          <div className="bg-white rounded-xl shadow-sm p-8 mb-10 border border-[#e8f5e9]">
+            <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
+          </div>
           
-          <Separator className="bg-[#e8f5e9]" />
+          <Separator className="my-10 bg-[#e8f5e9]" />
 
           {/* AI Recommendations Section */}
-          <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+          <section className="mb-10 bg-white rounded-xl shadow-sm p-8 border border-[#e8f5e9]">
+            <h2 className="text-2xl font-semibold mb-6 flex items-center">
               <span className="text-[#388e3c]">Recommended For You</span>
               <Badge variant="outline" className="ml-2 bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#c8e6c9]">
                 Based on Your Symptoms
@@ -406,7 +401,7 @@ const Resources: React.FC = () => {
             </h2>
             
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
                   <Card key={i} className="overflow-hidden backdrop-blur-sm bg-white/90 border border-[#e8f5e9] hover:shadow-lg transition-all duration-300">
                     <Skeleton className="h-[180px] w-full" />
@@ -418,7 +413,7 @@ const Resources: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {recommendedContent.length > 0 ? recommendedContent.map((item) => (
                   <Card 
                     key={item.id} 
@@ -440,7 +435,7 @@ const Resources: React.FC = () => {
                         </div>
                       )}
                     </div>
-                    <CardHeader>
+                    <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-lg">{item.title}</CardTitle>
@@ -471,7 +466,7 @@ const Resources: React.FC = () => {
                           <Volume2 className="h-4 w-4" />
                         </Button>
                       </div>
-                      <CardDescription>{item.description}</CardDescription>
+                      <CardDescription className="line-clamp-3">{item.description}</CardDescription>
                     </CardHeader>
                     <CardFooter className="flex justify-between pt-0">
                       <div className="flex items-center">
@@ -564,7 +559,7 @@ const Resources: React.FC = () => {
           )}
           
           {/* Content Refresh Button */}
-          <div className="w-full flex justify-center my-8">
+          <div className="w-full flex justify-center mt-8">
             <Button 
               size="lg"
               className="bg-[#4caf50] hover:bg-[#388e3c] text-white shadow-md hover:shadow-lg transition-all duration-300"
