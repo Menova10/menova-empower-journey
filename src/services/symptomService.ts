@@ -78,6 +78,7 @@ export function prepareChartData(data: SymptomEntry[], selectedPeriod: string): 
       acc[dateKey][item.symptom] = {
         sum: 0,
         count: 0,
+        rawDate: date, // Store the raw date for proper sorting
       };
     }
     
@@ -89,7 +90,10 @@ export function prepareChartData(data: SymptomEntry[], selectedPeriod: string): 
   
   // Convert grouped data to chart format
   const chartData: ChartDataPoint[] = Object.entries(grouped).map(([date, symptoms]) => {
-    const entry: ChartDataPoint = { date };
+    const entry: ChartDataPoint = { 
+      date,
+      rawDate: Object.values(symptoms)[0]?.rawDate || new Date() // Use the raw date from any symptom for sorting
+    };
     
     // Calculate average for each symptom
     Object.entries(symptoms).forEach(([symptom, { sum, count }]) => {
@@ -99,10 +103,69 @@ export function prepareChartData(data: SymptomEntry[], selectedPeriod: string): 
     return entry;
   });
   
-  // Sort by date
+  // Sort by actual date value, not string
   chartData.sort((a, b) => {
-    return a.date.localeCompare(b.date);
+    return (a.rawDate?.getTime() || 0) - (b.rawDate?.getTime() || 0);
   });
   
   return chartData;
+}
+
+/**
+ * Calculate symptom trends over the selected period
+ * Returns the direction of change for each symptom (increasing, decreasing, or stable)
+ */
+export function calculateSymptomTrends(chartData: ChartDataPoint[]): Record<string, string> {
+  const trends: Record<string, string> = {};
+  
+  if (chartData.length <= 1) {
+    return trends;
+  }
+  
+  // Get all symptom types present in the data
+  const symptomTypes = new Set<string>();
+  chartData.forEach(point => {
+    Object.keys(point).forEach(key => {
+      if (key !== 'date' && key !== 'rawDate') {
+        symptomTypes.add(key);
+      }
+    });
+  });
+  
+  // Calculate trend for each symptom type by comparing first and last values
+  symptomTypes.forEach(symptom => {
+    let firstValue: number | null = null;
+    let lastValue: number | null = null;
+    
+    // Find the first valid data point
+    for (const point of chartData) {
+      if (typeof point[symptom] === 'number') {
+        firstValue = point[symptom] as number;
+        break;
+      }
+    }
+    
+    // Find the last valid data point
+    for (let i = chartData.length - 1; i >= 0; i--) {
+      if (typeof chartData[i][symptom] === 'number') {
+        lastValue = chartData[i][symptom] as number;
+        break;
+      }
+    }
+    
+    if (firstValue !== null && lastValue !== null) {
+      const difference = lastValue - firstValue;
+      
+      // Determine trend direction
+      if (difference > 0) {
+        trends[symptom] = 'increasing';
+      } else if (difference < 0) {
+        trends[symptom] = 'decreasing';
+      } else {
+        trends[symptom] = 'stable';
+      }
+    }
+  });
+  
+  return trends;
 }

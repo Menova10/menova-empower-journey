@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
+import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { calculateSymptomTrends } from "@/services/symptomService";
+import { ChartDataPoint } from '@/types/symptoms';
 
 interface WellnessGoal {
   category: string;
@@ -15,6 +18,7 @@ interface SymptomRating {
   symptom: string;
   intensity: number;
   lastUpdated?: string;
+  trend?: 'increasing' | 'decreasing' | 'stable';
 }
 
 interface DailyInsight {
@@ -174,11 +178,16 @@ const WellnessDashboard = () => {
 
         // Fetch symptom data - IMPROVED to get the most recent entries for each symptom type
         console.log("Fetching symptom data for user:", session.user.id);
+        const today = new Date();
+        const start = new Date();
+        start.setDate(today.getDate() - 14); // Last 2 weeks of data for trends
+        
         const { data: symptomData, error: symptomError } = await supabase
           .from('symptom_tracking')
           .select('*')
           .eq('user_id', session.user.id)
-          .order('recorded_at', { ascending: false });
+          .gte('recorded_at', start.toISOString())
+          .order('recorded_at', { ascending: true });
 
         if (symptomError) throw symptomError;
 
@@ -186,6 +195,34 @@ const WellnessDashboard = () => {
         console.log("User symptoms data:", symptomData);
         
         if (symptomData && symptomData.length > 0) {
+          // Prepare data for trend calculation
+          const chartDataPoints: ChartDataPoint[] = symptomData.reduce((points: ChartDataPoint[], entry: any) => {
+            const date = new Date(entry.recorded_at);
+            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+            
+            // Find if we already have a point for this date
+            let point = points.find(p => p.date === dateString);
+            
+            if (!point) {
+              point = { date: dateString, rawDate: date };
+              points.push(point);
+            }
+            
+            // Add symptom data to point
+            point[entry.symptom] = entry.intensity;
+            
+            return points;
+          }, []);
+          
+          // Sort by date
+          chartDataPoints.sort((a, b) => 
+            (a.rawDate?.getTime() || 0) - (b.rawDate?.getTime() || 0)
+          );
+          
+          // Calculate trends
+          const trends = calculateSymptomTrends(chartDataPoints);
+          console.log("Calculated symptom trends:", trends);
+          
           // Create a Map to store the most recent entry for each symptom type
           const latestSymptoms = new Map();
           
@@ -196,6 +233,8 @@ const WellnessDashboard = () => {
             if (entry.symptom === 'hot_flashes') normalizedName = 'Hot Flashes';
             else if (entry.symptom === 'sleep') normalizedName = 'Sleep Quality';
             else if (entry.symptom === 'mood') normalizedName = 'Mood';
+            else if (entry.symptom === 'energy') normalizedName = 'Energy';
+            else if (entry.symptom === 'anxiety') normalizedName = 'Anxiety';
             
             // Only keep the first (most recent) entry for each symptom type
             // since we ordered by recorded_at descending
@@ -203,7 +242,8 @@ const WellnessDashboard = () => {
               latestSymptoms.set(normalizedName, {
                 symptom: normalizedName,
                 intensity: entry.intensity,
-                lastUpdated: entry.recorded_at
+                lastUpdated: entry.recorded_at,
+                trend: trends[entry.symptom]
               });
             }
           });
@@ -235,11 +275,6 @@ const WellnessDashboard = () => {
     fetchWellnessData();
   }, []);
 
-  const handleAskAboutProgress = () => {
-    // Navigate to the Today's Wellness page
-    navigate('/todays-wellness');
-  };
-
   // Helper function to get the proper label for a category
   const getCategoryLabel = (category: string) => {
     const labels: { [key: string]: string } = {
@@ -248,6 +283,37 @@ const WellnessDashboard = () => {
       "play": "Play"
     };
     return labels[category] || category.charAt(0).toUpperCase() + category.slice(1);
+  };
+
+  // Helper function to get trend icon
+  const getTrendIcon = (trend?: string) => {
+    if (!trend) return null;
+    
+    switch (trend) {
+      case 'increasing':
+        return <ArrowUpRight className="text-red-500 h-4 w-4" aria-label="Increasing trend" />;
+      case 'decreasing':
+        return <ArrowDownRight className="text-green-500 h-4 w-4" aria-label="Decreasing trend" />;
+      case 'stable':
+        return <Minus className="text-gray-500 h-4 w-4" aria-label="Stable trend" />;
+      default:
+        return null;
+    }
+  };
+
+  // Helper function to get symptom color
+  const getSymptomColor = (symptomName: string): string => {
+    if (symptomName === "Hot Flashes") return "bg-[#E35C78]";
+    if (symptomName === "Sleep Quality") return "bg-[#2E8540]";
+    if (symptomName === "Mood") return "bg-[#9C27B0]";
+    if (symptomName === "Energy") return "bg-[#E65100]";
+    if (symptomName === "Anxiety") return "bg-[#0277BD]";
+    return "bg-[#795548]";
+  };
+
+  const handleAskAboutProgress = () => {
+    // Navigate to the Today's Wellness page
+    navigate('/todays-wellness');
   };
 
   return (
@@ -296,10 +362,12 @@ const WellnessDashboard = () => {
           </div>
         </div>
         
-        {/* Symptom Overview Card - IMPROVED */}
+        {/* Symptom Overview Card - IMPROVED with trends */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Symptom Overview</h3>
-          <p className="text-sm text-gray-600 mb-4">This week's symptom trends</p>
+          <p className="text-sm text-gray-600 mb-4">
+            This week's symptom trends <span className="text-xs text-gray-500">(based on last 14 days)</span>
+          </p>
           
           {loading ? (
             <div className="space-y-6">
@@ -318,30 +386,41 @@ const WellnessDashboard = () => {
             <div className="space-y-6">
               {symptoms.map((symptom, index) => (
                 <div key={index} className="flex flex-col">
-                  <div className="flex items-center mb-1">
-                    <div className="w-1/3 text-sm font-medium">{symptom.symptom}</div>
-                    <div className="w-2/3 flex space-x-2">
+                  <div className="flex items-center mb-1 justify-between">
+                    <div className="text-sm font-medium flex items-center gap-1">
+                      {symptom.symptom} 
+                      {getTrendIcon(symptom.trend)}
+                    </div>
+                    <div className="flex space-x-2">
                       {[1, 2, 3, 4, 5].map((rating) => (
                         <div 
                           key={rating} 
                           className={`h-6 w-6 rounded-full ${
                             rating <= symptom.intensity
-                              ? symptom.symptom === "Hot Flashes" 
-                                ? "bg-[#FFDEE2]" 
-                                : symptom.symptom === "Sleep Quality" 
-                                  ? "bg-menova-green" 
-                                  : "bg-[#d9b6d9]"
+                              ? getSymptomColor(symptom.symptom)
                               : "bg-gray-200"
                           } transition-all duration-300 ${
                             rating <= symptom.intensity ? "scale-100" : "scale-90"
                           }`}
+                          aria-label={
+                            rating <= symptom.intensity ? 
+                              `${symptom.symptom} rating ${rating} out of 5` : 
+                              `Unselected rating ${rating} out of 5`
+                          }
                         />
                       ))}
                     </div>
                   </div>
                   {symptom.lastUpdated && (
-                    <div className="text-xs text-gray-500 ml-1">
+                    <div className="text-xs text-gray-500">
                       Last updated: {formatLastUpdated(symptom.lastUpdated)}
+                      {symptom.trend && (
+                        <span className="ml-2">
+                          {symptom.trend === 'increasing' ? 'Trending up' : 
+                           symptom.trend === 'decreasing' ? 'Trending down' : 
+                           'Stable'}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>

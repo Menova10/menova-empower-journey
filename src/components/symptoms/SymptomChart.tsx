@@ -20,6 +20,17 @@ interface SymptomChartProps {
   selectedSymptom: string;
 }
 
+// Improved color palette for better accessibility - higher contrast
+const accessibleColors = {
+  hot_flashes: '#E35C78', // Darker pink
+  sleep: '#2E8540',       // Darker green
+  mood: '#9C27B0',        // Deeper purple
+  energy: '#E65100',      // Darker orange
+  anxiety: '#0277BD',     // Darker blue
+  brain_fog: '#795548',   // Brown
+  voice_assistant: '#00796B', // Teal
+};
+
 // Custom tick formatter to display dates in a readable format
 const formatXAxisTick = (tickItem: string) => {
   try {
@@ -63,7 +74,7 @@ const SymptomChart = ({ loading, chartData, selectedSymptom }: SymptomChartProps
   // Determine which lines to show based on the selected symptom
   const displayedSymptoms = selectedSymptom === 'all'
     ? [...new Set(chartData.flatMap(point => 
-        Object.keys(point).filter(key => key !== 'date')))]
+        Object.keys(point).filter(key => key !== 'date' && key !== 'rawDate')))]
     : [selectedSymptom];
 
   // Add date tooltips
@@ -75,8 +86,15 @@ const SymptomChart = ({ loading, chartData, selectedSymptom }: SymptomChartProps
         <div className="bg-white p-3 shadow-md rounded-md border border-gray-100">
           <p className="text-xs font-medium mb-1">{dateLabel}</p>
           {payload.map((item: any, index: number) => (
-            <p key={index} className="text-xs" style={{ color: item.stroke }}>
-              {item.name}: {item.value}
+            <p key={index} className="text-xs flex items-center gap-1">
+              <span 
+                className="inline-block w-3 h-3 rounded-full" 
+                style={{ backgroundColor: item.stroke }}
+              />
+              <span className="font-medium">
+                {item.name.charAt(0).toUpperCase() + item.name.slice(1).replace('_', ' ')}:
+              </span>
+              <span>{item.value}</span>
             </p>
           ))}
         </div>
@@ -107,18 +125,34 @@ const SymptomChart = ({ loading, chartData, selectedSymptom }: SymptomChartProps
             tick={{ fontSize: 12 }}
           />
           <Tooltip content={renderTooltip} />
-          <Legend wrapperStyle={{ paddingTop: 10 }} />
+          <Legend 
+            wrapperStyle={{ paddingTop: 10 }} 
+            formatter={(value) => {
+              // Capitalize and format legend labels
+              const formatted = value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
+              return <span className="text-xs font-medium">{formatted}</span>;
+            }}
+          />
           
           {displayedSymptoms.map(symptomId => (
             <Line
               key={symptomId}
               type="monotone"
               dataKey={symptomId}
-              name={symptomId.charAt(0).toUpperCase() + symptomId.slice(1).replace('_', ' ')}
-              stroke={getSymptomColor(symptomId)}
-              strokeWidth={2}
-              dot={{ r: 4, strokeWidth: 1, fill: 'white' }}
-              activeDot={{ r: 6 }}
+              name={symptomId}
+              stroke={accessibleColors[symptomId as keyof typeof accessibleColors] || getSymptomColor(symptomId)}
+              strokeWidth={2.5}
+              dot={{ 
+                r: 5, 
+                strokeWidth: 1, 
+                fill: 'white',
+                stroke: accessibleColors[symptomId as keyof typeof accessibleColors] || getSymptomColor(symptomId)
+              }}
+              activeDot={{ 
+                r: 7, 
+                stroke: '#fff',
+                strokeWidth: 2
+              }}
               connectNulls
             />
           ))}
