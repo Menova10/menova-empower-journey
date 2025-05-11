@@ -76,18 +76,20 @@ const Resources: React.FC = () => {
     return '?';
   };
 
-  // Fetch user profile and symptoms
+  // Fetch user profile and symptoms from Supabase
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchUserSymptoms = async () => {
       try {
         // Get current user
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          console.log("Fetching symptom data for user:", session.user.id);
+          
           // Fetch user symptoms from the symptom_tracking table
           const { data: symptomData, error: symptomError } = await supabase
             .from('symptom_tracking')
-            .select('*')
+            .select('symptom, intensity')
             .eq('user_id', session.user.id)
             .order('recorded_at', { ascending: false });
           
@@ -96,6 +98,8 @@ const Resources: React.FC = () => {
             setUserSymptoms(['Hot Flashes', 'Sleep', 'Anxiety']); // Fallback
           } else {
             if (symptomData && symptomData.length > 0) {
+              console.log("User symptoms data:", symptomData);
+              
               // Extract and normalize symptoms
               const symptoms = symptomData
                 .map(item => {
@@ -111,25 +115,34 @@ const Resources: React.FC = () => {
               const uniqueSymptoms = [...new Set(symptoms)];
               
               if (uniqueSymptoms.length > 0) {
+                console.log("Using tracked symptoms from database:", uniqueSymptoms);
                 setUserSymptoms(uniqueSymptoms);
+                
+                toast({
+                  title: "Personalized Content",
+                  description: `Showing content based on your tracked symptoms: ${uniqueSymptoms.join(', ')}`,
+                });
               } else {
+                console.log("No symptoms found, using default");
                 setUserSymptoms(['Hot Flashes', 'Sleep', 'Anxiety']); // Fallback
               }
             } else {
+              console.log("No symptom data found, using default");
               setUserSymptoms(['Hot Flashes', 'Sleep', 'Anxiety']); // Fallback
             }
           }
         } else {
+          console.log("No user session, using default symptoms");
           setUserSymptoms(['Hot Flashes', 'Sleep', 'Anxiety']);
         }
       } catch (error) {
-        console.error('Error in fetchUserData:', error);
+        console.error('Error in fetchUserSymptoms:', error);
         setUserSymptoms(['Hot Flashes', 'Sleep', 'Anxiety']);
       }
     };
 
-    fetchUserData();
-  }, []);
+    fetchUserSymptoms();
+  }, [toast]);
 
   // Function to fetch content from our enhanced edge function
   const fetchEnhancedContent = async (options: ContentFetchOptions = {}) => {
@@ -226,8 +239,11 @@ const Resources: React.FC = () => {
           )
         );
         
+        console.log(`Found ${personalizedContent.length} content items matching user symptoms`);
+        
         // If we don't have enough personalized content, add some general content
         if (personalizedContent.length < 3) {
+          console.log("Not enough personalized content, adding general content");
           const additionalContent = allContent
             .filter(item => !personalizedContent.includes(item))
             .slice(0, 3 - personalizedContent.length);
@@ -241,7 +257,7 @@ const Resources: React.FC = () => {
         
         toast({
           title: "Content Updated",
-          description: `Loaded ${allContent.length} content items, including ${personalizedContent.length} personalized items`,
+          description: `Loaded ${allContent.length} content items, including ${personalizedContent.length} personalized for your symptoms`,
         });
       }
     } catch (error) {
@@ -385,7 +401,7 @@ const Resources: React.FC = () => {
             <h2 className="text-2xl font-semibold mb-4 flex items-center">
               <span className="text-[#388e3c]">Recommended For You</span>
               <Badge variant="outline" className="ml-2 bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#c8e6c9]">
-                AI Personalized
+                Based on Your Symptoms
               </Badge>
             </h2>
             
