@@ -8,7 +8,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Flower, Leaf } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent
+} from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { Flower, Leaf, Calendar, Activity, Clock, Filter } from 'lucide-react';
 
 // Symptom definitions with colors
 const symptoms = [
@@ -19,14 +39,61 @@ const symptoms = [
   { id: 'anxiety', name: 'Anxiety', color: 'bg-[#b1cfe6]', tip: 'Try the 5-4-3-2-1 grounding technique: acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you smell, and 1 you taste.' }
 ];
 
+// Source badges with styling
+const sourceBadges = {
+  manual: { label: 'SYMPTOM TRACKER', class: 'bg-menova-green text-white' },
+  daily_checkin: { label: 'DAILY CHECKIN', class: 'bg-menova-softpink text-gray-800' },
+  chat: { label: 'CHAT', class: 'bg-[#d9b6d9] text-gray-800' },
+  voice: { label: 'VOICE', class: 'bg-menova-softpeach text-gray-800' },
+};
+
+// Time period definitions
+const timePeriods = [
+  { id: 'daily', name: 'Today', 
+    getRange: () => {
+      const today = new Date();
+      return { start: today, end: today };
+    } 
+  },
+  { id: 'weekly', name: 'This Week',
+    getRange: () => {
+      const today = new Date();
+      return { 
+        start: startOfWeek(today, { weekStartsOn: 1 }), 
+        end: endOfWeek(today, { weekStartsOn: 1 }) 
+      };
+    }
+  },
+  { id: 'monthly', name: 'This Month',
+    getRange: () => {
+      const today = new Date();
+      return { start: startOfMonth(today), end: endOfMonth(today) };
+    }
+  },
+  { id: '3months', name: 'Last 3 Months',
+    getRange: () => {
+      const today = new Date();
+      return { start: subDays(today, 90), end: today };
+    }
+  }
+];
+
 const SymptomTracker = () => {
   const navigate = useNavigate();
+  // Form state
   const [ratings, setRatings] = useState<Record<string, number>>(
     symptoms.reduce((acc, symptom) => ({ ...acc, [symptom.id]: 3 }), {})
   );
   const [submitting, setSubmitting] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [successTip, setSuccessTip] = useState<string | null>(null);
+  
+  // History and filtering state
+  const [symptomHistory, setSymptomHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedSymptom, setSelectedSymptom] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('weekly');
+  const [chartData, setChartData] = useState<any[]>([]);
 
   const handleRatingChange = (symptomId: string, value: number[]) => {
     setRatings(prev => ({ ...prev, [symptomId]: value[0] }));
@@ -36,7 +103,113 @@ const SymptomTracker = () => {
     const symptom = symptoms.find(s => s.id === symptomId);
     return symptom?.tip || 'Take a moment for self-care today. Every small step matters.';
   };
+
+  // Fetch symptom history based on filters
+  const fetchSymptomHistory = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Not logged in",
+          description: "Please log in to view symptom history",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Get date range based on selected period
+      const period = timePeriods.find(p => p.id === selectedPeriod);
+      const { start, end } = period ? period.getRange() : { start: new Date(), end: new Date() };
+      
+      // Build query
+      let query = supabase
+        .from('symptom_tracking')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .gte('recorded_at', start.toISOString())
+        .lte('recorded_at', end.toISOString())
+        .order('recorded_at', { ascending: false });
+      
+      // Add symptom filter if not "all"
+      if (selectedSymptom !== 'all') {
+        query = query.eq('symptom', selectedSymptom);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      setSymptomHistory(data || []);
+      prepareChartData(data || []);
+      
+    } catch (error) {
+      console.error("Error fetching symptom history:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load symptom history",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
+  // Prepare data for chart visualization
+  const prepareChartData = (data: any[]) => {
+    // Group by date and symptom, calculate average intensity
+    const grouped = data.reduce((acc: any, item) => {
+      // Format date based on selected period
+      let dateKey;
+      const date = new Date(item.recorded_at);
+      
+      if (selectedPeriod === 'daily') {
+        dateKey = format(date, 'HH:mm');
+      } else if (selectedPeriod === 'weekly') {
+        dateKey = format(date, 'EEE');
+      } else {
+        dateKey = format(date, 'MMM dd');
+      }
+      
+      if (!acc[dateKey]) {
+        acc[dateKey] = {};
+      }
+      
+      if (!acc[dateKey][item.symptom]) {
+        acc[dateKey][item.symptom] = {
+          sum: 0,
+          count: 0,
+        };
+      }
+      
+      acc[dateKey][item.symptom].sum += item.intensity;
+      acc[dateKey][item.symptom].count += 1;
+      
+      return acc;
+    }, {});
+    
+    // Convert grouped data to chart format
+    const chartData = Object.entries(grouped).map(([date, symptoms]) => {
+      const entry: any = { date };
+      
+      // Calculate average for each symptom
+      Object.entries(symptoms as any).forEach(([symptom, { sum, count }]) => {
+        entry[symptom] = Math.round((sum as number) / (count as number));
+      });
+      
+      return entry;
+    });
+    
+    // Sort by date
+    chartData.sort((a, b) => {
+      return a.date.localeCompare(b.date);
+    });
+    
+    setChartData(chartData);
+  };
+  
+  // Handle form submission
   const handleSubmit = async () => {
     try {
       setSubmitting(true);
@@ -83,6 +256,9 @@ const SymptomTracker = () => {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 3000);
       
+      // Refresh symptom history
+      fetchSymptomHistory();
+      
     } catch (error) {
       console.error("Error recording symptoms:", error);
       toast({
@@ -94,6 +270,11 @@ const SymptomTracker = () => {
       setSubmitting(false);
     }
   };
+
+  // Fetch symptom history on mount and when filters change
+  useEffect(() => {
+    fetchSymptomHistory();
+  }, [selectedSymptom, selectedPeriod]);
 
   return (
     <TooltipProvider>
@@ -191,9 +372,7 @@ const SymptomTracker = () => {
           )}
           
           {/* Symptom Rating Card */}
-          <div
-            className="animate-fadeIn"
-          >
+          <div className="animate-fadeIn">
             <Card className="mb-6 backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm hover:shadow-md transition-all">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -257,6 +436,252 @@ const SymptomTracker = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+          
+          {/* History and Trends Section */}
+          <div className="animate-fadeIn space-y-6">
+            <h2 className="text-xl font-semibold text-menova-text flex items-center gap-2">
+              <Activity className="h-5 w-5 text-menova-green" />
+              Your Symptom History
+            </h2>
+            
+            {/* Filters */}
+            <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                      <Filter className="h-4 w-4" /> Symptom
+                    </label>
+                    <Select 
+                      value={selectedSymptom} 
+                      onValueChange={setSelectedSymptom}
+                    >
+                      <SelectTrigger className="border-menova-green/30">
+                        <SelectValue placeholder="Select symptom" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Symptoms</SelectItem>
+                        {symptoms.map(symptom => (
+                          <SelectItem key={symptom.id} value={symptom.id}>
+                            {symptom.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                      <Calendar className="h-4 w-4" /> Time Period
+                    </label>
+                    <Select 
+                      value={selectedPeriod} 
+                      onValueChange={setSelectedPeriod}
+                    >
+                      <SelectTrigger className="border-menova-green/30">
+                        <SelectValue placeholder="Select time period" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timePeriods.map(period => (
+                          <SelectItem key={period.id} value={period.id}>
+                            {period.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Charts and Timeline */}
+            <Tabs defaultValue="chart">
+              <TabsList className="bg-menova-green/10 border border-menova-green/20">
+                <TabsTrigger value="chart" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
+                  Trend Chart
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="data-[state=active]:bg-menova-green data-[state=active]:text-white">
+                  Timeline
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Chart View */}
+              <TabsContent value="chart" className="animate-fadeIn">
+                <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Symptom Intensity Over Time</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="h-64 flex items-center justify-center">
+                        <div className="animate-pulse text-menova-green/60">Loading chart data...</div>
+                      </div>
+                    ) : chartData.length === 0 ? (
+                      <div className="h-64 flex items-center justify-center text-center">
+                        <div className="text-gray-500">
+                          <p className="mb-2">No symptom data available for this period.</p>
+                          <p className="text-sm">Try selecting a different time period or log your symptoms.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-64">
+                        <ChartContainer 
+                          config={{
+                            hot_flashes: { color: "#FFDEE2" },
+                            sleep: { color: "#A5D6A7" },
+                            mood: { color: "#d9b6d9" },
+                            energy: { color: "#FDE1D3" },
+                            anxiety: { color: "#b1cfe6" }
+                          }}
+                        >
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 20, left: 0 }}>
+                              <XAxis 
+                                dataKey="date"
+                                tickLine={false}
+                                axisLine={{ stroke: '#e5e5e5' }}
+                                padding={{ left: 10, right: 10 }}
+                              />
+                              <YAxis 
+                                tickLine={false}
+                                axisLine={{ stroke: '#e5e5e5' }}
+                                domain={[0, 5]}
+                                ticks={[1, 2, 3, 4, 5]}
+                                label={{ value: 'Intensity', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                              />
+                              <ChartTooltip
+                                content={
+                                  <ChartTooltipContent formatter={(value, name) => {
+                                    const symptom = symptoms.find(s => s.id === name);
+                                    return [value, symptom?.name || name];
+                                  }} />
+                                }
+                              />
+                              {selectedSymptom === 'all' ? (
+                                symptoms.map(symptom => (
+                                  <Bar
+                                    key={symptom.id}
+                                    dataKey={symptom.id}
+                                    maxBarSize={50}
+                                    radius={[4, 4, 0, 0]}
+                                  >
+                                    {chartData.map((_, index) => (
+                                      <Cell 
+                                        key={`cell-${index}`}
+                                        fill={symptom.color.replace('bg-', '').startsWith('#') 
+                                          ? symptom.color.replace('bg-', '') 
+                                          : symptom.id === 'sleep' ? '#A5D6A7' 
+                                          : symptom.id === 'hot_flashes' ? '#FFDEE2'
+                                          : symptom.id === 'mood' ? '#d9b6d9'
+                                          : symptom.id === 'energy' ? '#FDE1D3'
+                                          : '#b1cfe6'
+                                        }
+                                      />
+                                    ))}
+                                  </Bar>
+                                ))
+                              ) : (
+                                <Bar
+                                  dataKey={selectedSymptom}
+                                  maxBarSize={50}
+                                  radius={[4, 4, 0, 0]}
+                                  fill={symptoms.find(s => s.id === selectedSymptom)?.color.replace('bg-', '').startsWith('#') 
+                                    ? symptoms.find(s => s.id === selectedSymptom)?.color.replace('bg-', '') 
+                                    : '#A5D6A7'
+                                  }
+                                />
+                              )}
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Timeline View */}
+              <TabsContent value="timeline" className="animate-fadeIn">
+                <Card className="backdrop-blur-md bg-white/80 border border-menova-green/20 shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Symptom Timeline
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {loading ? (
+                      <div className="h-64 flex items-center justify-center">
+                        <div className="animate-pulse text-menova-green/60">Loading timeline data...</div>
+                      </div>
+                    ) : symptomHistory.length === 0 ? (
+                      <div className="h-64 flex items-center justify-center text-center">
+                        <div className="text-gray-500">
+                          <p className="mb-2">No symptom data available for this period.</p>
+                          <p className="text-sm">Try selecting a different time period or log your symptoms.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {symptomHistory.map((entry, index) => {
+                          const symptom = symptoms.find(s => s.id === entry.symptom);
+                          const date = new Date(entry.recorded_at);
+                          const source = sourceBadges[entry.source as keyof typeof sourceBadges] || 
+                            { label: entry.source.toUpperCase(), class: 'bg-gray-200 text-gray-700' };
+                          
+                          return (
+                            <div 
+                              key={entry.id}
+                              className="p-3 rounded-lg border border-menova-green/10 bg-white/70 hover:bg-white/90 hover:border-menova-green/30 transition-all animate-fadeIn"
+                              style={{ 
+                                animationDelay: `${index * 0.1}s`,
+                                boxShadow: '0 2px 10px rgba(165, 214, 167, 0.1)'
+                              }}
+                            >
+                              <div className="flex justify-between mb-1 items-center">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{symptom?.name || entry.symptom}</span>
+                                  <span 
+                                    className={`text-xs font-bold py-0.5 px-2 rounded-full ${source.class}`}
+                                  >
+                                    {source.label}
+                                  </span>
+                                </div>
+                                <span 
+                                  className="rounded-full px-2 py-0.5 text-white text-sm font-medium"
+                                  style={{ 
+                                    backgroundColor: symptom?.color.replace('bg-', '').startsWith('#') 
+                                      ? symptom?.color.replace('bg-', '') 
+                                      : '#A5D6A7'
+                                  }}
+                                >
+                                  {entry.intensity}/5
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-500">
+                                <span>
+                                  {format(date, 'MMM d, yyyy')} at {format(date, 'h:mm a')}
+                                </span>
+                                {entry.notes && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="underline cursor-help">Notes</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="p-2 max-w-xs">
+                                      {entry.notes}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
         
