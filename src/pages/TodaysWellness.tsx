@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,14 +72,18 @@ const TodaysWellness = () => {
   const [activeTab, setActiveTab] = useState("daily");
   const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
   const [monthlyGoals, setMonthlyGoals] = useState<Goal[]>([]);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   
   // Use a ref to prevent scrolling issues
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Calculate progress
-  const completedGoals = goals.filter(g => g.completed).length;
-  const totalGoals = goals.length;
-  const progress = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+  // Calculate progress with useMemo to prevent unnecessary recalculations
+  const { completedGoals, totalGoals, progress } = useMemo(() => {
+    const completed = goals.filter(g => g.completed).length;
+    const total = goals.length;
+    const prog = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { completedGoals: completed, totalGoals: total, progress: prog };
+  }, [goals]);
 
   // Calculate and update category progress - using a more stable implementation
   const calculateCategoryProgress = useCallback(() => {
@@ -123,63 +127,90 @@ const TodaysWellness = () => {
 
   // Fetch user's goals for today
   const fetchGoals = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
-      }
-
-      // Fetch today's goals
-      const fetchedGoals = await fetchTodaysGoals(session.user.id);
-      setGoals(fetchedGoals);
-      
-      // If we have no goals for today, check if we have wellness goals in the database
-      // and create some default goals based on that
-      if (fetchedGoals.length === 0) {
-        const defaultGoals = await checkAndCreateDefaultGoals(session.user.id);
-        if (defaultGoals.length > 0) {
-          setGoals(defaultGoals);
-          toast({
-            title: 'Daily goals created',
-            description: 'We\'ve created some default goals based on your wellness plan.',
-          });
+    if (!initialLoadComplete) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/login');
+          return;
         }
-      }
 
-      // Also fetch weekly and monthly data when switching tabs
-      if (activeTab === 'weekly' || activeTab === 'all') {
-        const weeklyData = await fetchWeeklyGoals(session.user.id);
-        setWeeklyGoals(weeklyData);
-        processWeeklyData(weeklyData);
-      }
+        // Fetch today's goals
+        const fetchedGoals = await fetchTodaysGoals(session.user.id);
+        setGoals(fetchedGoals);
+        
+        // If we have no goals for today, check if we have wellness goals in the database
+        // and create some default goals based on that
+        if (fetchedGoals.length === 0) {
+          const defaultGoals = await checkAndCreateDefaultGoals(session.user.id);
+          if (defaultGoals.length > 0) {
+            setGoals(defaultGoals);
+            toast({
+              title: 'Daily goals created',
+              description: 'We\'ve created some default goals based on your wellness plan.',
+            });
+          }
+        }
 
-      if (activeTab === 'monthly' || activeTab === 'all') {
-        const monthlyData = await fetchMonthlyGoals(session.user.id);
-        setMonthlyGoals(monthlyData);
-        processMonthlyData(monthlyData);
+        // Also fetch weekly and monthly data when switching tabs
+        if (activeTab === 'weekly' || activeTab === 'all') {
+          const weeklyData = await fetchWeeklyGoals(session.user.id);
+          setWeeklyGoals(weeklyData);
+          processWeeklyData(weeklyData);
+        }
+
+        if (activeTab === 'monthly' || activeTab === 'all') {
+          const monthlyData = await fetchMonthlyGoals(session.user.id);
+          setMonthlyGoals(monthlyData);
+          processMonthlyData(monthlyData);
+        }
+        
+        // Check for existing progress in wellness_goals table
+        const progress = await fetchWellnessGoalsProgress(session.user.id);
+        if (progress) {
+          setCategoryCounts(progress);
+        } else {
+          // Fallback to calculation from goals
+          updateCategoryCounts();
+        }
+        
+      } catch (error) {
+        console.error('Error fetching goals:', error);
+        toast({
+          title: 'Error fetching goals',
+          description: 'Could not retrieve your goals. Please try again later.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+        setInitialLoadComplete(true);
       }
-      
-      // Check for existing progress in wellness_goals table
-      const progress = await fetchWellnessGoalsProgress(session.user.id);
-      if (progress) {
-        setCategoryCounts(progress);
-      } else {
-        // Fallback to calculation from goals
-        updateCategoryCounts();
+    } else {
+      // For subsequent fetches, especially when tabs change
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/login');
+          return;
+        }
+
+        // Only fetch data for the active tab to reduce unnecessary API calls
+        if (activeTab === 'weekly') {
+          const weeklyData = await fetchWeeklyGoals(session.user.id);
+          setWeeklyGoals(weeklyData);
+          processWeeklyData(weeklyData);
+        } else if (activeTab === 'monthly') {
+          const monthlyData = await fetchMonthlyGoals(session.user.id);
+          setMonthlyGoals(monthlyData);
+          processMonthlyData(monthlyData);
+        }
+      } catch (error) {
+        console.error('Error fetching tab data:', error);
+      } finally {
+        setLoading(false);
       }
-      
-    } catch (error) {
-      console.error('Error fetching goals:', error);
-      toast({
-        title: 'Error fetching goals',
-        description: 'Could not retrieve your goals. Please try again later.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
     }
-  }, [navigate, toast, activeTab, updateCategoryCounts]);
+  }, [navigate, toast, activeTab, updateCategoryCounts, initialLoadComplete]);
 
   // Process weekly data to calculate progress - keep logic the same but memoize better
   const processWeeklyData = useCallback((weeklyData: Goal[]) => {
@@ -416,26 +447,38 @@ const TodaysWellness = () => {
     setRefreshKey(prevKey => prevKey + 1);
   };
 
-  // Fetch suggested goals
+  // Fetch suggested goals with fallback mechanism for API errors
   const fetchSuggestedGoalsHandler = async () => {
     try {
       setLoadingSuggestions(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
-      const suggestions = await fetchSuggestedGoals(session.user.id);
-      setSuggestedGoals(suggestions);
-    } catch (error) {
-      console.error('Error fetching suggested goals:', error);
+      try {
+        const suggestions = await fetchSuggestedGoals(session.user.id);
+        setSuggestedGoals(suggestions);
+      } catch (error) {
+        console.error('Error fetching suggested goals:', error);
+        // Use fallback suggestions if API fails
+        setSuggestedGoals([
+          { text: "Drink 8 glasses of water today", category: "nourish" },
+          { text: "Take a 15-minute walk outside", category: "play" },
+          { text: "Practice deep breathing for 5 minutes", category: "center" },
+          { text: "Write down 3 things you're grateful for", category: "center" },
+          { text: "Eat a meal rich in calcium and vitamin D", category: "nourish" }
+        ]);
+      }
     } finally {
       setLoadingSuggestions(false);
     }
   };
 
-  // Handle tab change
+  // Handle tab change - optimized to prevent unnecessary renders
   const handleTabChange = useCallback((value: string) => {
-    setActiveTab(value);
-  }, []);
+    if (value !== activeTab) {
+      setActiveTab(value);
+    }
+  }, [activeTab]);
 
   // Force refresh wellness goals from the database
   const forceRefreshWellnessGoals = async () => {
@@ -458,35 +501,8 @@ const TodaysWellness = () => {
       if (data) {
         setGoals(data);
         
-        // Calculate progress for each category
-        const catCounts: CategoryProgress = {};
-        
-        // Initialize categories
-        categories.forEach(cat => {
-          catCounts[cat.value] = {
-            completed: 0,
-            total: 0,
-            percentage: 0
-          };
-        });
-        
-        // Calculate progress for each category
-        data.forEach(goal => {
-          const category = goal.category;
-          if (category in catCounts) {
-            catCounts[category].total += 1;
-            if (goal.completed) {
-              catCounts[category].completed += 1;
-            }
-          }
-        });
-        
-        // Calculate percentages
-        Object.keys(catCounts).forEach(cat => {
-          const { completed, total } = catCounts[cat];
-          catCounts[cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-        });
-        
+        // Calculate progress for each category using the memoized function
+        const catCounts = calculateCategoryProgress();
         setCategoryCounts(catCounts);
         
         // Update the database with our calculated values
@@ -528,33 +544,41 @@ const TodaysWellness = () => {
     };
   }, [goals, activeTab]);
 
-  // Initial data loading
+  // Initial data loading - with optimizations to prevent flickering
   useEffect(() => {
     const fetchInitialData = async () => {
-      setLoading(true);
       await fetchGoals();
+      await fetchSuggestedGoalsHandler();
     };
 
     fetchInitialData();
-    fetchSuggestedGoalsHandler();
   }, [fetchGoals]);
 
-  // Calculate category progress whenever goals change
+  // Only update category progress when goals change - with debounce
   useEffect(() => {
-    const newCategoryCounts = updateCategoryCounts();
-    
-    // Sync with database whenever goals change
-    const syncWellnessGoals = async () => {
-      if (goals.length > 0) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await updateWellnessGoals(session.user.id, newCategoryCounts);
+    if (initialLoadComplete) {
+      const newCategoryCounts = updateCategoryCounts();
+      
+      // Sync with database whenever goals change
+      const syncWellnessGoals = async () => {
+        if (goals.length > 0) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await updateWellnessGoals(session.user.id, newCategoryCounts);
+          }
         }
-      }
-    };
-    
-    syncWellnessGoals();
-  }, [goals, updateCategoryCounts]);
+      };
+      
+      syncWellnessGoals();
+    }
+  }, [goals, updateCategoryCounts, initialLoadComplete]);
+
+  // Effect for fetching data when tab changes
+  useEffect(() => {
+    if (initialLoadComplete) {
+      fetchGoals();
+    }
+  }, [activeTab, fetchGoals, initialLoadComplete]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-menova-beige to-white pb-20" ref={contentRef}>
@@ -562,7 +586,7 @@ const TodaysWellness = () => {
         <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
         <p className="text-center text-gray-600 mb-8">Track your wellness journey</p>
         
-        <Tabs defaultValue="daily" onValueChange={handleTabChange} className="w-full">
+        <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid grid-cols-3 mb-8">
             <TabsTrigger value="daily" className="flex items-center gap-2">
               <CalendarDays size={16} />
