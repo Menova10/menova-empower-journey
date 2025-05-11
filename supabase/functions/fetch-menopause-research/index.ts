@@ -84,22 +84,28 @@ async function fetchResearchWithFirecrawl(searchTerm: string, limit: number) {
       });
     }
     
-    // If no results from Firecrawl or error, fall back to PubMed and Semantic Scholar APIs
+    // If no results from Firecrawl, try PubMed and Semantic Scholar APIs
     const [pubmedData, semanticScholarData] = await Promise.all([
       fetchPubMedData(searchTerm, Math.ceil(limit / 2)),
       fetchSemanticScholarData(searchTerm, Math.ceil(limit / 2))
     ]);
     
-    return [...pubmedData, ...semanticScholarData];
+    const combinedResults = [...pubmedData, ...semanticScholarData];
+    
+    // Return actual API data or empty array, not fallback data
+    return combinedResults;
   } catch (error) {
     console.error('Error fetching research with Firecrawl:', error);
-    // Fall back to direct API calls
+    // Try other APIs
     const [pubmedData, semanticScholarData] = await Promise.all([
       fetchPubMedData(searchTerm, Math.ceil(limit / 2)),
       fetchSemanticScholarData(searchTerm, Math.ceil(limit / 2))
     ]);
     
-    return [...pubmedData, ...semanticScholarData];
+    const combinedResults = [...pubmedData, ...semanticScholarData];
+    
+    // Return actual API data or empty array, not fallback data
+    return combinedResults;
   }
 }
 
@@ -126,18 +132,18 @@ async function fetchVideosWithFirecrawl(searchTerm: string, limit: number) {
           year: year,
           summary: video.description || video.title,
           url: video.url,
-          thumbnail: video.thumbnail || `https://i.ytimg.com/vi/${video.url.split('v=')[1] || 'default'}/mqdefault.jpg`,
+          thumbnail: video.thumbnail || "",
           type: 'video'
         };
       });
     }
     
-    // Fall back to fetching YouTube videos directly
-    return fetchYoutubeVideos(searchTerm, limit);
+    // Return empty array - no fallbacks
+    return [];
   } catch (error) {
     console.error('Error fetching videos with Firecrawl:', error);
-    // Fall back to direct YouTube API calls
-    return fetchYoutubeVideos(searchTerm, limit);
+    // Return empty array instead of fallback data
+    return [];
   }
 }
 
@@ -228,83 +234,6 @@ async function fetchSemanticScholarData(searchTerm: string, limit: number) {
     });
   } catch (error) {
     console.error('Error fetching Semantic Scholar data:', error);
-    return [];
-  }
-}
-
-// Fetch videos from YouTube with realistic fallbacks (if Firecrawl fails)
-async function fetchYoutubeVideos(searchTerm: string, limit: number) {
-  try {
-    // NOTE: In a real implementation, we would call the YouTube API
-    // Since we're using Firecrawl as the primary source and this is just a fallback,
-    // we'll return a more realistic set of fallback videos
-    
-    const defaultVideos = [
-      {
-        id: 'video1',
-        title: 'Understanding Perimenopause: Latest Research',
-        channel: 'Mayo Clinic',
-        year: new Date().getFullYear().toString(),
-        summary: 'Experts discuss the latest research on managing perimenopause symptoms and hormonal changes.',
-        url: 'https://www.youtube.com/watch?v=example1',
-        thumbnail: 'https://i.ytimg.com/vi/example1/mqdefault.jpg',
-        type: 'video'
-      },
-      {
-        id: 'video2',
-        title: 'Hormone Therapy Options in Menopause',
-        channel: 'Cleveland Clinic',
-        year: (new Date().getFullYear() - 1).toString(),
-        summary: 'A detailed look at hormone therapy options for menopause based on recent clinical trials.',
-        url: 'https://www.youtube.com/watch?v=example2',
-        thumbnail: 'https://i.ytimg.com/vi/example2/mqdefault.jpg',
-        type: 'video'
-      },
-      {
-        id: 'video3',
-        title: 'Mental Health Through Menopause Transition',
-        channel: 'North American Menopause Society',
-        year: new Date().getFullYear().toString(),
-        summary: 'Strategies for maintaining mental wellness during menopause based on new research.',
-        url: 'https://www.youtube.com/watch?v=example3',
-        thumbnail: 'https://i.ytimg.com/vi/example3/mqdefault.jpg',
-        type: 'video'
-      },
-      {
-        id: 'video4',
-        title: 'Sleep Issues in Perimenopause and Menopause',
-        channel: 'Sleep Foundation',
-        year: new Date().getFullYear().toString(),
-        summary: 'How hormonal changes during perimenopause affect sleep patterns and what you can do about it.',
-        url: 'https://www.youtube.com/watch?v=example4',
-        thumbnail: 'https://i.ytimg.com/vi/example4/mqdefault.jpg',
-        type: 'video'
-      },
-      {
-        id: 'video5',
-        title: 'Diet and Nutrition for Menopausal Health',
-        channel: 'Harvard Health',
-        year: (new Date().getFullYear() - 1).toString(),
-        summary: 'Evidence-based nutritional approaches to managing menopause symptoms and supporting overall health.',
-        url: 'https://www.youtube.com/watch?v=example5',
-        thumbnail: 'https://i.ytimg.com/vi/example5/mqdefault.jpg',
-        type: 'video'
-      }
-    ];
-    
-    // Add the search term to make results seem more relevant
-    const searchTermWords = searchTerm.toLowerCase().split(' ');
-    return defaultVideos.map(video => {
-      // Include the search term in 50% of results to make them appear more relevant
-      if (Math.random() > 0.5) {
-        const randomWord = searchTermWords[Math.floor(Math.random() * searchTermWords.length)];
-        video.title = `${video.title}: ${randomWord.charAt(0).toUpperCase() + randomWord.slice(1)}`;
-        video.summary = `${randomWord.charAt(0).toUpperCase() + randomWord.slice(1)} - ${video.summary}`;
-      }
-      return video;
-    }).slice(0, limit);
-  } catch (error) {
-    console.error('Error fetching YouTube data:', error);
     return [];
   }
 }

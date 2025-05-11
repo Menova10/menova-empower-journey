@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
-import { Volume2, RefreshCw } from 'lucide-react';
+import { Volume2, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 type ContentItem = Database['public']['Tables']['content_hub']['Row'];
@@ -35,6 +35,7 @@ export default function ContentHub() {
   const [activeTab, setActiveTab] = useState('articles');
   const [speaking, setSpeaking] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const supabase = useSupabaseClient<Database>();
   const user = useUser();
@@ -48,6 +49,8 @@ export default function ContentHub() {
 
   const fetchContent = async () => {
     setIsLoading(true);
+    setFetchError(null);
+    
     try {
       // Use the enhanced-content-fetch edge function
       const { data: articleData, error: articleError } = await supabase.functions.invoke('enhanced-content-fetch', {
@@ -80,12 +83,22 @@ export default function ContentHub() {
       if (videoError) throw videoError;
 
       // Combine and set the content
-      const combinedContent = [...(articleData || []), ...(videoData || [])];
-      setContent(combinedContent);
-      setLastRefreshed(new Date());
+      const combinedContent = [
+        ...(Array.isArray(articleData) && articleData.length > 0 ? articleData : []), 
+        ...(Array.isArray(videoData) && videoData.length > 0 ? videoData : [])
+      ];
+      
+      if (combinedContent.length > 0) {
+        setContent(combinedContent);
+        setLastRefreshed(new Date());
+      } else {
+        setContent([]);
+        setFetchError("No content found. Please try again.");
+      }
       
     } catch (error) {
       console.error('Error fetching content:', error);
+      setFetchError("Failed to fetch content. Please try again.");
       toast.error('Failed to fetch content. Please try again.');
     } finally {
       setIsLoading(false);
@@ -104,9 +117,16 @@ export default function ContentHub() {
         .limit(5);
 
       if (error) throw error;
-      setUserSymptoms(data.map(item => item.symptom));
+      
+      if (data && data.length > 0) {
+        setUserSymptoms(data.map(item => item.symptom));
+      } else {
+        // Use default symptoms if none found
+        setUserSymptoms(['Hot Flashes', 'Sleep', 'Mood']);
+      }
     } catch (error) {
       console.error('Error fetching user symptoms:', error);
+      setUserSymptoms(['Hot Flashes', 'Sleep', 'Mood']);
     }
   };
 
@@ -274,7 +294,14 @@ export default function ContentHub() {
             </Card>
           )) : (
             <Card className="p-6 text-center bg-white/90">
-              <p className="text-muted-foreground mb-2">No articles found.</p>
+              {fetchError ? (
+                <div className="flex flex-col items-center text-center">
+                  <AlertCircle className="text-amber-500 h-8 w-8 mb-2" />
+                  <p className="text-muted-foreground mb-2">{fetchError}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground mb-2">No articles found.</p>
+              )}
               <Button 
                 onClick={fetchContent}
                 className="bg-[#4caf50] hover:bg-[#388e3c]"
@@ -298,14 +325,19 @@ export default function ContentHub() {
                 <CardDescription>{item.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                  <iframe
-                    src={item.url}
-                    title={item.title}
-                    className="w-full h-full"
-                    allowFullScreen
-                  />
-                </div>
+                {item.url && (
+                  <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                    <iframe
+                      src={item.url}
+                      title={item.title}
+                      className="w-full h-full"
+                      allowFullScreen
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="flex gap-2 flex-wrap mt-4">
                   {item.category?.map((tag, idx) => (
                     <Badge key={idx} variant="outline" className="bg-[#f1f8e9] text-[#388e3c] border-[#c5e1a5]">
@@ -332,7 +364,14 @@ export default function ContentHub() {
             </Card>
           )) : (
             <Card className="p-6 text-center bg-white/90">
-              <p className="text-muted-foreground mb-2">No videos found.</p>
+              {fetchError ? (
+                <div className="flex flex-col items-center text-center">
+                  <AlertCircle className="text-amber-500 h-8 w-8 mb-2" />
+                  <p className="text-muted-foreground mb-2">{fetchError}</p>
+                </div>
+              ) : (
+                <p className="text-muted-foreground mb-2">No videos found.</p>
+              )}
               <Button 
                 onClick={fetchContent}
                 className="bg-[#4caf50] hover:bg-[#388e3c]"

@@ -45,9 +45,11 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
   const [research, setResearch] = useState<ResearchItem[]>([]);
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchResearchData = async () => {
     setIsLoading(true);
+    setFetchError(null);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-menopause-research', {
         body: { 
@@ -60,12 +62,20 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
       if (error) throw error;
 
       if (data) {
-        setResearch(data.research || []);
-        setVideos(data.videos || []);
+        // Only set data if we actually have results
+        setResearch(Array.isArray(data.research) && data.research.length > 0 ? data.research : []);
+        setVideos(Array.isArray(data.videos) && data.videos.length > 0 ? data.videos : []);
         setLastFetched(new Date());
+      } else {
+        setResearch([]);
+        setVideos([]);
+        setFetchError("No content found. Please try again later.");
       }
     } catch (error) {
       console.error('Error fetching research data:', error);
+      setFetchError("Failed to fetch content. Please try again later.");
+      setResearch([]);
+      setVideos([]);
     } finally {
       setIsLoading(false);
     }
@@ -208,12 +218,15 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
                   </CardHeader>
                   
                   <CardContent>
-                    {item.type === 'video' && (
+                    {item.type === 'video' && item.thumbnail && (
                       <div className="aspect-video mb-3 rounded-md overflow-hidden bg-gray-100">
                         <img 
                           src={item.thumbnail} 
                           alt={item.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                       </div>
                     )}
@@ -245,7 +258,9 @@ export default function ResearchSection({ topic = 'menopause', phase = 'perimeno
             </div>
           ) : (
             <div className="text-center py-10 border rounded-lg bg-white/90">
-              <p className="text-muted-foreground mb-4">No content found.</p>
+              <p className="text-muted-foreground mb-4">
+                {fetchError || "No content available."}
+              </p>
               <Button 
                 onClick={fetchResearchData}
                 className="bg-[#4caf50] hover:bg-[#388e3c]"

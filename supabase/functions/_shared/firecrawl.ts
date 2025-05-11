@@ -15,7 +15,7 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     
     if (!apiKey) {
       console.warn("FIRECRAWL_API_KEY not found in environment variables");
-      return getFallbackImages(count);
+      return [];
     }
     
     console.log(`Fetching ${count} images for query: "${query}" from Firecrawl`);
@@ -43,16 +43,22 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
     
     // Extract image URLs from the response
     if (data && data.results && Array.isArray(data.results)) {
-      return data.results
+      const imageUrls = data.results
         .filter(result => result.image && result.image.url)
         .map(result => result.image.url)
         .slice(0, count);
+      
+      // Only return images if we actually got some
+      if (imageUrls.length > 0) {
+        return imageUrls;
+      }
     }
     
-    return getFallbackImages(count);
+    // Return empty array instead of fallback images if no results
+    return [];
   } catch (error) {
     console.error(`Error fetching images from Firecrawl: ${error}`);
-    return getFallbackImages(count);
+    return []; // Return empty array instead of fallback images
   }
 }
 
@@ -74,7 +80,7 @@ export async function scrapeContentWithFirecrawl(
     
     if (!apiKey) {
       console.warn("FIRECRAWL_API_KEY not found in environment variables");
-      throw new Error("Firecrawl API key not configured");
+      return []; // Return empty array instead of throwing
     }
     
     // Create the search query
@@ -111,14 +117,14 @@ export async function scrapeContentWithFirecrawl(
       console.error(`Firecrawl API responded with status: ${response.status}`);
       const errorText = await response.text();
       console.error(`Error response body: ${errorText}`);
-      throw new Error(`Firecrawl API error: ${response.status} ${response.statusText}`);
+      return []; // Return empty array instead of throwing
     }
     
     const data = await response.json();
     console.log(`Firecrawl returned ${data.results?.length || 0} results for ${contentType}`);
     
     // Process and normalize the results based on content type
-    if (data.results && Array.isArray(data.results)) {
+    if (data.results && Array.isArray(data.results) && data.results.length > 0) {
       return data.results.map(result => {
         // Format varies between video and article results
         if (contentType === 'video') {
@@ -146,28 +152,12 @@ export async function scrapeContentWithFirecrawl(
       });
     }
     
-    // Return empty array if no results
+    // Return empty array if no results instead of fallback data
     return [];
   } catch (error) {
     console.error(`Error scraping content with Firecrawl: ${error}`);
-    throw error;
+    return []; // Return empty array instead of throwing
   }
 }
 
-/**
- * Returns fallback image URLs when Firecrawl is unavailable
- */
-function getFallbackImages(count: number): string[] {
-  const fallbackImages = [
-    "https://images.unsplash.com/photo-1559090286-36796926e134",
-    "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7",
-    "https://images.unsplash.com/photo-1498837167922-ddd27525d352",
-    "https://images.unsplash.com/photo-1520206183501-bcd25647c97c",
-    "https://images.unsplash.com/photo-1576091160550-2173dba999ef",
-    "https://images.unsplash.com/photo-1506126613408-eca07ce68773",
-    "https://images.unsplash.com/photo-1559156503-0a0759882389",
-    "https://images.unsplash.com/photo-1506126944674-00c6c192e0a3"
-  ];
-  
-  return fallbackImages.slice(0, count);
-}
+// Remove the fallback images function since we don't want to show dummy data
