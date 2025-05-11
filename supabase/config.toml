@@ -4,17 +4,17 @@ project_id = "kiuaitdfimlmgvkybuxx"
 [api]
 enabled = true
 port = 54321
-schemas = ["public", "storage", "graphql_public"]
+schemas = ["public", "storage"]
 
 [db]
 port = 54322
-shadow_port = 54320
-major_version = 15
+
+[realtime]
+enabled = true
 
 [studio]
 enabled = true
 port = 54323
-api_url = "http://localhost"
 
 [inbucket]
 enabled = true
@@ -23,19 +23,17 @@ port = 54324
 [storage]
 enabled = true
 
-[auth]
-enabled = true
-site_url = "http://localhost:3000"
+[functions.fetch-menopause-research]
+verify_jwt = false
 
-[realtime]
-enabled = true
+[functions.enhanced-content-fetch]
+verify_jwt = false
 
-[analytics]
-enabled = false
+[functions.daily-quote]
+verify_jwt = false
 
-[vector]
-enabled = true
+[functions.suggest-wellness-goals]
+verify_jwt = false
 
-[[functions]]
-name = "fetch-menopause-research"
+[functions.test-api-connectivity]
 verify_jwt = false

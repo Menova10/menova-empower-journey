@@ -18,7 +18,7 @@ export async function getImagesFromFirecrawl(query: string, count: number = 3): 
       return [];
     }
     
-    console.log(`Fetching ${count} images for query: "${query}" from Firecrawl`);
+    console.log(`Fetching ${count} images for query: "${query}" from Firecrawl with API key: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
     
     // Try the new API endpoint structure first
     const response = await fetch("https://api.firecrawl.dev/images/search", {
@@ -85,7 +85,7 @@ export async function scrapeContentWithFirecrawl(
     }
     
     // Create the search query
-    console.log(`Scraping content for query: "${topic}" from Firecrawl`);
+    console.log(`Scraping content for query: "${topic}" from Firecrawl with API key: ${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
     
     // Updated to use the correct API endpoint
     let searchEndpoint;
@@ -172,3 +172,87 @@ export async function scrapeContentWithFirecrawl(
     return [];
   }
 }
+
+/**
+ * Tests the Firecrawl API connectivity
+ * @returns Object with test results
+ */
+export async function testFirecrawlConnectivity(): Promise<{
+  success: boolean;
+  message: string;
+  details?: any;
+}> {
+  try {
+    const apiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    
+    if (!apiKey) {
+      return {
+        success: false,
+        message: "FIRECRAWL_API_KEY not found in environment variables"
+      };
+    }
+    
+    console.log("Testing Firecrawl API connectivity with API key: " + 
+      `${apiKey.substring(0, 3)}...${apiKey.substring(apiKey.length - 3)}`);
+    
+    // Test the image search endpoint
+    const imageResponse = await fetch("https://api.firecrawl.dev/images/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: "menopause test",
+        limit: 1
+      })
+    });
+    
+    // Test the web search endpoint
+    const webResponse = await fetch("https://api.firecrawl.dev/web/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        query: "menopause test",
+        limit: 1
+      })
+    });
+    
+    const results = {
+      imageSearch: {
+        status: imageResponse.status,
+        statusText: imageResponse.statusText,
+        ok: imageResponse.ok
+      },
+      webSearch: {
+        status: webResponse.status,
+        statusText: webResponse.statusText,
+        ok: webResponse.ok
+      }
+    };
+    
+    const success = imageResponse.ok || webResponse.ok;
+    
+    return {
+      success,
+      message: success 
+        ? "Firecrawl API connection successful" 
+        : "Failed to connect to Firecrawl API",
+      details: results
+    };
+  } catch (error) {
+    console.error("Error testing Firecrawl connectivity:", error);
+    return {
+      success: false,
+      message: `Firecrawl connectivity test error: ${error.message || error}`,
+      details: {
+        error: error.message || String(error),
+        stack: error.stack
+      }
+    };
+  }
+}
+
