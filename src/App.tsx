@@ -52,7 +52,7 @@ function App() {
           
           {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
           {!hideFloatingButton && (
-            <div className="z-40">
+            <div className="fixed bottom-6 right-6 z-40">
               <MeNovaChatButton variant="floating" />
             </div>
           )}

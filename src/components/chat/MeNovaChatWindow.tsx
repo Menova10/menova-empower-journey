@@ -21,11 +21,12 @@ interface MeNovaChatWindowProps {
 
 // MeNovaAvatar Component
 const MeNovaAvatar = () => (
-  <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white">
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a9 9 0 0 1 9 9c0 3.3-1.8 6.3-4.5 7.9L12 22l-4.5-3.1A9 9 0 0 1 12 2z"></path>
-      <path d="M12 7v5l2.5 2.5"></path>
-    </svg>
+  <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
+    <img 
+      src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png" 
+      alt="MeNova Character" 
+      className="w-full h-full object-cover"
+    />
   </div>
 );
 
@@ -52,7 +53,7 @@ const QuickReplyButton = ({
   return (
     <button 
       onClick={handleClick}
-      className="text-xs bg-green-500 text-white px-3 py-1 rounded-full hover:bg-green-600 transition-all hover:scale-105"
+      className="text-xs bg-green-500 text-white px-3 py-1.5 rounded-full hover:bg-green-600 transition-all hover:scale-105"
     >
       {label}
     </button>
@@ -88,7 +89,7 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
     if (messages.length === 0) {
       setMessages([
         {
-          text: "Hello! I'm MeNova, your companion through menopause. How can I help you today?",
+          text: "Hello! I'm MeNova, your dedicated companion on your menopause journey. I'm here to provide support, answer your questions, and help you track your symptoms. How are you feeling today?",
           sender: 'menova',
           timestamp: new Date(),
           quickReplies: true
@@ -349,65 +350,65 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
   
   // Determine the container classes based on isMaximized state
   const containerClasses = isMaximized
-    ? "fixed inset-4 z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-xl backdrop-blur-md bg-white/30 border border-white/20 animate-scale-in"
-    : "fixed bottom-20 right-6 w-96 h-[500px] z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-lg backdrop-blur-md bg-white/30 border border-white/20";
+    ? "fixed inset-4 z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-xl backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300"
+    : "fixed bottom-20 right-6 w-96 h-[600px] z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-lg backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300";
 
   return (
     <div className={containerClasses}>
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-3 border-b border-green-100">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between p-4 border-b border-green-200 bg-green-100/50 rounded-t-lg">
+        <div className="flex items-center space-x-3">
           <MeNovaAvatar />
-          <h3 className="font-semibold text-green-800">Chat with MeNova</h3>
+          <div>
+            <h3 className="font-semibold text-green-800">Chat with MeNova</h3>
+            <p className="text-xs text-green-600">Your menopause wellness companion</p>
+          </div>
         </div>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-2">
           <button
             onClick={toggleMaximize}
-            className="p-1.5 rounded-full hover:bg-green-100 transition-colors"
+            className="p-1.5 rounded-full hover:bg-green-200/70 transition-colors"
             aria-label={isMaximized ? "Minimize" : "Maximize"}
           >
-            {isMaximized ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            {isMaximized ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
           </button>
           <button
             onClick={closeChat}
             className="p-1.5 rounded-full hover:bg-red-100 transition-colors"
             aria-label="Close"
           >
-            <X size={16} />
+            <X size={18} />
           </button>
         </div>
       </div>
       
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 bg-white/10 backdrop-blur-sm">
+      <div className="flex-1 overflow-y-auto p-4 bg-white/30 backdrop-blur-sm">
         {messages.map((message, index) => (
           <div key={index} className="mb-4">
             <div 
               className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {message.sender === 'menova' && (
-                <div className="w-8 h-8 rounded-full overflow-hidden mr-2 flex items-center justify-center bg-green-500 text-white">
-                  <MeNovaAvatar />
-                </div>
+                <MeNovaAvatar />
               )}
               <div 
-                className={`max-w-[70%] rounded-lg px-4 py-2.5 transition-all hover:shadow-md ${
+                className={`max-w-[75%] rounded-lg px-4 py-3 ${
                   message.sender === 'user' 
-                    ? 'bg-green-500 text-white animate-slide-right transform hover:scale-[1.02]' 
-                    : 'bg-white border border-green-100 text-gray-800 animate-fade-in transform hover:scale-[1.02]'
+                    ? 'bg-green-500 text-white ml-2 rounded-tr-none animate-slide-left shadow-md' 
+                    : 'bg-white border border-green-200 text-gray-800 mr-2 rounded-tl-none animate-slide-right shadow-sm'
                 }`}
               >
-                <p className="text-sm">{message.text}</p>
-                <p className="text-xs opacity-70 mt-1">
+                <p className={`${message.sender === 'user' ? 'text-sm' : 'text-sm leading-relaxed'}`}>{message.text}</p>
+                <p className="text-xs opacity-70 mt-1 text-right">
                   {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
-              {message.sender === 'user' && <div className="w-8"></div>}
             </div>
             
             {/* Quick reply buttons after MeNova messages */}
             {message.sender === 'menova' && message.quickReplies && (
-              <div className="ml-10 mt-2 flex flex-wrap gap-2">
+              <div className="ml-12 mt-2 flex flex-wrap gap-2">
                 {message.detectedSymptom && (
                   <QuickReplyButton 
                     label="Log this symptom" 
@@ -441,27 +442,27 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
       </div>
       
       {/* Input Container */}
-      <div className="p-3 border-t border-green-100 bg-white/30">
+      <div className="p-4 border-t border-green-200 bg-white/50">
         {speechError && (
-          <div className="text-red-500 text-xs mb-2">{speechError}</div>
+          <div className="text-red-500 text-xs mb-2 px-2">{speechError}</div>
         )}
         <div className="flex items-center space-x-2">
           <button
             onClick={toggleListening}
-            className={`p-2 rounded-full transition-colors ${
+            className={`p-2.5 rounded-full transition-all ${
               isListening 
-                ? 'bg-red-500 text-white mic-animated' 
+                ? 'bg-red-500 text-white mic-animated shadow-md pulse-animation' 
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
             aria-label={isListening ? "Stop listening" : "Start voice input"}
           >
-            <Mic size={18} />
+            <Mic size={20} />
           </button>
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            className="flex-1 p-2 border border-green-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500/50 bg-white/50"
+            className="flex-1 p-3 border border-green-200 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500/50 bg-white/80 shadow-inner"
             placeholder="Type your message..."
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -471,12 +472,12 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
           />
           <button 
             onClick={handleSendMessage}
-            className={`p-2 rounded-full bg-green-500 text-white transition-all hover:bg-green-600 ${
-              inputText.trim() ? 'animate-pulse' : 'opacity-50'
+            className={`p-3 rounded-full bg-green-500 text-white transition-all hover:bg-green-600 shadow-sm ${
+              inputText.trim() && !isLoading ? 'animate-pulse' : 'opacity-70'
             }`}
             disabled={!inputText.trim() || isLoading}
           >
-            <Send size={18} />
+            <Send size={20} />
           </button>
         </div>
       </div>
@@ -490,6 +491,64 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
           <span>Back to Home</span>
         </button>
       )}
+      
+      {/* CSS for animations */}
+      <style jsx>{`
+        @keyframes typing {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 1; }
+        }
+        
+        @keyframes slide-right {
+          from { transform: translateX(-10px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slide-left {
+          from { transform: translateX(10px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes pulse-animation {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        .typing-dot {
+          display: inline-block;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background-color: currentColor;
+          margin: 0 1px;
+        }
+        
+        .animate-typing {
+          animation: typing 1.4s infinite;
+          animation-fill-mode: both;
+        }
+        
+        .animate-typing:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+        
+        .animate-typing:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+        
+        .animate-slide-right {
+          animation: slide-right 0.3s ease-out;
+        }
+        
+        .animate-slide-left {
+          animation: slide-left 0.3s ease-out;
+        }
+        
+        .pulse-animation {
+          animation: pulse-animation 2s infinite;
+        }
+      `}</style>
     </div>
   );
 };
