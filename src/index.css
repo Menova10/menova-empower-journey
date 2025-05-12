@@ -51,49 +51,18 @@
 
     --sidebar-ring: 217.2 91.2% 59.8%;
     
-    /* MeNova green theme colors */
-    --menova-green: #4caf50;
-    --menova-green-dark: #2e7d32;
-    --menova-green-light: #c8e6c9;
-    --menova-green-bg: #f9fdf3;
+    /* MeNova theme colors - reduced green and peach, more whitish */
+    --menova-green: #4ade80;
+    --menova-green-dark: #22c55e;
+    --menova-green-light: #dcfce7;
+    --menova-green-bg: #f9fdf9;
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* ... keep existing code (dark theme variables) */
   }
 }
 
@@ -106,9 +75,9 @@
     @apply bg-background text-foreground;
   }
   
-  /* MeNova app specific styles */
+  /* MeNova app specific styles - updated for whitish theme */
   .app-container {
-    @apply bg-gradient-to-b from-[#f9fdf3] to-white;
+    @apply bg-gradient-to-b from-[#ffffff] to-[#f9fafb];
   }
   
   .card-hover {
@@ -118,23 +87,23 @@
 
 @layer components {
   .menova-card {
-    @apply bg-white rounded-xl border border-[#e8f5e9] shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300;
   }
   
   .menova-button-primary {
-    @apply bg-[#4caf50] hover:bg-[#388e3c] text-white shadow-sm hover:shadow-md transition-all;
+    @apply bg-[#4ade80] hover:bg-[#22c55e] text-white shadow-sm hover:shadow-md transition-all;
   }
   
   .menova-button-outline {
-    @apply border-[#4caf50] text-[#4caf50] hover:bg-[#e8f5e9] hover:text-[#2e7d32] transition-all;
+    @apply border-[#4ade80] text-[#4ade80] hover:bg-[#f0fdf4] hover:text-[#22c55e] transition-all;
   }
   
   .section-title {
-    @apply text-2xl font-bold text-[#2e7d32] mb-4;
+    @apply text-2xl font-bold text-gray-800 mb-4;
   }
 }
 
-/* Custom styles for Vapi controls */
+/* Custom styles for Vapi controls - updated for whitish theme */
 .mic-active, .speaker-active {
   color: white;
   background-color: var(--menova-green);
@@ -149,3 +118,36 @@
   50% { opacity: 1; }
   100% { opacity: 0.6; }
 }
+
+/* Additional styles for the fixed header */
+.header-blur {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Enhancements for breadcrumb transitions */
+.breadcrumb-link {
+  transition: all 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--menova-green);
+}
+
+/* Animation for page transitions */
+@keyframes fade-in {
+  0% { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+/* ... keep existing code (remaining animations) */
