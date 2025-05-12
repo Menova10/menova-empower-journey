@@ -122,9 +122,22 @@ const Header = () => {
                             className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/chat')}
                           >
-                            <div className="text-sm font-medium">Chat Assistant</div>
+                            <div className="text-sm font-medium">Voice Assistant</div>
                             <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Get personalized support
+                              Voice-based support
+                            </p>
+                          </a>
+                        </NavigationMenuLink>
+                      </li>
+                      <li>
+                        <NavigationMenuLink asChild>
+                          <a
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
+                            onClick={() => navigate('/text-chat')}
+                          >
+                            <div className="text-sm font-medium">Text Chat</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Chat with MeNova
                             </p>
                           </a>
                         </NavigationMenuLink>
