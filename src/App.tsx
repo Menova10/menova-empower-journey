@@ -1,5 +1,5 @@
 
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -21,16 +21,22 @@ import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
 import './App.css';
 
-function App() {
-  const currentPath = window.location.pathname;
-  const hideFloatingButton = currentPath === '/chat' || currentPath === '/text-chat';
+// This component determines whether to show the header based on the current route
+const ConditionalHeader = () => {
+  const location = useLocation();
+  const hideHeaderPaths = ['/chat', '/text-chat'];
+  const shouldShowHeader = !hideHeaderPaths.includes(location.pathname);
+  
+  return shouldShowHeader ? <Header /> : null;
+};
 
+function App() {
   return (
     <VapiProvider>
       <Router>
         <div className="min-h-screen flex flex-col">
-          <Header />
-          <div className="pt-24 flex-1">
+          <ConditionalHeader />
+          <div className={`flex-1 ${window.location.pathname === '/chat' || window.location.pathname === '/text-chat' ? '' : 'pt-24'}`}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -51,7 +57,7 @@ function App() {
           </div>
           
           {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
-          {!hideFloatingButton && (
+          {(window.location.pathname !== '/chat' && window.location.pathname !== '/text-chat') && (
             <div className="fixed bottom-6 right-6 z-40">
               <MeNovaChatButton variant="floating" />
             </div>

@@ -350,7 +350,7 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
   
   // Determine the container classes based on isMaximized state
   const containerClasses = isMaximized
-    ? "fixed inset-4 z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-xl backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300"
+    ? "fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-xl backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300"
     : "fixed bottom-20 right-6 w-96 h-[600px] z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-lg backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300";
 
   return (
@@ -492,8 +492,8 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
         </button>
       )}
       
-      {/* CSS for animations */}
-      <style jsx>{`
+      <style>
+        {`
         @keyframes typing {
           0%, 100% { opacity: 0.3; }
           50% { opacity: 1; }
@@ -548,7 +548,8 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
         .pulse-animation {
           animation: pulse-animation 2s infinite;
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
