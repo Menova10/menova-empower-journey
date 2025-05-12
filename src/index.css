@@ -51,16 +51,17 @@
 
     --sidebar-ring: 217.2 91.2% 59.8%;
     
-    /* MeNova theme colors - enhanced with greenish-peach */
+    /* MeNova theme colors - reduced green and peach, more whitish */
     --menova-green: #4ade80;
     --menova-green-dark: #22c55e;
     --menova-green-light: #dcfce7;
-    --menova-green-bg: #f0f9f0;
-    --menova-peach: #fde1d3;
-    --menova-peach-light: #fff5f0;
+    --menova-green-bg: #f9fdf9;
   }
 
   .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
     /* ... keep existing code (dark theme variables) */
   }
 }
@@ -74,9 +75,9 @@
     @apply bg-background text-foreground;
   }
   
-  /* MeNova app specific styles - updated for greenish-peach theme */
+  /* MeNova app specific styles - updated for whitish theme */
   .app-container {
-    @apply bg-gradient-to-b from-[#f2f9f2] to-[#fef5f0];
+    @apply bg-gradient-to-b from-[#ffffff] to-[#f9fafb];
   }
   
   .card-hover {
@@ -86,7 +87,7 @@
 
 @layer components {
   .menova-card {
-    @apply bg-gradient-to-br from-white to-[#f8fdf8] rounded-xl border border-green-100/60 shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300;
   }
   
   .menova-button-primary {
@@ -102,7 +103,7 @@
   }
 }
 
-/* Custom styles for Vapi controls - updated for greenish-peach theme */
+/* Custom styles for Vapi controls - updated for whitish theme */
 .mic-active, .speaker-active {
   color: white;
   background-color: var(--menova-green);
