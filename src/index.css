@@ -50,12 +50,6 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
-    
-    /* MeNova theme colors - reduced green and peach, more whitish */
-    --menova-green: #4ade80;
-    --menova-green-dark: #22c55e;
-    --menova-green-light: #dcfce7;
-    --menova-green-bg: #f9fdf9;
   }
 
   .dark {
@@ -74,15 +68,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  
-  /* MeNova app specific styles - updated for whitish theme */
-  .app-container {
-    @apply bg-gradient-to-b from-[#ffffff] to-[#f9fafb];
-  }
-  
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-md hover:scale-[1.01];
-  }
 }
 
 @layer components {
@@ -91,11 +76,11 @@
   }
   
   .menova-button-primary {
-    @apply bg-[#4ade80] hover:bg-[#22c55e] text-white shadow-sm hover:shadow-md transition-all;
+    @apply bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow-md transition-all;
   }
   
   .menova-button-outline {
-    @apply border-[#4ade80] text-[#4ade80] hover:bg-[#f0fdf4] hover:text-[#22c55e] transition-all;
+    @apply border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600 transition-all;
   }
   
   .section-title {
@@ -103,10 +88,10 @@
   }
 }
 
-/* Custom styles for Vapi controls - updated for whitish theme */
+/* Custom styles for Vapi controls */
 .mic-active, .speaker-active {
   color: white;
-  background-color: var(--menova-green);
+  background-color: #22c55e;
 }
 
 .mic-animated {
@@ -131,7 +116,7 @@
 }
 
 .breadcrumb-link:hover {
-  color: var(--menova-green);
+  color: #22c55e;
 }
 
 /* Animation for page transitions */

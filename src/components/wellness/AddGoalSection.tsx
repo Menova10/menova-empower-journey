@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Apple, Brain, ActivitySquare } from 'lucide-react';
 import { categories } from '@/types/wellness';
@@ -31,8 +31,8 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
   };
 
   return (
-    <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
-      <h2 className="text-xl font-semibold text-menova-text mb-4">Add New Goal</h2>
+    <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Goal</h2>
       
       <div className="space-y-4">
         <div>
@@ -45,7 +45,7 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
             value={newGoal}
             onChange={(e) => setNewGoal(e.target.value)}
             placeholder="Enter a new wellness goal"
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500/50"
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
           />
         </div>
@@ -79,7 +79,7 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
         <Button 
           onClick={addGoal} 
           disabled={!newGoal.trim()}
-          className="w-full bg-menova-green hover:bg-menova-green/90 text-white flex items-center justify-center gap-2"
+          className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2"
         >
           <Plus size={18} />
           Add Goal

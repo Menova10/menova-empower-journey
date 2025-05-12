@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Menu, User, Bell } from 'lucide-react';
+import { Bell, User, ChevronDown } from 'lucide-react';
 import MeNovaLogo from './MeNovaLogo';
 import { 
   NavigationMenu,
@@ -12,37 +12,34 @@ import {
   NavigationMenuTrigger,
 } from '@/components/ui/navigation-menu';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
-import { cn } from '@/lib/utils';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md shadow-sm border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100">
+      <div className="mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Navigation */}
-          <div className="flex items-center">
-            <MeNovaLogo className="mr-8" />
+          <div className="flex items-center space-x-8">
+            <MeNovaLogo />
             
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-menova-text">Dashboard</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>Dashboard</NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
-                      <li className="row-span-3">
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
+                      <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-menova-green/20 to-menova-green/10 p-6 no-underline outline-none focus:shadow-md"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/')}
                           >
-                            <div className="mb-2 mt-4 text-lg font-medium text-menova-text">
-                              MeNova Home
-                            </div>
-                            <p className="text-sm leading-tight text-menova-text/90">
-                              Return to main dashboard and overview of your wellness journey
+                            <div className="text-sm font-medium">Home</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Return to main dashboard
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -50,12 +47,12 @@ const Header = () => {
                       <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-menova-green/10 focus:bg-menova-green/10"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/todays-wellness')}
                           >
-                            <div className="text-sm font-medium leading-none text-menova-text">Wellness Progress</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-menova-text/70">
-                              Track your daily wellness goals and achievements
+                            <div className="text-sm font-medium">Wellness Progress</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Track your daily goals
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -63,12 +60,12 @@ const Header = () => {
                       <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-menova-green/10 focus:bg-menova-green/10"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/symptom-tracker')}
                           >
-                            <div className="text-sm font-medium leading-none text-menova-text">Symptom Tracker</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-menova-text/70">
-                              Record and monitor your symptoms over time
+                            <div className="text-sm font-medium">Symptom Tracker</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Monitor your symptoms
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -76,12 +73,12 @@ const Header = () => {
                       <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-menova-green/10 focus:bg-menova-green/10"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/check-in')}
                           >
-                            <div className="text-sm font-medium leading-none text-menova-text">Daily Check-in</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-menova-text/70">
-                              Complete your daily wellness check-in
+                            <div className="text-sm font-medium">Daily Check-in</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Complete your daily check-in
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -90,18 +87,18 @@ const Header = () => {
                   </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="text-menova-text">Resources</NavigationMenuTrigger>
+                  <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
                       <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-menova-green/10 focus:bg-menova-green/10"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/resources')}
                           >
-                            <div className="text-sm font-medium leading-none text-menova-text">Articles</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-menova-text/70">
-                              Helpful articles and information
+                            <div className="text-sm font-medium">Articles</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Helpful information
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -109,12 +106,12 @@ const Header = () => {
                       <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-menova-green/10 focus:bg-menova-green/10"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/community')}
                           >
-                            <div className="text-sm font-medium leading-none text-menova-text">Community</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-menova-text/70">
-                              Connect with others on similar journeys
+                            <div className="text-sm font-medium">Community</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Connect with others
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -122,12 +119,12 @@ const Header = () => {
                       <li>
                         <NavigationMenuLink asChild>
                           <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-menova-green/10 focus:bg-menova-green/10"
+                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
                             onClick={() => navigate('/chat')}
                           >
-                            <div className="text-sm font-medium leading-none text-menova-text">Chat Assistant</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-menova-text/70">
-                              Get personalized support from our AI assistant
+                            <div className="text-sm font-medium">Chat Assistant</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
+                              Get personalized support
                             </p>
                           </a>
                         </NavigationMenuLink>
@@ -154,17 +151,11 @@ const Header = () => {
             >
               <User size={20} className="text-gray-700" />
             </button>
-            <button 
-              className="p-2 rounded-full hover:bg-gray-100 md:hidden"
-              aria-label="Menu"
-            >
-              <Menu size={20} className="text-gray-700" />
-            </button>
           </div>
         </div>
         
         {/* Breadcrumb Section */}
-        <div className="px-4 py-2">
+        <div className="py-2">
           <BreadcrumbTrail currentPath={location.pathname} />
         </div>
       </div>
