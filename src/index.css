@@ -86,13 +86,6 @@
   .section-title {
     @apply text-2xl font-bold text-gray-800 mb-4;
   }
-
-  /* Add background pattern style */
-  .bg-menova-pattern {
-    background-image: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0.5)), url('/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png');
-    background-size: cover;
-    background-position: center;
-  }
 }
 
 /* Custom styles for Vapi controls */
