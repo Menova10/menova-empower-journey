@@ -22,6 +22,9 @@ import { Toaster } from './components/ui/toaster';
 import './App.css';
 
 function App() {
+  const currentPath = window.location.pathname;
+  const hideFloatingButton = currentPath === '/chat' || currentPath === '/text-chat';
+
   return (
     <VapiProvider>
       <Router>
@@ -48,11 +51,11 @@ function App() {
           </div>
           
           {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
-          <div className="chat-button-container">
-            {window.location.pathname !== '/chat' && window.location.pathname !== '/text-chat' && (
+          {!hideFloatingButton && (
+            <div className="z-40">
               <MeNovaChatButton variant="floating" />
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <Toaster />
       </Router>

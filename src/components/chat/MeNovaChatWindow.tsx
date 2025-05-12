@@ -15,6 +15,10 @@ interface ChatMessage {
   detectedSymptom?: string | null;
 }
 
+interface MeNovaChatWindowProps {
+  onClose?: () => void;
+}
+
 // MeNovaAvatar Component
 const MeNovaAvatar = () => (
   <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white">
@@ -66,7 +70,7 @@ const TypingIndicator = () => (
 );
 
 // Main Chat Window Component
-const MeNovaChatWindow = () => {
+const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isMaximized, setIsMaximized] = useState(false);
@@ -333,8 +337,9 @@ const MeNovaChatWindow = () => {
   };
   
   const closeChat = () => {
-    // Navigate to home
-    navigate('/');
+    if (onClose) {
+      onClose();
+    }
   };
   
   const toggleListening = () => {
