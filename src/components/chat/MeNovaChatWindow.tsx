@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Maximize2, Minimize2, X, Mic, Send } from 'lucide-react';
@@ -351,7 +350,7 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
   // Determine the container classes based on isMaximized state
   const containerClasses = isMaximized
     ? "fixed inset-0 z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-xl backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300"
-    : "fixed bottom-20 right-6 w-96 h-[600px] z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-lg backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300";
+    : "fixed bottom-20 right-6 w-96 max-h-[80vh] z-50 flex flex-col bg-gradient-to-br from-white to-green-50 rounded-lg shadow-lg backdrop-blur-md bg-white/90 border border-green-200 transition-all duration-300";
 
   return (
     <div className={containerClasses}>
@@ -382,8 +381,8 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
         </div>
       </div>
       
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 bg-white/30 backdrop-blur-sm">
+      {/* Messages Container - adjusted height for better visibility */}
+      <div className="flex-1 overflow-y-auto p-4 bg-white/30 backdrop-blur-sm max-h-[calc(80vh-140px)]">
         {messages.map((message, index) => (
           <div key={index} className="mb-4">
             <div 

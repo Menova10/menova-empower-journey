@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -21,8 +22,33 @@ import { Toaster } from './components/ui/toaster';
 import './App.css';
 
 // This component determines whether to show the header based on the current route
-// Note: We no longer need this component since we've moved the logic to the Header component
-// But we'll keep it for reference in case we need to revert back
+const MainContent = () => {
+  const location = useLocation();
+  const hideHeaderRoutes = ['/chat', '/text-chat', '/welcome'];
+  const shouldShowHeader = !hideHeaderRoutes.includes(location.pathname);
+  
+  return (
+    <div className={`flex-1 ${shouldShowHeader ? 'pt-24' : ''}`}>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/waitlist" element={<Waitlist />} />
+        <Route path="/symptom-tracker" element={<SymptomTracker />} />
+        <Route path="/chat" element={<Chat />} />
+        <Route path="/text-chat" element={<TextChat />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/resources" element={<Resources />} />
+        <Route path="/article/:articleId" element={<ArticleView />} />
+        <Route path="/chat-history" element={<ChatHistory />} />
+        <Route path="/todays-wellness" element={<TodaysWellness />} />
+        <Route path="/check-in" element={<DailyCheckIn />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -30,25 +56,7 @@ function App() {
       <Router>
         <div className="min-h-screen flex flex-col">
           <Header />
-          <div className={`flex-1 ${window.location.pathname === '/chat' || window.location.pathname === '/text-chat' || window.location.pathname === '/welcome' ? '' : 'pt-24'}`}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/welcome" element={<Welcome />} />
-              <Route path="/waitlist" element={<Waitlist />} />
-              <Route path="/symptom-tracker" element={<SymptomTracker />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/text-chat" element={<TextChat />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/resources" element={<Resources />} />
-              <Route path="/article/:articleId" element={<ArticleView />} />
-              <Route path="/chat-history" element={<ChatHistory />} />
-              <Route path="/todays-wellness" element={<TodaysWellness />} />
-              <Route path="/check-in" element={<DailyCheckIn />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
+          <MainContent />
           
           {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
           {(window.location.pathname !== '/chat' && window.location.pathname !== '/text-chat') && (
