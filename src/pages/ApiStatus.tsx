@@ -108,7 +108,7 @@ const ApiStatus: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ApiStatusTester />
+                  <ApiStatusTester showDetails={true} />
                 </CardContent>
               </Card>
             </TabsContent>
