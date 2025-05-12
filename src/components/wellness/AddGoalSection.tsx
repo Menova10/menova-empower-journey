@@ -31,8 +31,8 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
   };
 
   return (
-    <div className="bg-white/90 rounded-lg shadow-sm p-6 mb-8 bg-gradient-to-br from-white to-green-50">
-      <h2 className="text-xl font-semibold text-menova-text mb-4">Add New Goal</h2>
+    <div className="bg-gradient-to-br from-[#f0faf0] to-[#fef6f0] rounded-lg shadow-sm p-6 mb-8">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4">Add New Goal</h2>
       
       <div className="space-y-4">
         <div>
@@ -45,7 +45,7 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
             value={newGoal}
             onChange={(e) => setNewGoal(e.target.value)}
             placeholder="Enter a new wellness goal"
-            className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-menova-green/50"
+            className="w-full p-3 border border-green-200 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400/50 bg-white/70"
             onKeyDown={(e) => e.key === 'Enter' && addGoal()}
           />
         </div>
@@ -57,16 +57,34 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {categories.slice(0, 3).map(category => {
               const Icon = getIcon(category.icon);
+              const isSelected = selectedCategory === category.value;
+              
+              // Custom colors for each category
+              let bgColor = '';
+              let hoverBgColor = '';
+              let borderColor = '';
+              
+              if (category.value === 'nutrition') {
+                bgColor = isSelected ? 'bg-green-100/70' : 'bg-green-50/50';
+                hoverBgColor = 'hover:bg-green-100/50';
+                borderColor = isSelected ? 'border-green-400' : 'border-transparent';
+              } else if (category.value === 'mental') {
+                bgColor = isSelected ? 'bg-blue-100/70' : 'bg-blue-50/50';
+                hoverBgColor = 'hover:bg-blue-100/50';
+                borderColor = isSelected ? 'border-blue-400' : 'border-transparent';
+              } else if (category.value === 'physical') {
+                bgColor = isSelected ? 'bg-orange-100/70' : 'bg-orange-50/50';
+                hoverBgColor = 'hover:bg-orange-100/50';
+                borderColor = isSelected ? 'border-orange-400' : 'border-transparent';
+              }
+              
               return (
                 <button
                   key={category.value}
                   type="button"
                   onClick={() => setSelectedCategory(category.value)}
                   className={`p-3 rounded-md flex items-center justify-center gap-2 transition-all
-                    ${selectedCategory === category.value 
-                      ? `${category.color} border-2 border-${category.color.split(' ')[1].replace('text-', '')}` 
-                      : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                    }`}
+                    ${bgColor} ${hoverBgColor} border-2 ${borderColor}`}
                 >
                   <Icon size={18} />
                   <span>{category.label}</span>
@@ -79,7 +97,7 @@ export const AddGoalSection: React.FC<AddGoalSectionProps> = ({
         <Button 
           onClick={addGoal} 
           disabled={!newGoal.trim()}
-          className="w-full bg-menova-green hover:bg-menova-green/90 text-white flex items-center justify-center gap-2"
+          className="w-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center gap-2"
         >
           <Plus size={18} />
           Add Goal
