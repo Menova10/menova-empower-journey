@@ -11,7 +11,7 @@ const MeNovaLogo = ({ className = "" }: MeNovaLogoProps) => {
   return (
     <h1 
       onClick={() => navigate('/')} 
-      className={`text-2xl font-bold text-gray-800 cursor-pointer ${className}`}
+      className={`text-2xl font-bold cursor-pointer ${className}`}
     >
       <span className="text-gray-800">Me</span>
       <span className="text-green-500">Nova</span>
