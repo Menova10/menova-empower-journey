@@ -30,10 +30,10 @@ const TextChatPage = () => {
           {/* Chat options when no mode is selected */}
           {!chatMode && (
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-6">
                 {/* Text Chat Option */}
                 <div 
-                  className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-green-100"
+                  className="bg-menova-beige p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-green-100"
                   onClick={() => handleSelectMode('text')}
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -42,14 +42,14 @@ const TextChatPage = () => {
                     </div>
                     <h2 className="text-xl font-medium text-green-800">Text Chat</h2>
                     <p className="text-gray-600 text-sm">
-                      Type or use voice-to-text to communicate with MeNova through written messages.
+                      Type messages to MeNova
                     </p>
                   </div>
                 </div>
 
                 {/* Voice Chat Option */}
                 <div 
-                  className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-green-100"
+                  className="bg-menova-beige p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border border-green-100"
                   onClick={() => handleSelectMode('voice')}
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -58,7 +58,7 @@ const TextChatPage = () => {
                     </div>
                     <h2 className="text-xl font-medium text-green-800">Voice Chat</h2>
                     <p className="text-gray-600 text-sm">
-                      Have a conversation with MeNova using your voice for a more natural interaction.
+                      Talk with MeNova using your voice
                     </p>
                   </div>
                 </div>
