@@ -1,181 +1,227 @@
-
-import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, User, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useVapi } from '@/contexts/VapiContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Menu } from 'lucide-react';
 import MeNovaLogo from './MeNovaLogo';
-import { 
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@/components/ui/navigation-menu';
-import { BreadcrumbTrail } from './BreadcrumbTrail';
+import MeNovaChatButton from './MeNovaChatButton';
+import ApiStatusIndicator from './ApiStatusIndicator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from './ui/button';
+import { LogOut, User, Settings } from 'lucide-react';
 
-const Header = () => {
-  const navigate = useNavigate();
+const Header: React.FC = () => {
   const location = useLocation();
-  
-  // Hide header on specific routes
-  const hideHeaderRoutes = ['/chat', '/text-chat', '/welcome'];
-  if (hideHeaderRoutes.includes(location.pathname)) {
-    return null;
-  }
-  
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100">
-      <div className="mx-auto px-6">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Navigation */}
-          <div className="flex items-center space-x-8">
-            <MeNovaLogo />
-            
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Dashboard</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/')}
-                          >
-                            <div className="text-sm font-medium">Home</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Return to main dashboard
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/todays-wellness')}
-                          >
-                            <div className="text-sm font-medium">Wellness Progress</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Track your daily goals
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/symptom-tracker')}
-                          >
-                            <div className="text-sm font-medium">Symptom Tracker</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Monitor your symptoms
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/check-in')}
-                          >
-                            <div className="text-sm font-medium">Daily Check-in</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Complete your daily check-in
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/resources')}
-                          >
-                            <div className="text-sm font-medium">Articles</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Helpful information
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/community')}
-                          >
-                            <div className="text-sm font-medium">Community</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Connect with others
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/chat')}
-                          >
-                            <div className="text-sm font-medium">Voice Assistant</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Voice-based support
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <NavigationMenuLink asChild>
-                          <a
-                            className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-gray-100"
-                            onClick={() => navigate('/text-chat')}
-                          >
-                            <div className="text-sm font-medium">Text Chat</div>
-                            <p className="line-clamp-2 text-sm leading-snug text-gray-600">
-                              Chat with MeNova
-                            </p>
-                          </a>
-                        </NavigationMenuLink>
-                      </li>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </div>
+  const navigate = useNavigate();
+  const { speak } = useVapi();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
-          {/* User Profile and Notifications */}
-          <div className="flex items-center space-x-4">
-            <button 
-              className="p-2 rounded-full hover:bg-gray-100"
-              aria-label="Notifications"
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+      
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    };
+
+    fetchUser();
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+  }, []);
+
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
+      setProfile(data);
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleNavigation = (path: string, sectionName: string) => {
+    navigate(path);
+    setIsMobileMenuOpen(false);
+    if (speak) {
+      speak(`Navigating to ${sectionName}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while logging out.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Update the menu items to include the API Status page
+  const menuItems = [
+    { name: 'Home', href: '/' },
+    { name: 'Dashboard', href: '/welcome' },
+    { name: 'Resources', href: '/resources' },
+    { name: 'Community', href: '/community' },
+    { name: 'Symptom Tracker', href: '/symptom-tracker' },
+    { name: 'API Status', href: '/api-status' },
+  ];
+
+  return (
+    <header className="fixed top-0 left-0 w-full bg-white/95 border-b border-gray-200 header-blur z-50">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <MeNovaLogo />
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-6">
+          {menuItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={`text-gray-700 hover:text-menova-green transition-colors duration-200 ${location.pathname === item.href ? 'font-semibold text-menova-green' : ''}`}
             >
-              <Bell size={20} className="text-gray-700" />
-            </button>
-            <button 
-              className="p-2 rounded-full hover:bg-gray-100"
-              onClick={() => navigate('/profile')}
-              aria-label="User Profile"
-            >
-              <User size={20} className="text-gray-700" />
-            </button>
-          </div>
-        </div>
-        
-        {/* Breadcrumb Section */}
-        <div className="py-2">
-          <BreadcrumbTrail currentPath={location.pathname} />
+              {item.name}
+            </Link>
+          ))}
+          <ApiStatusIndicator compact={true} />
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
+                    <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 mr-2">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/login" className="text-gray-700 hover:text-menova-green transition-colors duration-200">
+              Login
+            </Link>
+          )}
+        </nav>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden flex items-center">
+          <ApiStatusIndicator compact={true} />
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="p-2">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-full sm:w-64">
+              <SheetHeader className="text-left mt-4">
+                <SheetTitle>MeNova Menu</SheetTitle>
+                <SheetDescription>
+                  Navigate through the app
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-4">
+                {menuItems.map((item) => (
+                  <Button
+                    key={item.name}
+                    variant="ghost"
+                    className="w-full justify-start py-2"
+                    onClick={() => handleNavigation(item.href, item.name)}
+                  >
+                    {item.name}
+                  </Button>
+                ))}
+                
+                {user ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start py-2"
+                      onClick={() => navigate('/profile')}
+                    >
+                      Profile
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start py-2"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start py-2"
+                    onClick={() => navigate('/login')}
+                  >
+                    Login
+                  </Button>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>

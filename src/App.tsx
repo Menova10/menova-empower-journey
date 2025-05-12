@@ -15,6 +15,7 @@ import ChatHistory from './pages/ChatHistory';
 import TodaysWellness from './pages/TodaysWellness';
 import DailyCheckIn from './pages/DailyCheckIn';
 import TextChat from './pages/TextChat';
+import ApiStatus from './pages/ApiStatus';
 import MeNovaChatButton from './components/MeNovaChatButton';
 import Header from './components/Header';
 import { VapiProvider } from './contexts/VapiContext';
@@ -44,6 +45,7 @@ const MainContent = () => {
         <Route path="/chat-history" element={<ChatHistory />} />
         <Route path="/todays-wellness" element={<TodaysWellness />} />
         <Route path="/check-in" element={<DailyCheckIn />} />
+        <Route path="/api-status" element={<ApiStatus />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

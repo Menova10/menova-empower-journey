@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle, RefreshCw, ExternalLink } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface ApiStatus {
   firecrawl: {
@@ -131,6 +132,17 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
         )}
         
         {error && <XCircle className="h-4 w-4 text-red-500" aria-label={error} />}
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 px-2 text-xs text-amber-600"
+          asChild
+        >
+          <RouterLink to="/api-status">
+            <ExternalLink className="h-3 w-3 mr-1" /> API Settings
+          </RouterLink>
+        </Button>
       </div>
     );
   }
@@ -151,14 +163,25 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
         <AlertTitle>Connection Error</AlertTitle>
         <AlertDescription className="space-y-2">
           <p>{error}</p>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={fetchStatus}
-            className="mt-2"
-          >
-            <RefreshCw className="h-3 w-3 mr-1" /> Try Again
-          </Button>
+          <div className="flex gap-2 mt-2">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={fetchStatus}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" /> Try Again
+            </Button>
+            
+            <Button 
+              size="sm" 
+              variant="default" 
+              asChild
+            >
+              <RouterLink to="/api-status">
+                <ExternalLink className="h-3 w-3 mr-1" /> API Settings
+              </RouterLink>
+            </Button>
+          </div>
         </AlertDescription>
       </Alert>
     );
@@ -196,15 +219,28 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
             Last checked: {status.timestamp ? new Date(status.timestamp).toLocaleTimeString() : 'Unknown'}
           </span>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={fetchStatus}
-            className="h-7 ml-auto"
-            disabled={loading}
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} /> Recheck
-          </Button>
+          <div className="flex gap-2 ml-auto">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={fetchStatus}
+              className="h-7"
+              disabled={loading}
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${loading ? 'animate-spin' : ''}`} /> Recheck
+            </Button>
+            
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="h-7 bg-amber-500 hover:bg-amber-600"
+              asChild
+            >
+              <RouterLink to="/api-status">
+                <ExternalLink className="h-3 w-3 mr-1" /> API Settings
+              </RouterLink>
+            </Button>
+          </div>
         </div>
         
         {!status.firecrawl.success && !status.openai.success && (
@@ -217,6 +253,16 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
                 Firecrawl: {status.firecrawl.message}<br />
                 OpenAI: {status.openai.message}
               </p>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="mt-2"
+                asChild
+              >
+                <RouterLink to="/api-status">
+                  Configure APIs
+                </RouterLink>
+              </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -230,6 +276,16 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
               <p className="text-xs text-muted-foreground mt-1">
                 Firecrawl error: {status.firecrawl.message}
               </p>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="mt-2"
+                asChild
+              >
+                <RouterLink to="/api-status">
+                  Configure Firecrawl API
+                </RouterLink>
+              </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -240,6 +296,16 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
             <AlertTitle>Using Firecrawl API for Content</AlertTitle>
             <AlertDescription>
               <p>OpenAI API is unavailable. Using Firecrawl for content, with static fallbacks if needed.</p>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="mt-2"
+                asChild
+              >
+                <RouterLink to="/api-status">
+                  Configure OpenAI API
+                </RouterLink>
+              </Button>
             </AlertDescription>
           </Alert>
         )}
@@ -248,15 +314,28 @@ export default function ApiStatusIndicator({ showDetails = false, compact = fals
   }
 
   return (
-    <Button 
-      variant="outline" 
-      size="sm" 
-      onClick={fetchStatus}
-      disabled={loading}
-      className="bg-transparent border-amber-500 text-amber-600 hover:bg-amber-50"
-    >
-      {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2" />}
-      Check API Status
-    </Button>
+    <div className="flex gap-2">
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={fetchStatus}
+        disabled={loading}
+        className="bg-transparent border-amber-500 text-amber-600 hover:bg-amber-50"
+      >
+        {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <AlertCircle className="h-4 w-4 mr-2" />}
+        Check API Status
+      </Button>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        className="border-amber-500 text-amber-600 hover:bg-amber-50"
+        asChild
+      >
+        <RouterLink to="/api-status">
+          <ExternalLink className="h-4 w-4 mr-1" /> API Settings
+        </RouterLink>
+      </Button>
+    </div>
   );
 }
