@@ -106,8 +106,9 @@ export default {
 				'float': 'float 6s ease-in-out infinite',
 			},
 			backgroundImage: {
-				'menova-pattern': "url('/public/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png')",
-				'menova-nature': "url('/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png')"
+				// Remove the pattern background image with girl
+				'menova-pattern': "none",
+				'menova-nature': "none"
 			}
 		}
 	},
