@@ -17,6 +17,12 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  // Hide header on specific routes
+  const hideHeaderRoutes = ['/chat', '/text-chat', '/welcome'];
+  if (hideHeaderRoutes.includes(location.pathname)) {
+    return null;
+  }
+  
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white shadow-sm border-b border-gray-100">
       <div className="mx-auto px-6">

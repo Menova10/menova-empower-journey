@@ -115,9 +115,6 @@ const Welcome = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-menova-beige flex flex-col">
-        <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-          <MeNovaLogo />
-        </nav>
         <div className="flex-1 flex items-center justify-center">
           <p>Loading...</p>
         </div>
@@ -127,184 +124,6 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Navbar with expanded menus */}
-      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <MeNovaLogo />
-          
-          {/* Desktop Menu Items */}
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Explore Menu */}
-            <DropdownMenu open={isExploreOpen} onOpenChange={setIsExploreOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="text-menova-green hover:bg-menova-green/10"
-                >
-                  Explore <ChevronDown size={16} className="ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48 bg-white border-menova-green/20">
-                <DropdownMenuItem onClick={() => navigate('/symptom-tracker')} className="cursor-pointer">
-                  Symptom Tracker
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/resources')} className="cursor-pointer">
-                  Resources
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/content-hub')} className="cursor-pointer">
-                  Content Hub
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/wellness-plan')} className="cursor-pointer">
-                  Wellness Plan
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/community')} className="cursor-pointer">
-                  Community
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-        
-        {/* Mobile Menu Toggle */}
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="md:hidden text-menova-green"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          )}
-        </Button>
-        
-        {/* User Dropdown */}
-        <div className="hidden md:flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                    alt="Profile"
-                  />
-                  <AvatarFallback className="bg-menova-green text-white">
-                    {profile?.full_name?.[0] || user?.email?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden md:inline">
-                  {profile?.full_name || user?.email?.split('@')[0]}
-                </span>
-                <ChevronDown size={16} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white border-menova-green/20">
-              <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-                <User className="mr-2 h-4 w-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/chat-history')} className="cursor-pointer">
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Chat History
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </nav>
-      
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 bg-white shadow-md z-20">
-          <div className="flex flex-col space-y-1 p-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/symptom-tracker')}
-            >
-              Symptom Tracker
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/resources')}
-            >
-              Resources
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/content-hub')}
-            >
-              Content Hub
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/wellness-plan')}
-            >
-              Wellness Plan
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/community')}
-            >
-              Community
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/chat')}
-            >
-              Chat with MeNova
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={() => navigate('/chat-history')}
-            >
-              Chat History
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="w-full justify-start text-menova-text"
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
-          </div>
-        </div>
-      )}
-      
-      {/* Breadcrumb Navigation */}
-      <div className="px-6 pt-4 max-w-6xl mx-auto w-full">
-        <BreadcrumbTrail currentPath={location.pathname} />
-      </div>
-
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
         {/* Welcome Section */}
@@ -329,8 +148,6 @@ const Welcome = () => {
             How are you feeling today? MeNova is here to support you through your journey.
           </p>
         </section>
-
-        {/* Today's Wellness Categories section has been removed as requested */}
 
         {/* New Wellness Dashboard Section */}
         <WellnessDashboard />

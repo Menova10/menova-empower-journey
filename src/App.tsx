@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -22,21 +21,16 @@ import { Toaster } from './components/ui/toaster';
 import './App.css';
 
 // This component determines whether to show the header based on the current route
-const ConditionalHeader = () => {
-  const location = useLocation();
-  const hideHeaderPaths = ['/chat', '/text-chat'];
-  const shouldShowHeader = !hideHeaderPaths.includes(location.pathname);
-  
-  return shouldShowHeader ? <Header /> : null;
-};
+// Note: We no longer need this component since we've moved the logic to the Header component
+// But we'll keep it for reference in case we need to revert back
 
 function App() {
   return (
     <VapiProvider>
       <Router>
         <div className="min-h-screen flex flex-col">
-          <ConditionalHeader />
-          <div className={`flex-1 ${window.location.pathname === '/chat' || window.location.pathname === '/text-chat' ? '' : 'pt-24'}`}>
+          <Header />
+          <div className={`flex-1 ${window.location.pathname === '/chat' || window.location.pathname === '/text-chat' || window.location.pathname === '/welcome' ? '' : 'pt-24'}`}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
