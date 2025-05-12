@@ -6,6 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from '@/components/ui/use-toast';
 
+// Define the message interface with detectedSymptom property
+interface ChatMessage {
+  text: string;
+  sender: 'user' | 'menova';
+  timestamp: Date;
+  quickReplies?: boolean;
+  detectedSymptom?: string | null;
+}
+
 // MeNovaAvatar Component
 const MeNovaAvatar = () => (
   <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white">
@@ -58,7 +67,7 @@ const TypingIndicator = () => (
 
 // Main Chat Window Component
 const MeNovaChatWindow = () => {
-  const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'menova'; timestamp: Date; quickReplies?: boolean }[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isMaximized, setIsMaximized] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -96,25 +105,26 @@ const MeNovaChatWindow = () => {
   
   // Speech recognition setup
   useEffect(() => {
-    let recognition: any = null;
+    let recognition: SpeechRecognition | null = null;
     
     if (isListening) {
       try {
+        // Use type assertion to tell TypeScript these properties exist
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
           const transcript = Array.from(event.results)
-            .map((result: any) => result[0])
+            .map((result) => result[0])
             .map((result) => result.transcript)
             .join('');
           
           setInputText(transcript);
         };
         
-        recognition.onerror = (event: any) => {
+        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
           setSpeechError(`Speech recognition error: ${event.error}`);
           setIsListening(false);
         };
