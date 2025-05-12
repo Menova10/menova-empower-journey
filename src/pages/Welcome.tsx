@@ -12,7 +12,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
 import ApiStatusTester from '@/components/ApiStatusTester';
-import WelcomeHeader from '@/components/WelcomeHeader';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,9 +124,6 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Add our new welcome header */}
-      <WelcomeHeader />
-      
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
         {/* Welcome Section */}

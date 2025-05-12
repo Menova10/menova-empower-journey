@@ -24,11 +24,12 @@ import './App.css';
 // This component determines whether to show the header based on the current route
 const MainContent = () => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/chat', '/text-chat', '/welcome'];
+  const hideHeaderRoutes = ['/chat', '/text-chat'];
+  const isWelcomePage = location.pathname === '/welcome';
   const shouldShowHeader = !hideHeaderRoutes.includes(location.pathname);
   
   return (
-    <div className={`flex-1 ${shouldShowHeader ? 'pt-24' : ''}`}>
+    <div className={`flex-1 ${shouldShowHeader && !isWelcomePage ? 'pt-24' : ''}`}>
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
@@ -54,7 +55,7 @@ function App() {
   return (
     <VapiProvider>
       <Router>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
           <Header />
           <MainContent />
           
