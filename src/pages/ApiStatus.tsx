@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import ApiStatusTester from '@/components/ApiStatusTester';
+import ApiStatusIndicator from '@/components/ApiStatusIndicator';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -108,7 +107,7 @@ const ApiStatus: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ApiStatusTester showDetails={true} />
+                  <ApiStatusIndicator showDetails={true} />
                 </CardContent>
               </Card>
             </TabsContent>
