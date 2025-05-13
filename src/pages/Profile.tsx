@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import MeNovaLogo from '@/components/MeNovaLogo';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -178,9 +177,6 @@ const Profile = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-menova-beige flex flex-col">
-        <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-          <MeNovaLogo />
-        </nav>
         <div className="flex-1 flex items-center justify-center">
           <p>Loading profile...</p>
         </div>
@@ -190,17 +186,6 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-menova-beige flex flex-col">
-      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-        <MeNovaLogo />
-        <Button 
-          variant="outline" 
-          className="border-menova-green text-menova-green hover:bg-menova-green/10"
-          onClick={handleLogout}
-        >
-          Logout
-        </Button>
-      </nav>
-      
       <div className="container mx-auto py-8 px-4 max-w-4xl">
         <Card>
           <CardHeader>
@@ -290,13 +275,23 @@ const Profile = () => {
                   )}
                 />
                 
-                <Button 
-                  type="submit" 
-                  className="bg-menova-green hover:bg-menova-green/90"
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? "Saving..." : "Save Changes"}
-                </Button>
+                <div className="flex justify-between">
+                  <Button 
+                    type="submit" 
+                    className="bg-menova-green hover:bg-menova-green/90"
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? "Saving..." : "Save Changes"}
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="border-menova-green text-menova-green hover:bg-menova-green/10"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </div>
               </form>
             </Form>
           </CardContent>

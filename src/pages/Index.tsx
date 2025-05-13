@@ -1,9 +1,9 @@
+
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
-import MeNovaLogo from '@/components/MeNovaLogo';
 import { supabase } from '@/integrations/supabase/client';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
 
@@ -90,30 +90,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Navbar */}
-      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-        <MeNovaLogo />
-        <div className="space-x-2">
-          <Button
-            onClick={() => navigate('/login')}
-            variant="outline"
-            className="border-menova-green text-menova-green hover:bg-menova-green/10"
-          >
-            Login
-          </Button>
-          <Button
-            onClick={() => navigate('/waitlist')}
-            className="bg-menova-green text-white hover:bg-menova-green/90"
-          >
-            Join Waitlist
-          </Button>
-        </div>
-      </nav>
-
       {/* Main Content */}
-      <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
+      <main className="flex-1 flex flex-col space-y-8 py-8 max-w-7xl mx-auto w-full">
         {/* Hero Section */}
-        <section className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+        <section className="flex flex-col md:flex-row items-center gap-4 md:gap-6 px-4">
           <div className="md:w-3/5 space-y-4">
             <div className="space-y-2">
               <h2 className="text-lg font-medium text-menova-green">Your Menopause Companion</h2>
@@ -151,7 +131,7 @@ const Index = () => {
         </section>
 
         {/* Educational Content */}
-        <section className="pt-6">
+        <section className="pt-6 px-4">
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
             Understand Your Journey
           </h2>
@@ -181,7 +161,7 @@ const Index = () => {
         </section>
 
         {/* Features Section */}
-        <section className="pt-2">
+        <section className="pt-2 px-4">
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
             Your Daily Companion
           </h2>
@@ -233,7 +213,7 @@ const Index = () => {
         </section>
 
         {/* Your Personalized Journey Awaits Section */}
-        <section className="pt-2">
+        <section className="pt-2 px-4">
           <h2 className="text-2xl font-semibold text-menova-text mb-4">
             Your Personalized Journey Awaits
           </h2>
@@ -249,11 +229,6 @@ const Index = () => {
       <footer className="bg-white/90 backdrop-blur-sm py-4 px-6 text-center text-sm text-gray-500">
         <p>© 2025 MeNova. Your companion through menopause.</p>
       </footer>
-
-      {/* Fixed floating chatbot - kept for text chat functionality */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <MeNovaChatButton variant="floating" />
-      </div>
 
       {/* Login Modal with improved accessibility and close button */}
       <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
@@ -271,13 +246,6 @@ const Index = () => {
           </button>
           
           <div className="flex flex-col items-center space-y-4">
-            <div onClick={() => {
-              setShowLoginModal(false);
-              navigate('/');
-            }}>
-              <MeNovaLogo className="mb-2" />
-            </div>
-            
             <div className="rounded-full overflow-hidden w-20 h-20 border-2 border-menova-green mb-2">
               <img
                 src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
