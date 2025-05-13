@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -10,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
-import MeNovaChatButton from '@/components/MeNovaChatButton';
 import ApiStatusTester from '@/components/ApiStatusTester';
 import WelcomeHeader from '@/components/WelcomeHeader';
 import {

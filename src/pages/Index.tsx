@@ -5,7 +5,6 @@ import { useEffect, useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import MeNovaChatButton from '@/components/MeNovaChatButton';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -106,8 +105,7 @@ const Index = () => {
               and evidence-based resources for your unique menopause journey.
             </p>
             
-            {/* Replace the old button with our new chat button */}
-            <MeNovaChatButton />
+            {/* Chat button removed */}
           </div>
           
           <div className="md:w-2/5 flex justify-center relative">
