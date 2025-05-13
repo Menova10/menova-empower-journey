@@ -16,6 +16,7 @@ import TodaysWellness from './pages/TodaysWellness';
 import DailyCheckIn from './pages/DailyCheckIn';
 import TextChat from './pages/TextChat';
 import ApiStatus from './pages/ApiStatus';
+import MeNovaChatButton from './components/MeNovaChatButton';
 import Header from './components/Header';
 import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
@@ -58,6 +59,13 @@ function App() {
         <div className="min-h-screen flex flex-col">
           <Header />
           <MainContent />
+          
+          {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
+          {(window.location.pathname !== '/chat' && window.location.pathname !== '/text-chat') && (
+            <div className="fixed bottom-6 right-6 z-40">
+              <MeNovaChatButton variant="floating" />
+            </div>
+          )}
         </div>
         <Toaster />
       </Router>
