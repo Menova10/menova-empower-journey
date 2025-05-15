@@ -7,6 +7,7 @@ import { useVapi } from '@/contexts/VapiContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useLocation } from 'react-router-dom';
+import { symptoms } from '@/types/symptoms';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -205,18 +206,81 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       // Create a summary of the conversation
       const summary = messages.map(m => `${m.sender === 'user' ? 'You' : 'MeNova'}: ${m.text}`).join('\n');
       
+      // Analyze conversation to identify symptoms
+      // Define keywords for each symptom type
+      const symptomKeywords = {
+        hot_flashes: ['hot flash', 'hot flashes', 'sweating', 'heat', 'burning', 'flush', 'flushing', 'overheated'],
+        sleep: ['sleep', 'insomnia', 'tired', 'fatigue', 'rest', 'wake up', 'waking', 'night sweat', 'night sweats'],
+        mood: ['mood', 'irritable', 'anxiety', 'anxious', 'depressed', 'depression', 'sad', 'angry', 'emotional'],
+        energy: ['energy', 'tired', 'exhausted', 'fatigue', 'lethargy', 'motivation', 'vigor'],
+        brain_fog: ['brain fog', 'forgetful', 'memory', 'concentration', 'focus', 'confused', 'forget'],
+        anxiety: ['anxiety', 'anxious', 'worried', 'stress', 'stressed', 'panic', 'nervous']
+      };
+      
+      // Go through user messages to identify symptoms
+      const userTexts = messages.filter(m => m.sender === 'user').map(m => m.text.toLowerCase());
+      const detectedSymptoms = new Set<string>();
+      let primarySymptom = 'voice_assistant'; // Default
+      let intensity = 3; // Default intensity
+      
+      // Check for each symptom type
+      Object.entries(symptomKeywords).forEach(([symptomId, keywords]) => {
+        for (const text of userTexts) {
+          if (keywords.some(keyword => text.includes(keyword))) {
+            detectedSymptoms.add(symptomId);
+          }
+        }
+      });
+      
+      // Check for intensity indicators
+      const intensityRegex = /(\d)[\/\s]5|(\d)\s*out\s*of\s*5|level\s*(\d)|rating\s*(\d)|intensity\s*(\d)/i;
+      for (const text of userTexts) {
+        const match = text.match(intensityRegex);
+        if (match) {
+          const foundIntensity = parseInt(match[1] || match[2] || match[3] || match[4] || match[5]);
+          if (foundIntensity >= 1 && foundIntensity <= 5) {
+            intensity = foundIntensity;
+            break;
+          }
+        }
+      }
+      
+      // If we've detected any symptoms, use the first one as primary
+      if (detectedSymptoms.size > 0) {
+        primarySymptom = Array.from(detectedSymptoms)[0];
+      }
+      
+      // Create a more descriptive title for the conversation
+      const conversationTitle = detectedSymptoms.size > 0 
+        ? `Voice conversation about ${Array.from(detectedSymptoms).map(s => {
+            const symptom = symptoms.find(sym => sym.id === s);
+            return symptom ? symptom.name.toLowerCase() : s;
+          }).join(', ')}`
+        : 'Voice assistant conversation';
+      
+      // Add detected symptom information to the summary
+      const enhancedSummary = `DETECTED SYMPTOMS: ${
+        detectedSymptoms.size > 0 
+          ? Array.from(detectedSymptoms).map(s => {
+              const symptom = symptoms.find(sym => sym.id === s);
+              return symptom ? symptom.name : s;
+            }).join(', ')
+          : 'None specifically identified'
+      }\nINTENSITY: ${intensity}/5\n\n${summary}`;
+      
       // Save to symptom tracker
       await supabase.from('symptom_tracking').insert({
         user_id: session.user.id,
-        symptom: 'voice_assistant',
-        notes: summary,
+        symptom: primarySymptom,
+        intensity: intensity,
+        notes: enhancedSummary,
         source: 'voice_assistant',
         recorded_at: new Date().toISOString()
       });
       
       toast({
         title: "Saved to Symptom Tracker",
-        description: "This conversation has been added to your symptom tracker.",
+        description: `Conversation about ${primarySymptom === 'voice_assistant' ? 'general topics' : primarySymptom.replace('_', ' ')} has been added to your symptom tracker.`,
       });
     } catch (error) {
       console.error('Error saving to symptom tracker:', error);
