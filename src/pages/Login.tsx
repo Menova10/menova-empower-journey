@@ -1,10 +1,8 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
-import MeNovaLogo from '@/components/MeNovaLogo';
 import { supabase } from '@/integrations/supabase/client';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +10,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { X } from 'lucide-react';
 import AuthBackground from '@/components/AuthBackground';
+import MeNovaLogo from '@/components/MeNovaLogo';
 
 // Login form schema
 const loginSchema = z.object({
@@ -76,6 +75,11 @@ const Login = () => {
 
   return (
     <AuthBackground>
+      {/* Logo positioned at top left */}
+      <div className="absolute top-4 left-4">
+        <MeNovaLogo />
+      </div>
+      
       {/* Close button */}
       <button 
         onClick={handleClose}
@@ -84,14 +88,6 @@ const Login = () => {
       >
         <X size={20} />
       </button>
-      
-      <div onClick={() => navigate('/')} className="flex justify-center mb-4 cursor-pointer">
-        <img
-          src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-          alt="MeNova Character"
-          className="w-20 h-20 rounded-full object-cover border-2 border-menova-green"
-        />
-      </div>
       
       <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
       
@@ -128,7 +124,7 @@ const Login = () => {
             
             <Button 
               type="submit" 
-              className="w-full bg-menova-green hover:bg-menova-green/90"
+              className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white"
               disabled={isLoading}
             >
               {isLoading ? "Logging in..." : "Login"}
@@ -136,14 +132,13 @@ const Login = () => {
           </form>
         </Form>
         
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Don't have an account yet?</p>
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600 mb-2">Don't have an account yet?</p>
           <Button 
-            variant="link" 
             onClick={() => navigate('/waitlist')}
-            className="text-menova-green hover:text-menova-green/90 p-0 h-auto"
+            className="bg-[#92D9A9] hover:bg-[#7bc492] text-white"
           >
-            Join the waitlist
+            Join the Waitlist
           </Button>
         </div>
       </div>

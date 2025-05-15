@@ -1,4 +1,3 @@
-
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState, useRef } from 'react';
@@ -6,6 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
+import MeNovaLogo from '@/components/MeNovaLogo';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -90,6 +90,26 @@ const Index = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
+      {/* Navbar Header */}
+      <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-sm sticky top-0 z-10">
+        <MeNovaLogo />
+        <div className="space-x-2">
+          <Button
+            onClick={() => navigate('/login')}
+            variant="outline"
+            className="border-gray-200 text-gray-600 hover:bg-gray-50"
+          >
+            Login
+          </Button>
+          <Button
+            onClick={() => navigate('/waitlist')}
+            className="bg-[#92D9A9] hover:bg-[#7bc492] text-white border-0"
+          >
+            Join Waitlist
+          </Button>
+        </div>
+      </nav>
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 py-8 max-w-7xl mx-auto w-full">
         {/* Hero Section */}
@@ -246,7 +266,7 @@ const Index = () => {
           </button>
           
           <div className="flex flex-col items-center space-y-4">
-            <div className="rounded-full overflow-hidden w-20 h-20 border-2 border-menova-green mb-2">
+            <div className="rounded-full overflow-hidden w-20 h-20 border-2 border-[#92D9A9] mb-2">
               <img
                 src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
                 alt="MeNova"
@@ -262,14 +282,14 @@ const Index = () => {
             <div className="flex gap-4 mt-4 w-full">
               <Button
                 onClick={() => navigate('/login')}
-                className="flex-1 border-menova-green text-menova-green hover:bg-menova-green/10"
+                className="flex-1 border-[#92D9A9] text-[#92D9A9] hover:bg-[#92D9A9]/10"
                 variant="outline"
               >
                 Login
               </Button>
               <Button
                 onClick={() => navigate('/waitlist')}
-                className="flex-1 bg-menova-green text-white hover:bg-menova-green/90"
+                className="flex-1 bg-[#92D9A9] hover:bg-[#7bc492] text-white"
               >
                 Join Waitlist
               </Button>

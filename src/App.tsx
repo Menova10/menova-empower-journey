@@ -1,5 +1,4 @@
-
-import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Index from './pages/Index';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -17,19 +16,17 @@ import DailyCheckIn from './pages/DailyCheckIn';
 import TextChat from './pages/TextChat';
 import ApiStatus from './pages/ApiStatus';
 import MeNovaChatButton from './components/MeNovaChatButton';
-import Header from './components/Header';
 import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
 import './App.css';
 
-// This component determines whether to show the header based on the current route
+// This component contains all the routes
 const MainContent = () => {
   const location = useLocation();
-  const hideHeaderRoutes = ['/chat', '/text-chat', '/welcome'];
-  const shouldShowHeader = !hideHeaderRoutes.includes(location.pathname);
+  const isVoiceChatHidden = location.pathname === '/chat' || location.pathname === '/text-chat';
   
   return (
-    <div className={`flex-1 ${shouldShowHeader ? 'pt-24' : ''}`}>
+    <div className="flex-1">
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
@@ -48,6 +45,13 @@ const MainContent = () => {
         <Route path="/api-status" element={<ApiStatus />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
+      
+      {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
+      {!isVoiceChatHidden && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <MeNovaChatButton variant="floating" />
+        </div>
+      )}
     </div>
   );
 }
@@ -57,15 +61,7 @@ function App() {
     <VapiProvider>
       <Router>
         <div className="min-h-screen flex flex-col">
-          <Header />
           <MainContent />
-          
-          {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
-          {(window.location.pathname !== '/chat' && window.location.pathname !== '/text-chat') && (
-            <div className="fixed bottom-6 right-6 z-40">
-              <MeNovaChatButton variant="floating" />
-            </div>
-          )}
         </div>
         <Toaster />
       </Router>

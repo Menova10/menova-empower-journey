@@ -1,18 +1,16 @@
-
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { MessageCircle, User, Settings, LogOut, ChevronDown, Apple, Brain, ActivitySquare } from 'lucide-react';
+import { MessageCircle, User, ChevronDown, Apple, Brain, ActivitySquare, Settings, LogOut } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
 import ApiStatusTester from '@/components/ApiStatusTester';
-import WelcomeHeader from '@/components/WelcomeHeader';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -84,16 +82,6 @@ const Welcome = () => {
     }
   };
 
-  // Handle voice navigation with announcements
-  const handleVoiceNavigation = (sectionName: string, path: string) => {
-    // Close all menus
-    setIsExploreOpen(false);
-    setIsMobileMenuOpen(false);
-    
-    // Navigate immediately
-    navigate(path);
-  };
-
   // Handle logout
   const handleLogout = async () => {
     try {
@@ -125,9 +113,75 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Add our new welcome header */}
-      <WelcomeHeader />
-      
+      {/* Header with Navigation */}
+      <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-8">
+            <MeNovaLogo className="text-[#92D9A9]" />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium">
+                Explore <ChevronDown className="h-4 w-4 ml-1" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => navigate('/welcome')}>
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/resources')}>
+                  Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/community')}>
+                  Community
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/symptom-tracker')}>
+                  Symptom Tracker
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-50">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
+                  <AvatarFallback>
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[#92D9A9]">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
+                <ChevronDown className="h-4 w-4 text-[#92D9A9]" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      {/* Breadcrumb Navigation */}
+      <div className="bg-menova-beige/80 py-4 px-6 border-b border-menova-beige">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center text-sm">
+            <Link to="/" className="text-[#92D9A9] hover:text-[#7bc492]">Home</Link>
+            <span className="mx-2 text-gray-400">&gt;</span>
+            <span className="text-gray-600">Welcome</span>
+          </div>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
         {/* Welcome Section */}

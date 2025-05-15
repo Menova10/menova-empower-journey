@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +6,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
-import MeNovaLogo from '@/components/MeNovaLogo';
 import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AuthBackground from '@/components/AuthBackground';
+import MeNovaLogo from '@/components/MeNovaLogo';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -89,6 +88,11 @@ const Waitlist = () => {
 
   return (
     <AuthBackground>
+      {/* Logo positioned at top left */}
+      <div className="absolute top-4 left-4">
+        <MeNovaLogo />
+      </div>
+      
       {/* Close button */}
       <button 
         onClick={() => navigate('/')}
@@ -97,14 +101,6 @@ const Waitlist = () => {
       >
         <X size={20} />
       </button>
-      
-      <div className="flex justify-center mb-4">
-        <img
-          src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-          alt="MeNova Character"
-          className="w-20 h-20 rounded-full object-cover border-2 border-menova-green"
-        />
-      </div>
       
       <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
       
@@ -206,7 +202,7 @@ const Waitlist = () => {
         
         <Button 
           type="submit" 
-          className="w-full bg-menova-green hover:bg-menova-green/90"
+          className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white"
           disabled={isSubmitting}
         >
           {isSubmitting ? "Submitting..." : "Join Waitlist"}
@@ -218,7 +214,7 @@ const Waitlist = () => {
           Already have an account?{' '}
           <Button 
             variant="link" 
-            className="p-0 h-auto text-menova-green"
+            className="p-0 h-auto text-[#92D9A9]"
             onClick={() => navigate('/login')}
           >
             Login

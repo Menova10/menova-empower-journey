@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useVapi } from '@/contexts/VapiContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Play, PlayCircle, Volume2, X, Link as LinkIcon, Book, Video, AlertCircle } from 'lucide-react';
+import { Play, PlayCircle, Volume2, X, Link as LinkIcon, Book, Video, AlertCircle, ChevronDown, User, Settings, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import VideoPlayer from '@/components/VideoPlayer';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -17,6 +17,12 @@ import ResearchSection from '@/components/ResearchSection';
 import { useToast } from '@/components/ui/use-toast';
 import ApiStatusIndicator from '@/components/ApiStatusIndicator';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Define content item interface
 interface ContentItem {
@@ -63,6 +69,8 @@ const Resources: React.FC = () => {
     'mental health women',
     'meditation women'
   ]);
+  const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
 
   // Helper function to safely get author initials
   const getAuthorInitial = (author: any): string => {
@@ -365,235 +373,356 @@ const Resources: React.FC = () => {
     }
   };
 
+  // Add this new useEffect to fetch user profile for the header
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUser(session.user);
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching profile:', error);
+          } else {
+            setProfile(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while logging out.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f9fdf3] to-white">
-      <div className="container mx-auto px-4 md:px-6 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <MeNovaLogo />
-          <div className="flex space-x-2">
-            <ApiStatusIndicator compact={true} />
+    <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
+      {/* Header with Navigation */}
+      <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-8">
+            <MeNovaLogo className="text-[#92D9A9]" />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium">
+                Explore <ChevronDown className="h-4 w-4 ml-1" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => navigate('/welcome')}>
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/resources')}>
+                  Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/community')}>
+                  Community
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/symptom-tracker')}>
+                  Symptom Tracker
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-50">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
+                  <AvatarFallback>
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[#92D9A9]">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
+                <ChevronDown className="h-4 w-4 text-[#92D9A9]" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
-        
-        <BreadcrumbTrail currentPath={location.pathname} />
-        
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold tracking-tight text-[#2e7d32] mb-2">Resources</h1>
-            <p className="text-lg text-muted-foreground">
-              Discover personalized menopause guides, articles, and videos tailored to your journey
-            </p>
-          </div>
+      </header>
 
-          <div className="bg-white rounded-xl shadow-sm p-8 mb-10 border border-[#e8f5e9]">
-            <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
-          </div>
-          
-          <Separator className="my-10 bg-[#e8f5e9]" />
-
-          {/* Recommended For You Section - Tabular Format */}
-          <section className="mb-10 bg-white rounded-xl shadow-sm p-8 border border-[#e8f5e9]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-semibold flex items-center">
-                <span className="text-[#388e3c]">Recommended For You</span>
-                <Badge variant="outline" className="ml-2 bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#c8e6c9]">
-                  Based on Your Symptoms
-                </Badge>
-              </h2>
-            </div>
-            
-            {loading ? (
-              <Skeleton className="h-64 w-full" />
-            ) : (
-              <div className="w-full">
-                {recommendedContent.length > 0 ? (
-                  <div className="border rounded-md overflow-hidden">
-                    <Table>
-                      <TableHeader className="bg-[#f1f8e9]">
-                        <TableRow>
-                          <TableHead className="font-semibold text-[#2e7d32] w-[25%]">Thumbnail</TableHead>
-                          <TableHead className="font-semibold text-[#2e7d32] w-[45%]">Content</TableHead>
-                          <TableHead className="font-semibold text-[#2e7d32] w-[15%]">Author</TableHead>
-                          <TableHead className="font-semibold text-[#2e7d32] w-[15%] text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recommendedContent.map((item) => (
-                          <TableRow key={item.id} className="hover:bg-[#f9fbf6]" onClick={() => handleContentClick(item)}>
-                            <TableCell className="align-middle cursor-pointer">
-                              <div className="relative h-24 w-full rounded overflow-hidden">
-                                <img 
-                                  src={item.thumbnail} 
-                                  alt={item.title} 
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
-                                  }}
-                                />
-                                {item.type === 'video' && (
-                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                    <PlayCircle className="w-8 h-8 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="align-top cursor-pointer">
-                              <div>
-                                <h3 className="font-medium text-[#1b5e20] mb-1">{item.title}</h3>
-                                <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
-                                <div className="mt-2">
-                                  {item.type === 'article' ? (
-                                    <Badge variant="outline" className="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32] inline-flex">
-                                      <Book size={12} />
-                                      Article
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="flex items-center gap-1 bg-[#e3f2fd] text-[#1565c0] inline-flex">
-                                      <Video size={12} />
-                                      Video {item.duration && `• ${item.duration}`}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="align-middle">
-                              <div className="flex items-center">
-                                <Avatar className="h-6 w-6 mr-2">
-                                  <AvatarImage src={item.author?.avatar} />
-                                  <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
-                                </Avatar>
-                                <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-                                  {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right align-middle">
-                              <div className="flex items-center justify-end space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // Prevent card click
-                                    handleReadContent(item.description);
-                                  }}
-                                  title="Read aloud"
-                                  className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
-                                >
-                                  <Volume2 className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(item.url, '_blank', 'noopener,noreferrer');
-                                  }}
-                                  title="Open in new tab"
-                                  className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
-                                >
-                                  <LinkIcon className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="col-span-3">
-                    {error ? (
-                      <div className="bg-white/90 rounded-lg p-8 text-center border border-amber-200 shadow">
-                        <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-medium mb-2">Content Unavailable</h3>
-                        <p className="text-gray-500 mb-4">{error}</p>
-                        <Button
-                          onClick={fetchAllContent}
-                          className="bg-[#4caf50] hover:bg-[#388e3c]"
-                        >
-                          Try Again
-                        </Button>
-                      </div>
-                    ) : (
-                      <CompleteSymptomProfile className="max-w-2xl mx-auto" />
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-          
-          {/* Video Modal */}
-          {showVideoModal && activeContent && (
-            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                <div className="flex justify-between items-center p-4 border-b">
-                  <h3 className="text-lg font-semibold">{activeContent.title}</h3>
-                  <Button variant="ghost" size="icon" onClick={handleCloseVideoModal}>
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-auto">
-                  <div className="aspect-video bg-black">
-                    <VideoPlayer
-                      src={activeContent.url}
-                      title={activeContent.title}
-                      poster={activeContent.thumbnail}
-                    />
-                  </div>
-                  <div className="p-4">
-                    <p className="text-sm text-gray-600 mb-4">{activeContent.description}</p>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center">
-                        <Avatar className="h-8 w-8 mr-2">
-                          <AvatarImage src={activeContent.author?.avatar} />
-                          <AvatarFallback>{getAuthorInitial(activeContent.author)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">
-                            {typeof activeContent.author?.name === 'string' ? activeContent.author.name : 'Author'}
-                          </p>
-                          {activeContent.duration && (
-                            <p className="text-xs text-muted-foreground">{activeContent.duration}</p>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-[#4caf50] border-[#4caf50] hover:bg-[#e8f5e9] hover:text-[#2e7d32]"
-                        onClick={() => window.open(activeContent.url, '_blank', 'noopener,noreferrer')}
-                      >
-                        <LinkIcon className="h-4 w-4 mr-1" /> Open Original
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Content Refresh Button */}
-          <div className="w-full flex justify-center mt-8 mb-12">
-            <Button 
-              size="lg"
-              className="bg-[#4caf50] hover:bg-[#388e3c] text-white shadow-md hover:shadow-lg transition-all duration-300"
-              onClick={fetchAllContent}
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <span className="animate-spin mr-2">⟳</span> Loading...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  ↻ Refresh Content
-                </span>
-              )}
-            </Button>
+      {/* Breadcrumb Navigation */}
+      <div className="bg-menova-beige/80 py-4 px-6 border-b border-menova-beige">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center text-sm">
+            <Link to="/" className="text-[#92D9A9] hover:text-[#7bc492]">Home</Link>
+            <span className="mx-2 text-gray-400">&gt;</span>
+            <span className="text-gray-600">Resources</span>
           </div>
         </div>
       </div>
+      
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="min-h-screen bg-gradient-to-b from-[#f9fdf3] to-white">
+          <div className="container mx-auto px-4 md:px-6 py-8">
+            <div className="flex justify-between items-center mb-6">
+              <MeNovaLogo />
+              <div className="flex space-x-2">
+                <ApiStatusIndicator compact={true} />
+              </div>
+            </div>
+            
+            <BreadcrumbTrail currentPath={location.pathname} />
+            
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-bold tracking-tight text-[#2e7d32] mb-2">Resources</h1>
+                <p className="text-lg text-muted-foreground">
+                  Discover personalized menopause guides, articles, and videos tailored to your journey
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-sm p-8 mb-10 border border-[#e8f5e9]">
+                <ResearchSection topic="menopause wellness" phase={userSymptoms[0] || "perimenopause"} />
+              </div>
+              
+              <Separator className="my-10 bg-[#e8f5e9]" />
+
+              {/* Recommended For You Section - Tabular Format */}
+              <section className="mb-10 bg-white rounded-xl shadow-sm p-8 border border-[#e8f5e9]">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-semibold flex items-center">
+                    <span className="text-[#388e3c]">Recommended For You</span>
+                    <Badge variant="outline" className="ml-2 bg-[#e8f5e9] text-[#2e7d32] hover:bg-[#c8e6c9]">
+                      Based on Your Symptoms
+                    </Badge>
+                  </h2>
+                </div>
+                
+                {loading ? (
+                  <Skeleton className="h-64 w-full" />
+                ) : (
+                  <div className="w-full">
+                    {recommendedContent.length > 0 ? (
+                      <div className="border rounded-md overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-[#f1f8e9]">
+                            <TableRow>
+                              <TableHead className="font-semibold text-[#2e7d32] w-[25%]">Thumbnail</TableHead>
+                              <TableHead className="font-semibold text-[#2e7d32] w-[45%]">Content</TableHead>
+                              <TableHead className="font-semibold text-[#2e7d32] w-[15%]">Author</TableHead>
+                              <TableHead className="font-semibold text-[#2e7d32] w-[15%] text-right">Actions</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {recommendedContent.map((item) => (
+                              <TableRow key={item.id} className="hover:bg-[#f9fbf6]" onClick={() => handleContentClick(item)}>
+                                <TableCell className="align-middle cursor-pointer">
+                                  <div className="relative h-24 w-full rounded overflow-hidden">
+                                    <img 
+                                      src={item.thumbnail} 
+                                      alt={item.title} 
+                                      className="h-full w-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.src = 'https://placehold.co/600x400/e8f5e9/2e7d32?text=MeNova';
+                                      }}
+                                    />
+                                    {item.type === 'video' && (
+                                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                        <PlayCircle className="w-8 h-8 text-white" />
+                                      </div>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="align-top cursor-pointer">
+                                  <div>
+                                    <h3 className="font-medium text-[#1b5e20] mb-1">{item.title}</h3>
+                                    <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
+                                    <div className="mt-2">
+                                      {item.type === 'article' ? (
+                                        <Badge variant="outline" className="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32] inline-flex">
+                                          <Book size={12} />
+                                          Article
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="flex items-center gap-1 bg-[#e3f2fd] text-[#1565c0] inline-flex">
+                                          <Video size={12} />
+                                          Video {item.duration && `• ${item.duration}`}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="align-middle">
+                                  <div className="flex items-center">
+                                    <Avatar className="h-6 w-6 mr-2">
+                                      <AvatarImage src={item.author?.avatar} />
+                                      <AvatarFallback>{getAuthorInitial(item.author)}</AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                      {typeof item.author?.name === 'string' ? item.author.name : 'Author'}
+                                    </span>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right align-middle">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation(); // Prevent card click
+                                        handleReadContent(item.description);
+                                      }}
+                                      title="Read aloud"
+                                      className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
+                                    >
+                                      <Volume2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(item.url, '_blank', 'noopener,noreferrer');
+                                      }}
+                                      title="Open in new tab"
+                                      className="text-[#4caf50] hover:text-[#2e7d32] hover:bg-[#e8f5e9]"
+                                    >
+                                      <LinkIcon className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className="col-span-3">
+                        {error ? (
+                          <div className="bg-white/90 rounded-lg p-8 text-center border border-amber-200 shadow">
+                            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium mb-2">Content Unavailable</h3>
+                            <p className="text-gray-500 mb-4">{error}</p>
+                            <Button
+                              onClick={fetchAllContent}
+                              className="bg-[#4caf50] hover:bg-[#388e3c]"
+                            >
+                              Try Again
+                            </Button>
+                          </div>
+                        ) : (
+                          <CompleteSymptomProfile className="max-w-2xl mx-auto" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+              
+              {/* Video Modal */}
+              {showVideoModal && activeContent && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="flex justify-between items-center p-4 border-b">
+                      <h3 className="text-lg font-semibold">{activeContent.title}</h3>
+                      <Button variant="ghost" size="icon" onClick={handleCloseVideoModal}>
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <div className="aspect-video bg-black">
+                        <VideoPlayer
+                          src={activeContent.url}
+                          title={activeContent.title}
+                          poster={activeContent.thumbnail}
+                        />
+                      </div>
+                      <div className="p-4">
+                        <p className="text-sm text-gray-600 mb-4">{activeContent.description}</p>
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center">
+                            <Avatar className="h-8 w-8 mr-2">
+                              <AvatarImage src={activeContent.author?.avatar} />
+                              <AvatarFallback>{getAuthorInitial(activeContent.author)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">
+                                {typeof activeContent.author?.name === 'string' ? activeContent.author.name : 'Author'}
+                              </p>
+                              {activeContent.duration && (
+                                <p className="text-xs text-muted-foreground">{activeContent.duration}</p>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[#4caf50] border-[#4caf50] hover:bg-[#e8f5e9] hover:text-[#2e7d32]"
+                            onClick={() => window.open(activeContent.url, '_blank', 'noopener,noreferrer')}
+                          >
+                            <LinkIcon className="h-4 w-4 mr-1" /> Open Original
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Content Refresh Button */}
+              <div className="w-full flex justify-center mt-8 mb-12">
+                <Button 
+                  size="lg"
+                  className="bg-[#4caf50] hover:bg-[#388e3c] text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  onClick={fetchAllContent}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center">
+                      <span className="animate-spin mr-2">⟳</span> Loading...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">
+                      ↻ Refresh Content
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

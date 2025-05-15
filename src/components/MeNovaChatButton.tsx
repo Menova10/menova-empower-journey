@@ -1,10 +1,10 @@
-
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { MessageCircle, Volume2 } from 'lucide-react';
+import { MessageCircle, Mic } from 'lucide-react';
 import MeNovaChatWindow from './chat/MeNovaChatWindow';
 import VapiAssistant from './VapiAssistant';
+import { Button } from '@/components/ui/button';
+import { useVapi } from '@/contexts/VapiContext';
 
 interface MeNovaChatButtonProps {
   className?: string;
@@ -15,22 +15,46 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
   className = '', 
   variant = 'default' 
 }) => {
-  const [showChatOptions, setShowChatOptions] = React.useState(false);
+  const [showOptions, setShowOptions] = React.useState(false);
   const [selectedMode, setSelectedMode] = React.useState<'text' | 'voice' | null>(null);
+  const vapiAssistantRef = useRef<any>(null);
+  const { startAssistant, stopAssistant, sdkLoaded } = useVapi();
   
-  const handleChatOptionSelected = (type: 'text' | 'voice') => {
-    setShowChatOptions(false);
-    setSelectedMode(type);
+  const handleButtonClick = () => {
+    // Show options dialog instead of directly opening text chat
+    setShowOptions(true);
+  };
+
+  const selectMode = (mode: 'text' | 'voice') => {
+    setSelectedMode(mode);
+    setShowOptions(false);
   };
 
   const closeChat = () => {
     setSelectedMode(null);
   };
 
+  // When voice chat is opened, make sure the assistant greets the user
+  useEffect(() => {
+    if (selectedMode === 'voice' && sdkLoaded && vapiAssistantRef.current) {
+      // Let the component mount first
+      const timer = setTimeout(() => {
+        if (vapiAssistantRef.current && vapiAssistantRef.current.sendTextMessage) {
+          // This will make the assistant speak the initial greeting
+          vapiAssistantRef.current.sendTextMessage(
+            "Hello! I'm MeNova, your companion through menopause. How are you feeling today?"
+          );
+        }
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedMode, sdkLoaded]);
+
   return (
     <>
       <button 
-        onClick={() => setShowChatOptions(true)}
+        onClick={handleButtonClick}
         className={`
           ${variant === 'floating' 
             ? 'fixed bottom-6 right-6 z-40 shadow-lg py-3 px-4 rounded-full' 
@@ -49,39 +73,31 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
         <span className="font-semibold">Talk to MeNova</span>
       </button>
 
-      {/* Chat Options Dialog */}
-      <Dialog open={showChatOptions} onOpenChange={setShowChatOptions}>
-        <DialogContent className="sm:max-w-md bg-menova-beige">
+      {/* Options Dialog */}
+      <Dialog open={showOptions} onOpenChange={setShowOptions}>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center">Start a conversation with MeNova</DialogTitle>
-            <DialogDescription className="text-center">
-              MeNova is here to help with your menopause journey
+            <DialogTitle>How would you like to chat?</DialogTitle>
+            <DialogDescription>
+              Choose how you want to interact with MeNova
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="grid grid-cols-2 gap-6 py-4">
+          <div className="flex gap-4 mt-4">
             <Button 
-              onClick={() => handleChatOptionSelected('text')}
-              className="flex flex-col items-center justify-center w-full gap-3 h-auto py-4 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
+              onClick={() => selectMode('text')} 
+              className="flex-1 flex flex-col items-center py-6 gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200"
               variant="outline"
             >
-              <MessageCircle className="h-6 w-6 text-menova-green" />
-              <div className="text-center">
-                <p className="font-medium">Text Chat</p>
-                <p className="text-sm text-gray-500">Type messages to MeNova</p>
-              </div>
+              <MessageCircle size={24} className="text-[#92D9A9]" />
+              <span>Text Chat</span>
             </Button>
-            
             <Button 
-              onClick={() => handleChatOptionSelected('voice')}
-              className="flex flex-col items-center justify-center w-full gap-3 h-auto py-4 bg-white hover:bg-white/80 text-menova-text border border-menova-green/30"
+              onClick={() => selectMode('voice')} 
+              className="flex-1 flex flex-col items-center py-6 gap-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200"
               variant="outline"
             >
-              <Volume2 className="h-6 w-6 text-menova-green" />
-              <div className="text-center">
-                <p className="font-medium">Voice Chat</p>
-                <p className="text-sm text-gray-500">Talk with MeNova using your voice</p>
-              </div>
+              <Mic size={24} className="text-[#92D9A9]" />
+              <span>Voice Chat</span>
             </Button>
           </div>
         </DialogContent>
@@ -96,7 +112,7 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
               <DialogTitle>Voice Chat with MeNova</DialogTitle>
             </DialogHeader>
             <div className="flex justify-center py-4">
-              <VapiAssistant />
+              <VapiAssistant ref={vapiAssistantRef} />
             </div>
           </DialogContent>
         </Dialog>

@@ -1,4 +1,3 @@
-
 import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -88,7 +87,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       console.log("Dialog closed, stopping assistant");
       stopAssistant();
     }
-  }, [open, sdkLoaded, startAssistant, stopAssistant]);
+  }, [open, sdkLoaded, startAssistant, stopAssistant, messages]);
 
   // Connect microphone button to Vapi's listening state
   useEffect(() => {

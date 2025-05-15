@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import MeNovaLogo from '@/components/MeNovaLogo';
 import { Card, CardContent } from '@/components/ui/card';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,7 +9,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { Flower, Smile, Book, Activity } from 'lucide-react';
+import { Flower, Smile, Book, Activity, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { fetchSymptomHistory, prepareChartData } from '@/services/symptomService';
 import { SymptomEntry, ChartDataPoint } from '@/types/symptoms';
 import SymptomForm from '@/components/symptoms/SymptomForm';
@@ -19,9 +18,20 @@ import SymptomTimeline from '@/components/symptoms/SymptomTimeline';
 import SymptomFilters from '@/components/symptoms/SymptomFilters';
 import SuccessMessage from '@/components/symptoms/SuccessMessage';
 import ConfettiEffect from '@/components/symptoms/ConfettiEffect';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useVapi } from '@/contexts/VapiContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const SymptomTracker = () => {
   const navigate = useNavigate();
+  const { speak, sdkLoaded } = useVapi();
   
   // UI state
   const [showConfetti, setShowConfetti] = useState(false);
@@ -34,6 +44,10 @@ const SymptomTracker = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('weekly');
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [activeTab, setActiveTab] = useState<string>("today");
+
+  // User state
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   // Handle success after submitting the form
   const handleSubmitSuccess = (tip: string) => {
@@ -61,6 +75,60 @@ const SymptomTracker = () => {
     refreshSymptomHistory();
   }, [selectedSymptom, selectedPeriod]);
 
+  // Introduce the symptom tracker page with voice when loaded
+  useEffect(() => {
+    if (sdkLoaded) {
+      // Add a short delay to make sure the page is fully rendered
+      const timer = setTimeout(() => {
+        speak("Welcome to the symptom tracker. Here you can record how you're feeling and track your symptoms over time.");
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [sdkLoaded, speak]);
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setUser(session.user);
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (!error && data) {
+          setProfile(data);
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while logging out.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover relative overflow-hidden">
@@ -70,10 +138,74 @@ const SymptomTracker = () => {
         {/* Confetti effect */}
         <ConfettiEffect show={showConfetti} />
 
-        {/* Navbar */}
-        <nav className="flex justify-between items-center px-4 md:px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-          <MeNovaLogo />
-        </nav>
+        {/* Header with Navigation */}
+        <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-8">
+              <MeNovaLogo className="text-[#92D9A9]" />
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium">
+                  Explore <ChevronDown className="h-4 w-4 ml-1" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => navigate('/welcome')}>
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/resources')}>
+                    Resources
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/community')}>
+                    Community
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/symptom-tracker')}>
+                    Symptom Tracker
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
+            <div className="flex items-center">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-50">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
+                    <AvatarFallback>
+                      {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[#92D9A9]">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
+                  <ChevronDown className="h-4 w-4 text-[#92D9A9]" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </header>
+
+        {/* Breadcrumb Navigation */}
+        <div className="bg-menova-beige/80 py-4 px-6 border-b border-menova-beige">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center text-sm">
+              <Link to="/" className="text-[#92D9A9] hover:text-[#7bc492]">Home</Link>
+              <span className="mx-2 text-gray-400">&gt;</span>
+              <span className="text-gray-600">Symptom Tracker</span>
+            </div>
+          </div>
+        </div>
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col w-full px-3 md:px-6 lg:px-10 relative z-10">

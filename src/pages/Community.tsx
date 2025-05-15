@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import VapiAssistant from '@/components/VapiAssistant';
 import MeNovaLogo from '@/components/MeNovaLogo';
@@ -727,135 +727,75 @@ Date: ${new Date().toLocaleDateString()}`;
 
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
-      {/* Navbar with expanded menus - Same as Welcome page */}
-      <nav className="flex justify-between items-center px-6 py-4 bg-white/90 shadow-sm backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <MeNovaLogo />
-          
-          {/* Desktop Menu Items */}
-          <div className="hidden md:flex items-center space-x-4">
-            {/* Explore Menu */}
-            <DropdownMenu open={isExploreOpen} onOpenChange={setIsExploreOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  className="text-menova-green hover:bg-menova-green/10"
-                >
-                  Explore <ChevronDown size={16} className="ml-1" />
-                </Button>
+      {/* Header with Navigation */}
+      <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-8">
+            <MeNovaLogo className="text-[#92D9A9]" />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium">
+                Explore <ChevronDown className="h-4 w-4 ml-1" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48 bg-white border-menova-green/20">
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')} className="cursor-pointer">
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => navigate('/welcome')}>
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/resources')}>
+                  Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/community')}>
+                  Community
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/symptom-tracker')}>
                   Symptom Tracker
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')} className="cursor-pointer">
-                  Wellness Plan
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-50">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
+                  <AvatarFallback>
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[#92D9A9]">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
+                <ChevronDown className="h-4 w-4 text-[#92D9A9]" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleVoiceNavigation('Community', '/community')} className="cursor-pointer">
-                  Community
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
-        
-        {/* Mobile Menu Toggle */}
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="md:hidden text-menova-green"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          )}
-        </Button>
-        
-        {/* User Dropdown */}
-        <div className="hidden md:flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-2"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage
-                    src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                    alt="Profile"
-                  />
-                  <AvatarFallback className="bg-menova-green text-white">
-                    {profile?.full_name?.[0] || user?.email?.[0]?.toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden md:inline">
-                  {profile?.full_name || user?.email?.split('@')[0]}
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-white">
-              <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
-                <User size={16} className="mr-2" /> Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
-                <Settings size={16} className="mr-2" /> Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                <LogOut size={16} className="mr-2" /> Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
-          <Button
-            onClick={() => {
-              // Open the community dialog instead of navigating
-              setCommunityDialogOpen(true);
-              setCurrentChatMessages([{
-                text: "I can help you find supportive communities for women on this menopause journey. Would you like me to tell you more about any of the communities listed on this page?",
-                sender: 'ai',
-                timestamp: new Date()
-              }]);
-            }}
-            className="bg-menova-green text-white hover:bg-menova-green/90 rounded-full flex items-center gap-2"
-          >
-            <MessageCircle size={16} />
-            <span className="hidden md:inline">Chat with MeNova</span>
-          </Button>
-        </div>
-      </nav>
+      </header>
       
-      {/* Mobile Menu (Dropdown) */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-menova-green/20 py-2 px-4">
-          <div className="flex flex-col space-y-2">
-            <Button variant="ghost" onClick={() => handleVoiceNavigation('Symptom Tracker', '/symptom-tracker')} className="justify-start">
-              Symptom Tracker
-            </Button>
-            <Button variant="ghost" onClick={() => handleVoiceNavigation('Wellness Plan', '/wellness-plan')} className="justify-start">
-              Wellness Plan
-            </Button>
-            <Button variant="ghost" onClick={() => handleVoiceNavigation('Community', '/community')} className="justify-start">
-              Community
-            </Button>
-            <Button variant="ghost" onClick={() => navigate('/profile')} className="justify-start">
-              <User size={16} className="mr-2" /> Profile
-            </Button>
-            <Button variant="ghost" onClick={() => navigate('/settings')} className="justify-start">
-              <Settings size={16} className="mr-2" /> Settings
-            </Button>
-            <Button variant="ghost" onClick={handleLogout} className="justify-start text-red-500">
-              <LogOut size={16} className="mr-2" /> Logout
-            </Button>
+      {/* Breadcrumb Navigation */}
+      <div className="bg-menova-beige/80 py-4 px-6 border-b border-menova-beige">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center text-sm">
+            <Link to="/" className="text-[#92D9A9] hover:text-[#7bc492]">Home</Link>
+            <span className="mx-2 text-gray-400">&gt;</span>
+            <span className="text-gray-600">Community</span>
           </div>
         </div>
-      )}
-
+      </div>
+      
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
         {/* Introduction Card */}
