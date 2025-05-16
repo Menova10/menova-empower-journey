@@ -8,7 +8,7 @@ const MeNovaLogo = ({
   const navigate = useNavigate();
   return <h1 onClick={() => navigate('/')} className={`text-2xl font-bold cursor-pointer ${className}`}>
       
-      <span className="text-[#92D9A9]">Nova</span>
+      
     </h1>;
 };
 export default MeNovaLogo;
