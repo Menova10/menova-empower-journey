@@ -1,7 +1,8 @@
-
 import { format } from 'date-fns';
-import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
 import { symptoms, SymptomEntry, sourceBadges } from '@/types/symptoms';
+import { useState } from 'react';
 
 interface SymptomTimelineProps {
   loading: boolean;
@@ -9,6 +10,10 @@ interface SymptomTimelineProps {
 }
 
 const SymptomTimeline = ({ loading, symptomHistory }: SymptomTimelineProps) => {
+  const [selectedNote, setSelectedNote] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogTitle, setDialogTitle] = useState('');
+
   if (loading) {
     return (
       <div className="h-64 flex items-center justify-center">
@@ -28,14 +33,43 @@ const SymptomTimeline = ({ loading, symptomHistory }: SymptomTimelineProps) => {
     );
   }
 
+  const openNotes = (notes: string, symptomName: string) => {
+    setSelectedNote(notes);
+    setDialogTitle(`Notes for ${symptomName}`);
+    setIsDialogOpen(true);
+  };
+
+  // Parse detected symptoms from Voice Assistant notes
+  const parseVoiceAssistantNotes = (notes: string) => {
+    if (!notes || !notes.includes('DETECTED SYMPTOMS:')) return null;
+    
+    const detectedLine = notes.split('\n').find(line => line.startsWith('DETECTED SYMPTOMS:'));
+    const intensityLine = notes.split('\n').find(line => line.startsWith('INTENSITY:'));
+    
+    if (!detectedLine) return null;
+    
+    const detectedSymptoms = detectedLine.replace('DETECTED SYMPTOMS:', '').trim();
+    const intensity = intensityLine ? intensityLine.replace('INTENSITY:', '').trim() : null;
+    
+    return (
+      <div className="mt-2 text-xs">
+        <p><span className="font-semibold">Detected Symptoms:</span> {detectedSymptoms !== 'None specifically identified' ? detectedSymptoms : 'None specifically identified'}</p>
+        {intensity && <p><span className="font-semibold">Intensity:</span> {intensity}</p>}
+      </div>
+    );
+  };
+
   return (
-    <TooltipProvider>
+    <>
       <div className="space-y-4">
         {symptomHistory.map((entry, index) => {
           const symptom = symptoms.find(s => s.id === entry.symptom);
           const date = new Date(entry.recorded_at);
           const source = sourceBadges[entry.source as keyof typeof sourceBadges] || 
             { label: entry.source.toUpperCase(), class: 'bg-gray-200 text-gray-700' };
+          
+          const isVoiceAssistant = entry.symptom === 'voice_assistant' || entry.source === 'voice_assistant';
+          const parsedVoiceInfo = isVoiceAssistant && entry.notes ? parseVoiceAssistantNotes(entry.notes) : null;
           
           return (
             <div 
@@ -71,21 +105,63 @@ const SymptomTimeline = ({ loading, symptomHistory }: SymptomTimelineProps) => {
                   {format(date, 'EEEE, MMM d, yyyy')} at {format(date, 'h:mm a')}
                 </span>
                 {entry.notes && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="underline cursor-help">Notes</span>
-                    </TooltipTrigger>
-                    <TooltipContent className="p-2 max-w-xs">
-                      {entry.notes}
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="px-2 py-1 h-auto text-xs underline text-menova-green hover:text-menova-green/80"
+                    onClick={() => openNotes(entry.notes!, symptom?.name || entry.symptom)}
+                  >
+                    View Notes
+                  </Button>
                 )}
               </div>
+              {parsedVoiceInfo}
             </div>
           );
         })}
       </div>
-    </TooltipProvider>
+      
+      {/* Dialog for displaying notes */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{dialogTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            {selectedNote && selectedNote.includes('DETECTED SYMPTOMS:') ? (
+              // Format voice assistant notes specially
+              <div className="space-y-4">
+                {selectedNote.split('\n\n').map((section, idx) => {
+                  if (idx === 0) {
+                    // This is the metadata section
+                    return (
+                      <div key={idx} className="bg-menova-green/10 p-3 rounded-md">
+                        {section.split('\n').map((line, lineIdx) => (
+                          <p key={lineIdx} className="mb-1"><strong>{line.split(':')[0]}:</strong> {line.split(':').slice(1).join(':')}</p>
+                        ))}
+                      </div>
+                    );
+                  } else {
+                    // This is the conversation
+                    return (
+                      <div key={idx} className="whitespace-pre-wrap font-mono text-sm">
+                        {section}
+                      </div>
+                    );
+                  }
+                })}
+              </div>
+            ) : (
+              // Regular notes
+              <div className="whitespace-pre-wrap">{selectedNote}</div>
+            )}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button onClick={() => setIsDialogOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
