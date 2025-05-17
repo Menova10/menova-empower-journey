@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +72,8 @@ const Login = () => {
     navigate('/');
   };
 
-  return <AuthBackground>
+  return (
+    <AuthBackground>
       {/* Header styled more like the main site header */}
       <div className="absolute top-0 left-0 right-0 bg-white/95 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
         <MeNovaLogo />
@@ -88,8 +90,8 @@ const Login = () => {
           <Form {...loginForm}>
             <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
               <FormField control={loginForm.control} name="email" render={({
-            field
-          }) => <FormItem>
+                field
+              }) => <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input placeholder="you@example.com" {...field} />
@@ -97,9 +99,9 @@ const Login = () => {
                   <FormMessage />
                 </FormItem>} />
             
-            <FormField control={loginForm.control} name="password" render={({
-            field
-          }) => <FormItem>
+              <FormField control={loginForm.control} name="password" render={({
+                field
+              }) => <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
@@ -107,20 +109,22 @@ const Login = () => {
                   <FormMessage />
                 </FormItem>} />
             
-            <Button type="submit" className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white" disabled={isLoading}>
-              {isLoading ? "Logging in..." : "Login"}
+              <Button type="submit" className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white" disabled={isLoading}>
+                {isLoading ? "Logging in..." : "Login"}
+              </Button>
+            </form>
+          </Form>
+          
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 mb-2">Don't have an account yet?</p>
+            <Button onClick={() => navigate('/waitlist')} className="bg-[#92D9A9] hover:bg-[#7bc492] text-white">
+              Join the Waitlist
             </Button>
-          </form>
-        </Form>
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 mb-2">Don't have an account yet?</p>
-          <Button onClick={() => navigate('/waitlist')} className="bg-[#92D9A9] hover:bg-[#7bc492] text-white">
-            Join the Waitlist
-          </Button>
+          </div>
         </div>
       </div>
-    </AuthBackground>;
+    </AuthBackground>
+  );
 };
 
 export default Login;
