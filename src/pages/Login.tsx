@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters")
 });
 type LoginFormValues = z.infer<typeof loginSchema>;
+
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -30,6 +32,7 @@ const Login = () => {
       password: ""
     }
   });
+
   const onLoginSubmit = async (data: LoginFormValues) => {
     try {
       setIsLoading(true);
@@ -64,17 +67,19 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
   const handleClose = () => {
     navigate('/');
   };
+
   return <AuthBackground>
-      {/* Logo positioned at top left */}
-      <div className="absolute top-4 left-4">
+      {/* Header with Logo and Close button */}
+      <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4">
         <MeNovaLogo />
+        <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
+          <X className="h-5 w-5" />
+        </Button>
       </div>
-      
-      {/* Close button */}
-      
       
       <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
       
@@ -116,4 +121,5 @@ const Login = () => {
       </div>
     </AuthBackground>;
 };
+
 export default Login;

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import AuthBackground from '@/components/AuthBackground';
 import MeNovaLogo from '@/components/MeNovaLogo';
+
 const Waitlist = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -21,6 +23,7 @@ const Waitlist = () => {
   const [menopauseStage, setMenopauseStage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -37,6 +40,7 @@ const Waitlist = () => {
         birth_date: date ? format(date, 'yyyy-MM-dd') : null,
         menopause_stage: menopauseStage || null
       });
+
       if (error) {
         throw error;
       }
@@ -51,9 +55,11 @@ const Waitlist = () => {
           menopause_stage: menopauseStage || null
         }
       });
+
       if (functionResponse.error) {
         console.error("Error calling function:", functionResponse.error);
       }
+
       toast({
         title: "Joined waitlist",
         description: "You've been added to our waitlist! We'll notify you when your MeNova access is approved."
@@ -78,14 +84,19 @@ const Waitlist = () => {
       setIsSubmitting(false);
     }
   };
+
+  const handleClose = () => {
+    navigate('/');
+  };
+
   return <AuthBackground>
-      {/* Logo positioned at top left */}
-      <div className="absolute top-4 left-4">
+      {/* Header with Logo and Close button */}
+      <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4">
         <MeNovaLogo />
+        <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
+          <X className="h-5 w-5" />
+        </Button>
       </div>
-      
-      {/* Close button */}
-      
       
       <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
       
@@ -162,4 +173,5 @@ const Waitlist = () => {
       </div>
     </AuthBackground>;
 };
+
 export default Waitlist;
