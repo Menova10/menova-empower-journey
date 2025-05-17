@@ -74,19 +74,18 @@ const Login = () => {
 
   return (
     <AuthBackground>
-      {/* Header styled more like the main site header */}
-      <div className="absolute top-0 left-0 right-0 bg-white/95 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
-        <MeNovaLogo />
+      {/* Simple close button in the top right */}
+      <div className="absolute top-4 right-4">
         <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
           <X className="h-5 w-5" />
         </Button>
       </div>
       
-      {/* Add padding at the top to account for header */}
-      <div className="pt-16">
+      <div className="flex flex-col items-center justify-center pt-16">
+        <MeNovaLogo className="mb-6" />
         <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
         
-        <div className="w-full">
+        <div className="w-full max-w-md">
           <Form {...loginForm}>
             <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
               <FormField control={loginForm.control} name="email" render={({

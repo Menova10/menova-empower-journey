@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,92 +89,95 @@ const Waitlist = () => {
     navigate('/');
   };
 
-  return <AuthBackground>
-      {/* Header styled more like the main site header */}
-      <div className="absolute top-0 left-0 right-0 bg-white/95 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
-        <MeNovaLogo />
+  return (
+    <AuthBackground>
+      {/* Simple close button in the top right */}
+      <div className="absolute top-4 right-4">
         <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
           <X className="h-5 w-5" />
         </Button>
       </div>
       
-      {/* Add padding at the top to account for header */}
-      <div className="pt-16">
+      <div className="flex flex-col items-center justify-center pt-16">
+        <MeNovaLogo className="mb-6" />
         <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-menova-text">
-              Full Name
-            </label>
-            <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} className="mt-1" placeholder="Jane Doe" required />
-          </div>
+        <div className="w-full max-w-md">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-menova-text">
+                Full Name
+              </label>
+              <Input id="name" type="text" value={name} onChange={e => setName(e.target.value)} className="mt-1" placeholder="Jane Doe" required />
+            </div>
 
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-menova-text">
-              Email
-            </label>
-            <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1" placeholder="you@example.com" required />
-          </div>
-          
-          {/* Date of Birth Field */}
-          <div>
-            <label htmlFor="date-picker" className="block text-sm font-medium text-menova-text">
-              Date of Birth
-            </label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button id="date-picker" variant={"outline"} className={cn("w-full justify-start text-left font-normal mt-1", !date && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={date} onSelect={setDate} initialFocus disabled={date => date > new Date() || date < new Date("1920-01-01")} className={cn("p-3 pointer-events-auto")} />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          {/* Menopause Stage Field */}
-          <div>
-            <label htmlFor="menopause-stage" className="block text-sm font-medium text-menova-text">
-              Cycle Stage
-            </label>
-            <Select onValueChange={setMenopauseStage} value={menopauseStage}>
-              <SelectTrigger id="menopause-stage" className="mt-1">
-                <SelectValue placeholder="Select your stage" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Perimenopause">Perimenopause</SelectItem>
-                <SelectItem value="Menopause">Menopause</SelectItem>
-                <SelectItem value="Postmenopause">Postmenopause</SelectItem>
-                <SelectItem value="I'm not sure">I'm not sure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label htmlFor="reason" className="block text-sm font-medium text-menova-text">
-              Why are you interested in MeNova?
-            </label>
-            <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} className="mt-1" rows={3} />
-          </div>
-          
-          <Button type="submit" className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Join Waitlist"}
-          </Button>
-        </form>
-        
-        <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
-            Already have an account?{' '}
-            <Button variant="link" className="p-0 h-auto text-[#92D9A9]" onClick={() => navigate('/login')}>
-              Login
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-menova-text">
+                Email
+              </label>
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1" placeholder="you@example.com" required />
+            </div>
+            
+            {/* Date of Birth Field */}
+            <div>
+              <label htmlFor="date-picker" className="block text-sm font-medium text-menova-text">
+                Date of Birth
+              </label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button id="date-picker" variant={"outline"} className={cn("w-full justify-start text-left font-normal mt-1", !date && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={date} onSelect={setDate} initialFocus disabled={date => date > new Date() || date < new Date("1920-01-01")} className={cn("p-3 pointer-events-auto")} />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* Menopause Stage Field */}
+            <div>
+              <label htmlFor="menopause-stage" className="block text-sm font-medium text-menova-text">
+                Cycle Stage
+              </label>
+              <Select onValueChange={setMenopauseStage} value={menopauseStage}>
+                <SelectTrigger id="menopause-stage" className="mt-1">
+                  <SelectValue placeholder="Select your stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Perimenopause">Perimenopause</SelectItem>
+                  <SelectItem value="Menopause">Menopause</SelectItem>
+                  <SelectItem value="Postmenopause">Postmenopause</SelectItem>
+                  <SelectItem value="I'm not sure">I'm not sure</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label htmlFor="reason" className="block text-sm font-medium text-menova-text">
+                Why are you interested in MeNova?
+              </label>
+              <Textarea id="reason" value={reason} onChange={e => setReason(e.target.value)} className="mt-1" rows={3} />
+            </div>
+            
+            <Button type="submit" className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Join Waitlist"}
             </Button>
-          </p>
+          </form>
+          
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Button variant="link" className="p-0 h-auto text-[#92D9A9]" onClick={() => navigate('/login')}>
+                Login
+              </Button>
+            </p>
+          </div>
         </div>
       </div>
-    </AuthBackground>;
+    </AuthBackground>
+  );
 };
 
 export default Waitlist;
