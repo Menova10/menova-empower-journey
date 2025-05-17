@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,20 +72,22 @@ const Login = () => {
   };
 
   return <AuthBackground>
-      {/* Header with Logo and Close button */}
-      <div className="absolute top-0 left-0 right-0 flex justify-between items-center p-4">
+      {/* Header styled more like the main site header */}
+      <div className="absolute top-0 left-0 right-0 bg-white/95 border-b border-gray-200 px-6 py-3 flex justify-between items-center">
         <MeNovaLogo />
         <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
           <X className="h-5 w-5" />
         </Button>
       </div>
       
-      <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
-      
-      <div className="w-full">
-        <Form {...loginForm}>
-          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-            <FormField control={loginForm.control} name="email" render={({
+      {/* Add padding at the top to account for header */}
+      <div className="pt-16">
+        <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
+        
+        <div className="w-full">
+          <Form {...loginForm}>
+            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+              <FormField control={loginForm.control} name="email" render={({
             field
           }) => <FormItem>
                   <FormLabel>Email</FormLabel>
