@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { format, isValid, parseISO } from 'date-fns';
 import { ChartDataPoint } from '@/types/symptoms';
@@ -28,7 +27,6 @@ const accessibleColors = {
   energy: '#FEC6A1',      // Soft orange
   anxiety: '#FEF7CD',     // Soft yellow 
   brain_fog: '#FFB74D',   // Amber
-  voice_assistant: '#FFD54F', // Yellow
 };
 
 // Custom tick formatter to display dates in a readable format
