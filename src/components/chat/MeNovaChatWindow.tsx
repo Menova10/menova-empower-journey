@@ -4,6 +4,8 @@ import { Maximize2, Minimize2, X, Mic, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from '@/components/ui/use-toast';
+import { detectSymptoms, createEnhancedSummary } from '@/services/symptomDetectionService';
+import { symptoms } from '@/types/symptoms';
 
 // Define the message interface with detectedSymptom property
 interface ChatMessage {
@@ -210,38 +212,83 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
   
   // Extract symptoms from message
   const extractSymptoms = async (message: string) => {
-    // This would call the existing Supabase Edge Function
-    // For now, we'll just look for common symptom keywords
-    const symptomKeywords = [
-      'hot flash', 'hot flashes', 'mood swing', 'mood swings', 'fatigue',
-      'tired', 'exhausted', 'insomnia', 'joint pain', 'ache', 'pain',
-      'night sweat', 'night sweats', 'anxiety', 'depression'
-    ];
+    if (!user) return null;
     
-    // Check if the message contains any symptom keywords
-    const foundSymptoms = symptomKeywords.filter(symptom => 
-      message.toLowerCase().includes(symptom)
-    );
+    // Use our symptom detection service
+    const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(message);
     
-    if (foundSymptoms.length > 0 && user) {
-      // For each found symptom, add to symptom_tracking
-      for (const symptom of foundSymptoms) {
-        try {
-          await supabase
-            .from('symptom_tracking')
-            .insert({
-              user_id: user.id,
-              symptom: symptom,
-              intensity: 3, // Default mid-level intensity
-              source: 'chat',
-              notes: `Detected from chat: "${message}"`
-            });
-        } catch (error) {
-          console.error('Error saving symptom:', error);
+    // If we detected any symptoms, save them to the symptom tracker
+    if (detectedSymptoms.size > 0) {
+      try {
+        // Create a summary of the chat message
+        const enhancedSummary = createEnhancedSummary(
+          `User: ${message}`, 
+          detectedSymptoms, 
+          intensity
+        );
+        
+        // Save primary symptom
+        await supabase
+          .from('symptom_tracking')
+          .insert({
+            user_id: user.id,
+            symptom: primarySymptom,
+            intensity: intensity,
+            source: 'chat',
+            notes: enhancedSummary,
+            recorded_at: new Date().toISOString()
+          });
+          
+        // If multiple symptoms detected, save the additional ones
+        if (detectedSymptoms.size > 1) {
+          const additionalSymptoms = Array.from(detectedSymptoms).slice(1);
+          for (const symptomId of additionalSymptoms) {
+            await supabase
+              .from('symptom_tracking')
+              .insert({
+                user_id: user.id,
+                symptom: symptomId,
+                intensity: intensity,
+                source: 'chat',
+                notes: enhancedSummary,
+                recorded_at: new Date().toISOString()
+              });
+          }
         }
+        
+        // Schedule a follow-up WhatsApp notification
+        try {
+          // Import the notification trigger service dynamically to avoid circular dependencies
+          const { notificationTrigger } = await import('@/services/notificationTriggerService');
+          
+          // Schedule the notification
+          const result = await notificationTrigger.scheduleFollowUpNotification(
+            user.id, 
+            'voice-chat'
+          );
+          
+          console.log('Chat: WhatsApp follow-up scheduled for symptom detection');
+          
+          if (result.success) {
+            // Show a notification about the scheduled follow-up
+            toast({
+              title: "WhatsApp Follow-up Scheduled",
+              description: `A follow-up message will be sent to ${result.phone} in 24 hours to check on your symptoms`,
+              variant: "default",
+              duration: 8000, // Display for 8 seconds for better visibility
+            });
+          }
+        } catch (notifyError) {
+          console.error("Error scheduling voice chat follow-up:", notifyError);
+        }
+        
+        // Return the primary symptom for display
+        const symptomObj = symptoms.find(s => s.id === primarySymptom);
+        return symptomObj ? symptomObj.name : primarySymptom;
+        
+      } catch (error) {
+        console.error('Error saving symptom:', error);
       }
-      
-      return foundSymptoms[0]; // Return the first detected symptom
     }
     
     return null;

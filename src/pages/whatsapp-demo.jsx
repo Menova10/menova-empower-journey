@@ -80,6 +80,7 @@ const WhatsAppDemoPage = () => {
         toast({
           title: "Follow-up Scheduled",
           description: "A demo follow-up notification has been scheduled",
+          duration: 8000, // Display for 8 seconds for better visibility
         });
       } else if (result.reason === 'no-phone') {
         toast({

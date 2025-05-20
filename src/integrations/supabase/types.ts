@@ -107,6 +107,7 @@ export type Database = {
           id: string
           last_check_in: string | null
           menopause_stage: string | null
+          phone: string | null
           updated_at: string | null
           username: string | null
           wellness_score: number | null
@@ -118,6 +119,7 @@ export type Database = {
           id: string
           last_check_in?: string | null
           menopause_stage?: string | null
+          phone?: string | null
           updated_at?: string | null
           username?: string | null
           wellness_score?: number | null
@@ -129,6 +131,7 @@ export type Database = {
           id?: string
           last_check_in?: string | null
           menopause_stage?: string | null
+          phone?: string | null
           updated_at?: string | null
           username?: string | null
           wellness_score?: number | null

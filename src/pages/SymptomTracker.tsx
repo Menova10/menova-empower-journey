@@ -13,6 +13,7 @@ import { Flower, Smile, Book, Activity, User, Settings, LogOut, ChevronDown } fr
 import { fetchSymptomHistory, prepareChartData } from '@/services/symptomService';
 import { SymptomEntry, ChartDataPoint } from '@/types/symptoms';
 import SymptomForm from '@/components/symptoms/SymptomForm';
+import SymptomNotes from '@/components/symptoms/SymptomNotes';
 import SymptomChart from '@/components/symptoms/SymptomChart';
 import SymptomTimeline from '@/components/symptoms/SymptomTimeline';
 import SymptomFilters from '@/components/symptoms/SymptomFilters';
@@ -28,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import MeNovaChatButton from '@/components/MeNovaChatButton';
 
 const SymptomTracker = () => {
   const navigate = useNavigate();
@@ -129,6 +131,71 @@ const SymptomTracker = () => {
     }
   };
 
+  // Handle notes submission with detected symptoms
+  const handleNotesSubmitted = async (notes: string, detectedSymptoms: { id: string, intensity: number }[]) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast({
+          title: "Not logged in",
+          description: "Please log in to submit symptoms",
+          variant: "destructive",
+        });
+        navigate('/login');
+        return;
+      }
+      
+      // If no symptoms were detected, just save the notes as a general entry
+      if (detectedSymptoms.length === 0) {
+        await supabase.from('symptom_tracking').insert({
+          user_id: session.user.id,
+          symptom: 'general_notes',
+          intensity: 3,
+          source: 'notes',
+          notes: notes,
+          recorded_at: new Date().toISOString()
+        });
+        
+        toast({
+          title: "Notes recorded",
+          description: "Your notes have been saved",
+        });
+      } else {
+        // Save each detected symptom
+        for (const symptom of detectedSymptoms) {
+          await supabase.from('symptom_tracking').insert({
+            user_id: session.user.id,
+            symptom: symptom.id,
+            intensity: symptom.intensity,
+            source: 'notes',
+            notes: notes,
+            recorded_at: new Date().toISOString()
+          });
+        }
+        
+        toast({
+          title: "Symptoms detected and recorded",
+          description: `${detectedSymptoms.length} symptom(s) detected in your notes`,
+        });
+      }
+      
+      // Show confetti animation
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 3000);
+      
+      // Refresh symptom history
+      refreshSymptomHistory();
+      
+    } catch (error) {
+      console.error("Error recording symptoms from notes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to record symptoms",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover relative overflow-hidden">
@@ -216,7 +283,12 @@ const SymptomTracker = () => {
             </div>
             
             {/* Success message with personalized tip */}
-            <SuccessMessage tip={successTip} />
+            {successTip && (
+              <SuccessMessage 
+                message={successTip} 
+                onClose={() => setSuccessTip(null)} 
+              />
+            )}
             
             {/* Main Tabs Interface */}
             <Tabs defaultValue="today" value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -231,21 +303,60 @@ const SymptomTracker = () => {
               
               {/* Today's Symptoms Tab */}
               <TabsContent value="today" className="animate-fadeIn">
-                {!successTip && (
-                  <div className="mb-6 text-center">
-                    <p className="font-['Dancing_Script'],cursive text-lg text-menova-text italic text-shadow">
-                      "Listening to your body is an act of self-compassion. Each symptom tracked is a step toward better wellness."
-                    </p>
-                  </div>
-                )}
-                <div className="animate-fadeIn">
+                <div className="space-y-6">
+                  <h2 className="text-xl font-semibold text-menova-text flex items-center gap-2">
+                    <Smile className="h-5 w-5 text-menova-green" />
+                    How are you feeling today?
+                  </h2>
+                  
+                  {/* Success message when symptoms are recorded */}
+                  {successTip && (
+                    <SuccessMessage 
+                      message={successTip} 
+                      onClose={() => setSuccessTip(null)} 
+                    />
+                  )}
+                  
+                  {/* Symptom rating form */}
                   <SymptomForm 
-                    onSubmitSuccess={(tip) => {
-                      handleSubmitSuccess(tip);
-                      // Switch to history tab after submission
-                      setActiveTab("history");
-                    }}
+                    onSubmitSuccess={handleSubmitSuccess}
                     onRefreshHistory={refreshSymptomHistory}
+                  />
+                  
+                  {/* WhatsApp notification info */}
+                  <Card className="mb-4 border-[#25D366]/20 bg-[#25D366]/5">
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-start gap-2">
+                        <div className="mt-0.5 flex-shrink-0">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#25D366" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21.41 2.59A2 2 0 0 0 20 2H4a2 2 0 0 0-1.41.59A2 2 0 0 0 2 4v12a2 2 0 0 0 .59 1.41A2 2 0 0 0 4 18h2v4l4-4h10a2 2 0 0 0 1.41-.59A2 2 0 0 0 22 16V4a2 2 0 0 0-.59-1.41Z"></path>
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-[#128C7E]">WhatsApp Follow-ups Enabled</h4>
+                          <p className="text-xs text-gray-600 mt-1">
+                            When you save symptoms, a follow-up message will be sent to your WhatsApp in 24 hours to check how you're feeling.
+                          </p>
+                          <div className="mt-2">
+                            <Link 
+                              to="/whatsapp-demo" 
+                              className="text-xs text-[#25D366] hover:text-[#128C7E] hover:underline inline-flex items-center"
+                            >
+                              <span>Test WhatsApp notifications</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                                <path d="M5 12h14"></path>
+                                <path d="m12 5 7 7-7 7"></path>
+                              </svg>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Symptom notes with auto-detection */}
+                  <SymptomNotes
+                    onNotesSubmitted={handleNotesSubmitted}
                   />
                 </div>
               </TabsContent>

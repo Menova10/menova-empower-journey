@@ -180,14 +180,14 @@ const WellnessDashboard = () => {
         console.log("Fetching symptom data for user:", session.user.id);
         const today = new Date();
         const start = new Date();
-        start.setDate(today.getDate() - 14); // Last 2 weeks of data for trends
+        start.setDate(today.getDate() - 30); // Increased to last 30 days for better trend visibility
         
         const { data: symptomData, error: symptomError } = await supabase
           .from('symptom_tracking')
           .select('*')
           .eq('user_id', session.user.id)
           .gte('recorded_at', start.toISOString())
-          .order('recorded_at', { ascending: true });
+          .order('recorded_at', { ascending: false }); // Changed to descending to get most recent first
 
         if (symptomError) throw symptomError;
 
@@ -195,7 +195,16 @@ const WellnessDashboard = () => {
         console.log("User symptoms data:", symptomData);
         
         if (symptomData && symptomData.length > 0) {
-          // Prepare data for trend calculation
+          // Group symptoms by type and get the most recent entry for each
+          const latestSymptoms = new Map();
+          symptomData.forEach((entry: any) => {
+            if (!latestSymptoms.has(entry.symptom) || 
+                new Date(entry.recorded_at) > new Date(latestSymptoms.get(entry.symptom).recorded_at)) {
+              latestSymptoms.set(entry.symptom, entry);
+            }
+          });
+
+          // Calculate trends using all data points
           const chartDataPoints: ChartDataPoint[] = symptomData.reduce((points: ChartDataPoint[], entry: any) => {
             const date = new Date(entry.recorded_at);
             const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -224,32 +233,6 @@ const WellnessDashboard = () => {
           console.log("Calculated symptom trends:", trends);
           
           // Create a Map to store the most recent entry for each symptom type
-          const latestSymptoms = new Map();
-          
-          // Process all symptom entries
-          symptomData.forEach((entry: any) => {
-            // Normalize symptom names (convert hot_flashes to Hot Flashes, etc.)
-            let normalizedName = entry.symptom;
-            if (entry.symptom === 'hot_flashes') normalizedName = 'Hot Flashes';
-            else if (entry.symptom === 'sleep') normalizedName = 'Sleep Quality';
-            else if (entry.symptom === 'mood') normalizedName = 'Mood';
-            else if (entry.symptom === 'energy') normalizedName = 'Energy';
-            else if (entry.symptom === 'anxiety') normalizedName = 'Anxiety';
-            
-            // Only keep the first (most recent) entry for each symptom type
-            // since we ordered by recorded_at descending
-            if (!latestSymptoms.has(normalizedName)) {
-              latestSymptoms.set(normalizedName, {
-                symptom: normalizedName,
-                intensity: entry.intensity,
-                lastUpdated: entry.recorded_at,
-                trend: trends[entry.symptom]
-              });
-            }
-          });
-          
-          // Prepare the symptom data for display
-          // Make sure we include Hot Flashes, Sleep Quality, and Mood
           const displaySymptoms: SymptomRating[] = [
             latestSymptoms.get('Hot Flashes') || { symptom: 'Hot Flashes', intensity: 0 },
             latestSymptoms.get('Sleep Quality') || { symptom: 'Sleep Quality', intensity: 0 },
