@@ -10,7 +10,7 @@ import { useLocation } from 'react-router-dom';
 import { symptoms } from '@/types/symptoms';
 import { detectSymptoms, createEnhancedSummary, createSymptomTitle, formatDetectedSymptoms } from '@/services/symptomDetectionService';
 import { audioRecorder } from '@/services/audioRecorderService';
-import { speechToText, isDualTranscriptionEnabled } from '@/services/openaiService';
+import { convertSpeechToText } from '@/services/openaiService';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -190,119 +190,16 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const handleMicClick = () => {
     if (vapiRef.current) {
       if (userSpeaking) {
-        // If already listening, stop listening and parallel audio recording
+        // If already listening, stop listening
         console.log("Stopping listening");
         vapiRef.current.stopListening && vapiRef.current.stopListening();
-        
-        // Stop parallel audio recording if active and enabled
-        if (isDualTranscriptionEnabled() && audioRecorder.isCurrentlyRecording()) {
-          stopParallelAudioProcessing();
-        }
+        setUserSpeaking(false);
       } else {
-        // Start listening and parallel audio recording
+        // Start listening
         console.log("Starting listening");
         vapiRef.current.startListening && vapiRef.current.startListening();
-        
-        // Start parallel audio recording if enabled
-        if (isDualTranscriptionEnabled()) {
-          startParallelAudioProcessing();
-        }
+        setUserSpeaking(true);
       }
-    }
-  };
-  
-  /**
-   * Starts parallel audio recording alongside Vapi
-   * This provides redundancy for speech recognition
-   */
-  const startParallelAudioProcessing = async () => {
-    try {
-      await audioRecorder.startRecording();
-      setDualTranscriptionActive(true);
-      console.log("Parallel audio recording started");
-    } catch (error) {
-      console.error("Error starting parallel audio recording:", error);
-    }
-  };
-  
-  /**
-   * Stops parallel audio recording and processes the audio
-   * This function will convert the audio to text using OpenAI's API
-   * and compare it with Vapi's transcription for better accuracy
-   */
-  const stopParallelAudioProcessing = async () => {
-    try {
-      // Stop recording and get the audio blob
-      const audioBlob = await audioRecorder.stopRecording();
-      console.log("Parallel audio recording stopped, processing...");
-      
-      // Convert speech to text using OpenAI
-      const transcribedText = await speechToText(audioBlob);
-      setDualTranscriptionActive(false);
-      
-      // If we got a meaningful transcription from OpenAI
-      if (transcribedText && transcribedText.trim().length > 0) {
-        console.log("OpenAI transcription:", transcribedText);
-        
-        // Compare with the last user message from Vapi
-        const lastUserMessage = messages
-          .filter(m => m.sender === 'user')
-          .slice(-1)[0];
-        
-        // If OpenAI provided a better/longer transcription than Vapi
-        if (lastUserMessage && 
-            transcribedText.length > lastUserMessage.text.length && 
-            transcribedText.includes(lastUserMessage.text.substring(0, 10))) {
-          
-          console.log("OpenAI provided better transcription, updating message");
-          
-          // Update the last user message with the improved transcription
-          const updatedMessages = [...messages];
-          const lastUserIndex = updatedMessages.findIndex(
-            m => m.sender === 'user' && m.timestamp === lastUserMessage.timestamp
-          );
-          
-          if (lastUserIndex !== -1) {
-            updatedMessages[lastUserIndex] = {
-              ...updatedMessages[lastUserIndex],
-              text: transcribedText,
-              isEnhancedTranscription: true
-            };
-            
-            setMessages(updatedMessages);
-            
-            // Re-detect symptoms with improved transcription
-            detectAndDisplaySymptoms(transcribedText);
-            
-            // Update the message in the database
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-              // Ensure we have a session
-              const sid = await ensureSession(session.user.id);
-              if (sid) {
-                // Find the message to update
-                const { data: messageData } = await supabase
-                  .from('session_messages')
-                  .select('id')
-                  .eq('session_id', sid)
-                  .eq('sender', 'user')
-                  .order('timestamp', { ascending: false })
-                  .limit(1);
-                
-                if (messageData && messageData.length > 0) {
-                  // Update the message
-                  await supabase
-                    .from('session_messages')
-                    .update({ message: transcribedText })
-                    .eq('id', messageData[0].id);
-                }
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error processing parallel audio:", error);
     }
   };
 
@@ -423,7 +320,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     return null;
   };
 
-  // Update the transcript handler to work with the parallel audio processing
+  // Update the transcript handler to work without parallel processing
   useEffect(() => {
     if (!sdkLoaded || !vapiRef.current) return;
     const vapi = vapiRef.current;
@@ -441,11 +338,6 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
         };
         setMessages(prev => [...prev, userMessage]);
         setUserSpeaking(false);
-        
-        // Stop parallel audio recording if active and enabled
-        if (isDualTranscriptionEnabled() && audioRecorder.isCurrentlyRecording()) {
-          stopParallelAudioProcessing();
-        }
         
         // Detect symptoms in the user's message (handle async function)
         const detectSymptoms = async () => {
@@ -509,6 +401,8 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       vapi.off && vapi.off("transcript", transcriptHandler);
       vapi.off && vapi.off("response", responseHandler);
       vapi.off && vapi.off("volume-level", volumeHandler);
+      setUserSpeaking(false);
+      setDualTranscriptionActive(false);
     };
   }, [sdkLoaded, vapiRef]);
 
@@ -697,12 +591,6 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
                 Error: Could not connect voice assistant
               </DialogDescription>
             )}
-            {isDualTranscriptionEnabled() && (
-              <DialogDescription className="text-blue-600 flex items-center gap-1 text-xs">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                Enhanced transcription enabled
-              </DialogDescription>
-            )}
           </DialogHeader>
 
           {/* Message display area with animation when MeNova is speaking */}
@@ -775,7 +663,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
                 userSpeaking 
                   ? 'bg-menova-green text-white animate-pulse' 
                   : 'border-menova-green text-menova-green'
-              } ${dualTranscriptionActive ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`}
+              }`}
               onClick={handleMicClick}
               disabled={!sdkLoaded}
             >

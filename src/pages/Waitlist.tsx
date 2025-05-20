@@ -107,8 +107,8 @@ const Waitlist = () => {
               alt="MeNova"
               className="w-full h-full object-cover"
             />
-          </div>
-          
+      </div>
+      
           <h1 className="text-2xl font-semibold text-center text-menova-text">Join the MeNova Waitlist</h1>
         </div>
         

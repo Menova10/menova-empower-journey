@@ -29,18 +29,41 @@ export const generalSymptomsKeywords = [
 /**
  * Analyzes text for mentions of symptoms and returns detected symptoms
  */
-export function detectSymptoms(text: string | string[]): {
-  detectedSymptoms: Set<string>;
-  primarySymptom: string;
-  intensity: number;
+export function detectSymptoms(text: string): { 
+  detectedSymptoms: Set<string>; 
+  primarySymptom: string | null;
+  intensity: number | null;
 } {
+  const detectedSymptoms = new Set<string>();
+  let primarySymptom: string | null = null;
+  let intensity: number | null = null;
+
+  // Check for numeric ratings (e.g., "3/5", "level 4", etc.)
+  const intensityRegex = /(\d)[\/\s]5|(\d)\s*out\s*of\s*5|level\s*(\d)|rating\s*(\d)|intensity\s*(\d)/i;
+  const match = text.toLowerCase().match(intensityRegex);
+  if (match) {
+    const numericIntensity = parseInt(match[1] || match[2] || match[3] || match[4] || match[5]);
+    if (numericIntensity >= 1 && numericIntensity <= 5) {
+      intensity = numericIntensity;
+    }
+  } else {
+    // Check for intensity words and convert to 1-5 scale
+    if (text.toLowerCase().includes('severe') || text.toLowerCase().includes('really bad') || text.toLowerCase().includes('extreme')) {
+      intensity = 5; // Severe
+    } else if (text.toLowerCase().includes('quite bad') || text.toLowerCase().includes('very')) {
+      intensity = 4; // Quite severe
+    } else if (text.toLowerCase().includes('moderate') || text.toLowerCase().includes('medium')) {
+      intensity = 3; // Moderate
+    } else if (text.toLowerCase().includes('mild') || text.toLowerCase().includes('slight')) {
+      intensity = 2; // Mild
+    } else if (text.toLowerCase().includes('very mild') || text.toLowerCase().includes('barely')) {
+      intensity = 1; // Very mild
+    }
+  }
+
   // Convert to array if single string is provided
   const textArray = Array.isArray(text) ? text : [text];
   const lowerTextArray = textArray.map(t => t.toLowerCase());
-  
-  const detectedSymptoms = new Set<string>();
-  let primarySymptom = 'mood'; // Default to mood instead of voice_assistant
-  let intensity = 3; // Default intensity
   
   // Check for general mentions of "everything" or "all symptoms"
   const hasGeneralSymptoms = lowerTextArray.some(text => 
@@ -71,32 +94,6 @@ export function detectSymptoms(text: string | string[]): {
     });
   }
   
-  // Check for intensity indicators with more flexible pattern matching
-  const intensityRegex = /(\d)[\/\s]5|(\d)\s*out\s*of\s*5|level\s*(\d)|rating\s*(\d)|intensity\s*(\d)|severe|moderate|mild|(very\s+)(bad|strong|intense|high)/i;
-  for (const text of lowerTextArray) {
-    const match = text.match(intensityRegex);
-    if (match) {
-      if (match[1] || match[2] || match[3] || match[4] || match[5]) {
-        // If we matched a numeric intensity
-        const foundIntensity = parseInt(match[1] || match[2] || match[3] || match[4] || match[5]);
-        if (foundIntensity >= 1 && foundIntensity <= 5) {
-          intensity = foundIntensity;
-          break;
-        }
-      } else if (text.includes('severe') || text.includes('very bad') || text.includes('very strong') || 
-                 text.includes('very intense') || text.includes('very high')) {
-        intensity = 5; // Severe
-        break;
-      } else if (text.includes('moderate')) {
-        intensity = 3; // Moderate
-        break;
-      } else if (text.includes('mild')) {
-        intensity = 2; // Mild
-        break;
-      }
-    }
-  }
-  
   // If we've detected any symptoms, use the first one as primary
   if (detectedSymptoms.size > 0) {
     primarySymptom = Array.from(detectedSymptoms)[0];
@@ -124,15 +121,30 @@ export function formatDetectedSymptoms(detectedSymptoms: Set<string>): string {
 }
 
 /**
+ * Converts intensity number to descriptive text
+ */
+export function intensityToDescription(intensity: number | null): string {
+  if (!intensity) return 'unknown';
+  switch (intensity) {
+    case 5: return 'severe (5/5)';
+    case 4: return 'quite severe (4/5)';
+    case 3: return 'moderate (3/5)';
+    case 2: return 'mild (2/5)';
+    case 1: return 'very mild (1/5)';
+    default: return 'unknown';
+  }
+}
+
+/**
  * Creates an enhanced summary of a conversation with detected symptoms
  */
 export function createEnhancedSummary(
   summary: string, 
   detectedSymptoms: Set<string>, 
-  intensity: number
+  intensity: number | null
 ): string {
   return `DETECTED SYMPTOMS: ${formatDetectedSymptoms(detectedSymptoms)}
-INTENSITY: ${intensity}/5
+INTENSITY: ${intensity ? `${intensity}/5 (${intensityToDescription(intensity)})` : 'Not specified'}
 
 ${summary}`;
 }
