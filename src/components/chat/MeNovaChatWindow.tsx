@@ -296,17 +296,11 @@ const MeNovaChatWindow: React.FC<MeNovaChatWindowProps> = ({ onClose }) => {
   );
 
   // Generate AI response with enhanced menopause focus
-const generateAIResponse = async (userMessage: string, isInitiator: boolean = false) => {
-  try {
-    setIsLoading(true);
+  const generateAIResponse = async (userMessage: string, isInitiator: boolean = false) => {
+    try {
+      setIsLoading(true);
       let detectedSymptom = null;
       let shouldAskFollowUp = false;
-
-      const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
-      
-      if (!OPENAI_API_KEY) {
-        throw new Error('OpenAI API key is not configured. Please check your environment variables.');
-      }
 
       // Detect symptoms and mood
       const { detectedSymptoms, primarySymptom, intensity: symptomIntensity } = detectSymptoms(userMessage);
@@ -316,7 +310,15 @@ const generateAIResponse = async (userMessage: string, isInitiator: boolean = fa
         detectedSymptom = primarySymptom;
         // Save to symptom tracker if intensity is known
         if (symptomIntensity !== null) {
-          await saveSymptomToTracker(primarySymptom, symptomIntensity, userMessage);
+          await saveSymptomToTracker(primarySymptom, symptomIntensity, `Detected in chat: "${userMessage}"`);
+          
+          // If multiple symptoms were detected, save them too
+          if (detectedSymptoms.size > 1) {
+            const additionalSymptoms = Array.from(detectedSymptoms).slice(1);
+            for (const symptomId of additionalSymptoms) {
+              await saveSymptomToTracker(symptomId, symptomIntensity, `Additional symptom detected in chat: "${userMessage}"`);
+            }
+          }
         } else {
           shouldAskFollowUp = true;
         }
@@ -324,7 +326,8 @@ const generateAIResponse = async (userMessage: string, isInitiator: boolean = fa
 
       // Save mood if detected
       if (detectedMood && moodIntensity !== null) {
-        await saveMoodToTracker(detectedMood, moodIntensity, userMessage);
+        const moodSymptomId = `mood_${detectedMood.toLowerCase().replace(/\s+/g, '_')}`;
+        await saveSymptomToTracker(moodSymptomId, moodIntensity, `Mood detected in chat: "${userMessage}"`);
       }
 
       // Get the symptom name if available
@@ -366,7 +369,7 @@ const generateAIResponse = async (userMessage: string, isInitiator: boolean = fa
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -875,28 +878,55 @@ const generateAIResponse = async (userMessage: string, isInitiator: boolean = fa
     if (!user) return;
     
     try {
+      // Find the symptom in our predefined list to get the correct ID
+      const symptomObj = symptoms.find(s => 
+        s.id === symptom || 
+        s.name.toLowerCase() === symptom.toLowerCase() ||
+        s.id === symptom.toLowerCase().replace(/\s+/g, '_')
+      );
+
+      const symptomId = symptomObj ? symptomObj.id : symptom.toLowerCase().replace(/\s+/g, '_');
+      
       const symptomData: SymptomTracking = {
         user_id: user.id,
-        symptom: symptom,
+        symptom: symptomId,
         intensity: intensity || 1,
         notes: notes,
         source: 'chat',
         recorded_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('symptom_tracking')
-        .insert(symptomData);
+        .insert(symptomData)
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Emit an event to update the symptom tracker with the saved data
+      const updateEvent = new CustomEvent('symptomTrackerUpdate', {
+        detail: {
+          symptom: symptomId,
+          data: data
+        }
+      });
+      window.dispatchEvent(updateEvent);
+      
+      console.log('Saved symptom to tracker:', { symptomId, data });
+
       toast({
         title: "Symptom Tracked",
-        description: "Your symptom has been recorded in the tracker.",
-        duration: 3000,
+        description: `Successfully tracked ${symptomObj ? symptomObj.name : symptom} with intensity ${intensity || 1}/5`,
+        variant: "default"
       });
     } catch (error) {
       console.error('Error saving symptom:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save symptom. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
