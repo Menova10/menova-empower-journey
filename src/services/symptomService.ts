@@ -22,7 +22,13 @@ export async function fetchSymptomHistory(selectedSymptom: string, selectedPerio
     
     // Get date range based on selected period
     const period = timePeriods.find(p => p.id === selectedPeriod);
-    const { start, end } = period ? period.getRange() : { start: new Date(), end: new Date() };
+    if (!period) {
+      console.error("Invalid period selected:", selectedPeriod);
+      return { data: [], error: new Error("Invalid period selected") };
+    }
+
+    const { start, end } = period.getRange();
+    console.log("Fetching symptoms for date range:", { start, end, selectedSymptom, selectedPeriod });
     
     // Build query
     let query = supabase
@@ -40,14 +46,24 @@ export async function fetchSymptomHistory(selectedSymptom: string, selectedPerio
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error("Database error fetching symptom history:", error);
+      throw error;
+    }
     
+    // Log the sources of symptoms found for debugging
+    if (data) {
+      const sources = new Set(data.map(item => item.source));
+      console.log("Found symptoms from sources:", Array.from(sources));
+    }
+    
+    console.log("Fetched symptom history:", { count: data?.length || 0, period: selectedPeriod });
     return { data: data || [], error: null };
   } catch (error) {
     console.error("Error fetching symptom history:", error);
     toast({
       title: "Error",
-      description: "Failed to load symptom history",
+      description: "Failed to load symptom history. Please try refreshing the page.",
       variant: "destructive",
     });
     return { data: [], error };

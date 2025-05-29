@@ -248,29 +248,36 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
           // Create enhanced summary with detected symptom information
           const enhancedSummary = createEnhancedSummary(summary, detectedSymptoms, intensity);
           
-          // Save primary symptom
-          await supabase.from('symptom_tracking').insert({
-            user_id: session.user.id,
-            symptom: primarySymptom,
-            intensity: intensity,
-            notes: enhancedSummary,
-            source: 'voice_auto',
-            recorded_at: new Date().toISOString()
-          });
-          
-          // Save additional symptoms if detected
-          if (detectedSymptoms.size > 1) {
-            const additionalSymptoms = Array.from(detectedSymptoms).slice(1);
-            for (const symptomId of additionalSymptoms) {
-              await supabase.from('symptom_tracking').insert({
-                user_id: session.user.id,
-                symptom: symptomId,
-                intensity: intensity,
-                notes: enhancedSummary,
-                source: 'voice_auto',
-                recorded_at: new Date().toISOString()
-              });
+          // Only save if we have a valid primary symptom
+          if (primarySymptom) {
+            // Save primary symptom
+            await supabase.from('symptom_tracking').insert({
+              user_id: session.user.id,
+              symptom: primarySymptom,
+              intensity: intensity || 3,
+              notes: enhancedSummary,
+              source: 'voice_auto',
+              recorded_at: new Date().toISOString()
+            });
+            
+            // Save additional symptoms if detected
+            if (detectedSymptoms.size > 1) {
+              const additionalSymptoms = Array.from(detectedSymptoms).slice(1);
+              for (const symptomId of additionalSymptoms) {
+                await supabase.from('symptom_tracking').insert({
+                  user_id: session.user.id,
+                  symptom: symptomId,
+                  intensity: intensity || 3,
+                  notes: enhancedSummary,
+                  source: 'voice_auto',
+                  recorded_at: new Date().toISOString()
+                });
+              }
             }
+            
+            // Emit an event to update the symptom tracker if it's open
+            const updateEvent = new CustomEvent('symptomTrackerUpdate');
+            window.dispatchEvent(updateEvent);
           }
           
           // Schedule a follow-up WhatsApp notification
@@ -442,7 +449,18 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       }).join('\n');
       
       // Use symptom detection service to analyze the conversation
-      const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(userMessages);
+      const combinedText = userMessages.join(' ');
+      const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(combinedText);
+      
+      if (!primarySymptom) {
+        toast({
+          title: "No symptoms detected",
+          description: "No specific symptoms were detected in the conversation.",
+          variant: "destructive",
+        });
+        setSavingToTracker(false);
+        return;
+      }
       
       // Create enhanced summary with detected symptom information
       const enhancedSummary = createEnhancedSummary(summary, detectedSymptoms, intensity);
@@ -451,7 +469,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       await supabase.from('symptom_tracking').insert({
         user_id: session.user.id,
         symptom: primarySymptom,
-        intensity: intensity,
+        intensity: intensity || 3,
         notes: enhancedSummary,
         source: 'voice_assistant',
         recorded_at: new Date().toISOString()
@@ -464,7 +482,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
           await supabase.from('symptom_tracking').insert({
             user_id: session.user.id,
             symptom: symptomId,
-            intensity: intensity,
+            intensity: intensity || 3,
             notes: enhancedSummary,
             source: 'voice_assistant',
             recorded_at: new Date().toISOString()

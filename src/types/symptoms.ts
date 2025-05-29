@@ -1,7 +1,15 @@
 import { categories } from "./wellness";
 
+// Define the Symptom interface
+export interface Symptom {
+  id: string;
+  name: string;
+  color: string;
+  tip?: string;
+}
+
 // Symptom definitions with colors - UPDATED with more accessible colors
-export const symptoms = [
+export const symptoms: Symptom[] = [
   { id: 'hot_flashes', name: 'Hot Flashes', color: '#F97316', tip: 'Try a cooling breath exercise: inhale for 4 seconds, hold for 4, exhale for 6.' }, // Bright orange for hot flashes
   { id: 'sleep', name: 'Sleep Quality', color: '#2E8540', tip: 'Create a calming bedtime routine with dim lights and gentle stretching 30 minutes before sleep.' },
   { id: 'mood', name: 'Mood', color: '#9C27B0', tip: 'Practice mindful breathing for 5 minutes when you feel your mood shifting.' },
@@ -26,7 +34,9 @@ export const timePeriods = [
   { id: 'daily', name: 'Today', 
     getRange: () => {
       const today = new Date();
-      return { start: today, end: today };
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      return { start, end };
     } 
   },
   { id: 'weekly', name: 'This Week',

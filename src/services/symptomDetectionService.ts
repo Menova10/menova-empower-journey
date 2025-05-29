@@ -38,58 +38,66 @@ export function detectSymptoms(text: string): {
   let primarySymptom: string | null = null;
   let intensity: number | null = null;
 
-  // Check for numeric ratings (e.g., "3/5", "level 4", etc.)
+  // Convert text to lowercase and normalize spaces
+  const normalizedText = text.toLowerCase().replace(/\s+/g, ' ').trim();
+
+  // Check for numeric ratings first (e.g., "3/5", "level 4", etc.)
   const intensityRegex = /(\d)[\/\s]5|(\d)\s*out\s*of\s*5|level\s*(\d)|rating\s*(\d)|intensity\s*(\d)/i;
-  const match = text.toLowerCase().match(intensityRegex);
+  const match = normalizedText.match(intensityRegex);
   if (match) {
     const numericIntensity = parseInt(match[1] || match[2] || match[3] || match[4] || match[5]);
     if (numericIntensity >= 1 && numericIntensity <= 5) {
       intensity = numericIntensity;
     }
-  } else {
-    // Check for intensity words and convert to 1-5 scale
-    if (text.toLowerCase().includes('severe') || text.toLowerCase().includes('really bad') || text.toLowerCase().includes('extreme')) {
+  }
+
+  // Check for intensity words if no numeric rating found
+  if (intensity === null) {
+    if (normalizedText.includes('severe') || normalizedText.includes('really bad') || normalizedText.includes('extreme')) {
       intensity = 5; // Severe
-    } else if (text.toLowerCase().includes('quite bad') || text.toLowerCase().includes('very')) {
+    } else if (normalizedText.includes('quite bad') || normalizedText.includes('very')) {
       intensity = 4; // Quite severe
-    } else if (text.toLowerCase().includes('moderate') || text.toLowerCase().includes('medium')) {
+    } else if (normalizedText.includes('moderate') || normalizedText.includes('medium')) {
       intensity = 3; // Moderate
-    } else if (text.toLowerCase().includes('mild') || text.toLowerCase().includes('slight')) {
+    } else if (normalizedText.includes('mild') || normalizedText.includes('slight')) {
       intensity = 2; // Mild
-    } else if (text.toLowerCase().includes('very mild') || text.toLowerCase().includes('barely')) {
+    } else if (normalizedText.includes('very mild') || normalizedText.includes('barely')) {
       intensity = 1; // Very mild
     }
   }
 
-  // Convert to array if single string is provided
-  const textArray = Array.isArray(text) ? text : [text];
-  const lowerTextArray = textArray.map(t => t.toLowerCase());
-  
   // Check for general mentions of "everything" or "all symptoms"
-  const hasGeneralSymptoms = lowerTextArray.some(text => 
-    generalSymptomsKeywords.some(keyword => text.includes(keyword))
+  const hasGeneralSymptoms = generalSymptomsKeywords.some(keyword => 
+    normalizedText.includes(keyword)
   );
   
   if (hasGeneralSymptoms) {
-    // Add all symptom types
-    Object.keys(symptomKeywords).forEach(symptom => detectedSymptoms.add(symptom));
+    // Add all symptom types with consistent IDs
+    Object.keys(symptomKeywords).forEach(symptom => {
+      const normalizedId = symptom.toLowerCase().replace(/\s+/g, '_');
+      detectedSymptoms.add(normalizedId);
+    });
   } else {
-    // More sensitive detection - check each symptom type with partial matching
+    // Check each symptom type with improved matching
     Object.entries(symptomKeywords).forEach(([symptomId, keywords]) => {
+      const normalizedId = symptomId.toLowerCase().replace(/\s+/g, '_');
+      
       // Check for exact keyword matches first
-      for (const text of lowerTextArray) {
-        if (keywords.some(keyword => text.includes(keyword))) {
-          detectedSymptoms.add(symptomId);
-          continue; // Skip to next symptom if we found a match
-        }
-        
-        // If no exact match, try word-boundary matches for better detection
-        if (keywords.some(keyword => {
-          const words = keyword.split(' ');
-          return words.length > 1 && words.every(word => text.includes(word) && word.length > 3);
-        })) {
-          detectedSymptoms.add(symptomId);
-        }
+      if (keywords.some(keyword => normalizedText.includes(keyword.toLowerCase()))) {
+        detectedSymptoms.add(normalizedId);
+        return; // Skip to next symptom if we found a match
+      }
+      
+      // Check for multi-word matches with better accuracy
+      const hasMultiWordMatch = keywords.some(keyword => {
+        const words = keyword.toLowerCase().split(' ');
+        return words.length > 1 && words.every(word => 
+          word.length > 2 && normalizedText.includes(word)
+        );
+      });
+      
+      if (hasMultiWordMatch) {
+        detectedSymptoms.add(normalizedId);
       }
     });
   }
@@ -98,6 +106,18 @@ export function detectSymptoms(text: string): {
   if (detectedSymptoms.size > 0) {
     primarySymptom = Array.from(detectedSymptoms)[0];
   }
+  
+  // If we have symptoms but no intensity, default to moderate
+  if (detectedSymptoms.size > 0 && intensity === null) {
+    intensity = 3;
+  }
+  
+  console.log('Symptom detection results:', {
+    text: normalizedText,
+    detectedSymptoms: Array.from(detectedSymptoms),
+    primarySymptom,
+    intensity
+  });
   
   return {
     detectedSymptoms,

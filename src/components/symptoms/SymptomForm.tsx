@@ -104,6 +104,13 @@ const SymptomForm = ({ onSubmitSuccess, onRefreshHistory }: SymptomFormProps) =>
               description: "Your symptoms have been successfully recorded",
             });
           }, 500);
+
+          // Refresh the symptom history
+          onRefreshHistory();
+
+          // Emit an event to update other components
+          const updateEvent = new CustomEvent('symptomTrackerUpdate');
+          window.dispatchEvent(updateEvent);
         } else if (result.reason === 'no-phone') {
           // Only show this toast if we want to prompt users to add their phone
           toast({
@@ -128,9 +135,6 @@ const SymptomForm = ({ onSubmitSuccess, onRefreshHistory }: SymptomFormProps) =>
           description: "Your symptoms have been successfully recorded",
         });
       }
-      
-      // Refresh symptom history
-      onRefreshHistory();
       
     } catch (error) {
       console.error("Error recording symptoms:", error);

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/tabs";
 import { Flower, Smile, Book, Activity, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { fetchSymptomHistory, prepareChartData } from '@/services/symptomService';
-import { SymptomEntry, ChartDataPoint } from '@/types/symptoms';
+import { SymptomEntry, ChartDataPoint, symptoms } from '@/types/symptoms';
 import SymptomForm from '@/components/symptoms/SymptomForm';
 import SymptomNotes from '@/components/symptoms/SymptomNotes';
 import SymptomChart from '@/components/symptoms/SymptomChart';
@@ -76,6 +76,31 @@ const SymptomTracker = () => {
   useEffect(() => {
     refreshSymptomHistory();
   }, [selectedSymptom, selectedPeriod]);
+
+  // Listen for symptom updates from other sources
+  useEffect(() => {
+    const handleSymptomUpdate = (event: any) => {
+      console.log("Symptom tracker update event received", event);
+      
+      // Force a refresh regardless of event detail
+      refreshSymptomHistory();
+      
+      // Show a toast notification if we have symptom details
+      if (event.detail?.symptom) {
+        const symptomName = symptoms.find(s => s.id === event.detail.symptom)?.name || event.detail.symptom;
+        toast({
+          title: "Symptom Updated",
+          description: `${symptomName} has been recorded`,
+        });
+      }
+    };
+
+    window.addEventListener('symptomTrackerUpdate', handleSymptomUpdate);
+    
+    return () => {
+      window.removeEventListener('symptomTrackerUpdate', handleSymptomUpdate);
+    };
+  }, []);
 
   // Introduce the symptom tracker page with voice when loaded
   useEffect(() => {
