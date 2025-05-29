@@ -591,7 +591,7 @@ const TodaysWellness = () => {
 
   return (
     <AuthBackground>
-      <div className="max-w-4xl mx-auto px-4 py-6 bg-white/70 backdrop-blur-sm rounded-lg shadow-lg">
+      <div className="max-w-4xl mx-auto py-6 bg-white/70 backdrop-blur-sm rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
         <p className="text-center text-gray-600 mb-6">Track your wellness journey</p>
         
