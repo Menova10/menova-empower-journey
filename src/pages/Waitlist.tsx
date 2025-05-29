@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import AuthBackground from '@/components/AuthBackground';
-import MeNovaLogo from '@/components/MeNovaLogo';
 
 const Waitlist = () => {
   const [email, setEmail] = useState('');
@@ -91,18 +89,30 @@ const Waitlist = () => {
 
   return (
     <AuthBackground>
-      {/* Simple close button in the top right */}
-      <div className="absolute top-4 right-4">
-        <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
-          <X className="h-5 w-5" />
-        </Button>
+      <>
+        {/* Close button */}
+        <button 
+          onClick={() => navigate('/')}
+          className="absolute right-4 top-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+        
+        <div className="flex flex-col items-center mb-4">
+          {/* Menova Image */}
+          <div className="rounded-full overflow-hidden w-24 h-24 border-2 border-[#92D9A9] mb-4">
+            <img
+              src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+              alt="MeNova"
+              className="w-full h-full object-cover"
+            />
       </div>
       
-      <div className="flex flex-col items-center justify-center pt-16">
-        <MeNovaLogo className="mb-6" />
-        <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Join the MeNova Waitlist</h1>
+          <h1 className="text-2xl font-semibold text-center text-menova-text">Join the MeNova Waitlist</h1>
+        </div>
         
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md mx-auto">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-menova-text">
@@ -175,7 +185,7 @@ const Waitlist = () => {
             </p>
           </div>
         </div>
-      </div>
+      </>
     </AuthBackground>
   );
 };

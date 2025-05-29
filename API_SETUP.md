@@ -8,7 +8,7 @@ Create a `.env` file in the root directory with the following variable:
 
 ```
 # OpenAI API Key (Required for content retrieval)
-VITE_OPENAI_API_KEY=your_openai_api_key_here
+VITE_OPENAI_API_KEY="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"
 
 # Supabase Configuration (Required for user accounts)
 VITE_SUPABASE_URL=your_supabase_url

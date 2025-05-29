@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useForm } from "react-hook-form";
@@ -11,7 +10,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { X } from 'lucide-react';
 import AuthBackground from '@/components/AuthBackground';
-import MeNovaLogo from '@/components/MeNovaLogo';
 
 // Login form schema
 const loginSchema = z.object({
@@ -74,39 +72,59 @@ const Login = () => {
 
   return (
     <AuthBackground>
-      {/* Simple close button in the top right */}
-      <div className="absolute top-4 right-4">
-        <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Close">
-          <X className="h-5 w-5" />
-        </Button>
+      <>
+      {/* Close button */}
+      <button 
+        onClick={handleClose}
+        className="absolute right-4 top-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+        aria-label="Close"
+      >
+        <X size={20} />
+      </button>
+      
+      <div className="flex flex-col items-center mb-4">
+        {/* Menova Image */}
+        <div className="rounded-full overflow-hidden w-24 h-24 border-2 border-[#92D9A9] mb-4">
+          <img
+            src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+            alt="MeNova"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
+        <h1 className="text-2xl font-semibold text-center text-menova-text">Welcome to MeNova</h1>
       </div>
       
-      <div className="flex flex-col items-center justify-center pt-16">
-        <MeNovaLogo className="mb-6" />
-        <h1 className="text-2xl font-semibold text-center text-menova-text mb-6">Welcome to MeNova</h1>
-        
-        <div className="w-full max-w-md">
-          <Form {...loginForm}>
-            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
-              <FormField control={loginForm.control} name="email" render={({
-                field
-              }) => <FormItem>
+      <div className="w-full">
+        <Form {...loginForm}>
+          <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+            <FormField
+              control={loginForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
                     <Input placeholder="you@example.com" {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>} />
+                  </FormItem>
+                )} 
+              />
             
-              <FormField control={loginForm.control} name="password" render={({
-                field
-              }) => <FormItem>
+              <FormField 
+                control={loginForm.control} 
+                name="password" 
+                render={({ field }) => (
+                  <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
                   <FormMessage />
-                </FormItem>} />
+                  </FormItem>
+                )} 
+              />
             
               <Button type="submit" className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
@@ -121,7 +139,7 @@ const Login = () => {
             </Button>
           </div>
         </div>
-      </div>
+      </>
     </AuthBackground>
   );
 };

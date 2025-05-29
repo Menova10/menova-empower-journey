@@ -51,10 +51,24 @@ const SymptomTimeline = ({ loading, symptomHistory }: SymptomTimelineProps) => {
     const detectedSymptoms = detectedLine.replace('DETECTED SYMPTOMS:', '').trim();
     const intensity = intensityLine ? intensityLine.replace('INTENSITY:', '').trim() : null;
     
+    const hasDetectedSymptoms = detectedSymptoms !== 'None specifically identified';
+    
     return (
-      <div className="mt-2 text-xs">
-        <p><span className="font-semibold">Detected Symptoms:</span> {detectedSymptoms !== 'None specifically identified' ? detectedSymptoms : 'None specifically identified'}</p>
-        {intensity && <p><span className="font-semibold">Intensity:</span> {intensity}</p>}
+      <div className={`mt-2 border-t pt-2 ${hasDetectedSymptoms ? 'border-menova-green/30' : 'border-gray-200'}`}>
+        <p className="text-xs">
+          <span className="font-semibold text-menova-green">Detected:</span> 
+          {hasDetectedSymptoms ? (
+            <span className="font-medium text-menova-text">{detectedSymptoms}</span>
+          ) : (
+            <span className="text-gray-500">None specifically identified</span>
+          )}
+        </p>
+        {intensity && (
+          <p className="text-xs">
+            <span className="font-semibold text-menova-green">Intensity:</span> 
+            <span className={`${intensity === '5/5' ? 'text-red-500 font-medium' : 'text-menova-text'}`}>{intensity}</span>
+          </p>
+        )}
       </div>
     );
   };

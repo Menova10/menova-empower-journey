@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Leaf } from 'lucide-react';
 import { symptoms } from '@/types/symptoms';
+import { notificationTrigger } from '@/services/notificationTriggerService';
 
 interface SymptomFormProps {
   onSubmitSuccess: (tip: string) => void;
@@ -69,10 +69,65 @@ const SymptomForm = ({ onSubmitSuccess, onRefreshHistory }: SymptomFormProps) =>
       const tip = getWellnessTip(highestRatedSymptomEntry[0], highestRatedSymptomEntry[1]);
       onSubmitSuccess(tip);
       
-      toast({
-        title: "Symptoms recorded",
-        description: "Your symptoms have been successfully recorded",
-      });
+      // Get tracked symptom names with their intensities
+      const trackedSymptoms = Object.entries(ratings)
+        .filter(([_id, rating]) => rating > 0) // Only include symptoms that were actually rated
+        .map(([id, rating]) => {
+          const symptom = symptoms.find(s => s.id === id);
+          return symptom ? `${symptom.name} (intensity: ${rating}/5)` : null;
+        })
+        .filter(Boolean); // Remove any null entries
+      
+      // Schedule a follow-up WhatsApp notification
+      try {
+        const result = await notificationTrigger.scheduleFollowUpNotification(
+          session.user.id, 
+          'symptom-tracker',
+          trackedSymptoms
+        );
+        
+        if (result.success) {
+          console.log('WhatsApp follow-up scheduled:', result);
+          
+          // Show a more prominent notification about the scheduled follow-up with message preview
+          toast({
+            title: "WhatsApp Follow-up Scheduled",
+            description: `A follow-up message will be sent to ${result.phone} in 24 hours: "${result.message.substring(0, 100)}${result.message.length > 100 ? '...' : ''}"`,
+            variant: "default",
+            duration: 8000, // Display for 8 seconds for better visibility
+          });
+          
+          // Add a small delay before showing the symptom tracking confirmation
+          setTimeout(() => {
+            toast({
+              title: "Symptoms recorded",
+              description: "Your symptoms have been successfully recorded",
+            });
+          }, 500);
+        } else if (result.reason === 'no-phone') {
+          // Only show this toast if we want to prompt users to add their phone
+          toast({
+            title: "Add Your Phone Number",
+            description: "Add your phone number in profile settings to get WhatsApp follow-ups",
+            variant: "default",
+          });
+          
+          // Still show symptom tracking confirmation
+          toast({
+            title: "Symptoms recorded",
+            description: "Your symptoms have been successfully recorded",
+          });
+        }
+      } catch (notifyError) {
+        console.error("Error scheduling follow-up:", notifyError);
+        // Don't show error to user since this is a background feature
+        
+        // Still show symptom tracking confirmation
+        toast({
+          title: "Symptoms recorded",
+          description: "Your symptoms have been successfully recorded",
+        });
+      }
       
       // Refresh symptom history
       onRefreshHistory();
@@ -124,6 +179,7 @@ const SymptomForm = ({ onSubmitSuccess, onRefreshHistory }: SymptomFormProps) =>
                 </TooltipProvider>
               </div>
               <Slider
+                defaultValue={[ratings[symptom.id]]}
                 value={[ratings[symptom.id]]}
                 min={1}
                 max={5}

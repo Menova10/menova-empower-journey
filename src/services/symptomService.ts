@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { 
@@ -132,38 +131,39 @@ export function calculateSymptomTrends(chartData: ChartDataPoint[]): Record<stri
     });
   });
   
-  // Calculate trend for each symptom type by comparing first and last values
+  // Calculate trend for each symptom type using a more sophisticated approach
   symptomTypes.forEach(symptom => {
-    let firstValue: number | null = null;
-    let lastValue: number | null = null;
+    // Get all valid data points for this symptom
+    const validPoints = chartData
+      .filter(point => typeof point[symptom] === 'number')
+      .sort((a, b) => (a.rawDate?.getTime() || 0) - (b.rawDate?.getTime() || 0));
     
-    // Find the first valid data point
-    for (const point of chartData) {
-      if (typeof point[symptom] === 'number') {
-        firstValue = point[symptom] as number;
-        break;
-      }
-    }
-    
-    // Find the last valid data point
-    for (let i = chartData.length - 1; i >= 0; i--) {
-      if (typeof chartData[i][symptom] === 'number') {
-        lastValue = chartData[i][symptom] as number;
-        break;
-      }
-    }
-    
-    if (firstValue !== null && lastValue !== null) {
-      const difference = lastValue - firstValue;
+    if (validPoints.length >= 2) {
+      // Use the last 5 points (or all points if less than 5) to determine trend
+      const recentPoints = validPoints.slice(-5);
       
-      // Determine trend direction
-      if (difference > 0) {
-        trends[symptom] = 'increasing';
-      } else if (difference < 0) {
-        trends[symptom] = 'decreasing';
-      } else {
-        trends[symptom] = 'stable';
+      // Calculate average change between consecutive points
+      let totalChange = 0;
+      for (let i = 1; i < recentPoints.length; i++) {
+        const currentValue = recentPoints[i][symptom] as number;
+        const previousValue = recentPoints[i - 1][symptom] as number;
+        totalChange += currentValue - previousValue;
       }
+      
+      const averageChange = totalChange / (recentPoints.length - 1);
+      
+      // Determine trend direction with a small threshold to avoid noise
+      const CHANGE_THRESHOLD = 0.3;
+      if (Math.abs(averageChange) < CHANGE_THRESHOLD) {
+        trends[symptom] = 'stable';
+      } else if (averageChange > 0) {
+        trends[symptom] = 'increasing';
+      } else {
+        trends[symptom] = 'decreasing';
+      }
+    } else if (validPoints.length === 1) {
+      // If only one point, mark as stable
+      trends[symptom] = 'stable';
     }
   });
   

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,7 @@ const profileSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").nullable().optional(),
   menopauseStage: z.string().nullable().optional(),
   birthDate: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -38,6 +38,7 @@ const Profile = () => {
       username: "",
       menopauseStage: "",
       birthDate: "",
+      phone: "",
     },
   });
 
@@ -90,6 +91,7 @@ const Profile = () => {
         username: data.username || "",
         menopauseStage: data.menopause_stage || "",
         birthDate: data.birth_date ? new Date(data.birth_date).toISOString().split('T')[0] : "",
+        phone: data.phone || "",
       });
       
     } catch (error) {
@@ -113,36 +115,53 @@ const Profile = () => {
 
       setIsUpdating(true);
       
-      // Map form values to profile data
       const profileUpdate = {
-        full_name: values.fullName,
-        username: values.username,
-        menopause_stage: values.menopauseStage,
-        birth_date: values.birthDate ? values.birthDate : null,
+        ...(values.fullName !== null && { full_name: values.fullName }),
+        ...(values.username !== null && { username: values.username }),
+        ...(values.menopauseStage !== null && { menopause_stage: values.menopauseStage }),
+        ...(values.birthDate !== null && { birth_date: values.birthDate }),
+        ...(values.phone !== null && { phone: values.phone }),
         updated_at: new Date().toISOString(),
       };
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update(profileUpdate)
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
       
       if (error) {
         toast({
-          title: "Error updating profile",
+          title: "Update failed",
           description: error.message,
           variant: "destructive",
         });
         return;
       }
-
-      // Refresh profile data
-      await fetchProfile(user.id);
+  
+      // Get the updated profile
+      const updatedProfile = data?.[0] || null;
       
+      // Show success message
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
+      
+      // Show additional message about WhatsApp if phone was added or changed
+      if (values.phone && (!profile?.phone || profile.phone !== values.phone)) {
+        setTimeout(() => {
+          toast({
+            title: "WhatsApp Notifications Enabled",
+            description: "You'll now receive WhatsApp follow-ups for your symptom tracking and voice chats.",
+            variant: "default",
+          });
+        }, 1000);
+      }
+      
+      // Update local state
+      setProfile(updatedProfile);
+      
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -270,6 +289,28 @@ const Profile = () => {
                       <FormControl>
                         <Input type="date" {...field} value={field.value || ''} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (for WhatsApp notifications)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel" 
+                          placeholder="+1234567890" 
+                          {...field} 
+                          value={field.value || ''} 
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Include country code for WhatsApp notifications (e.g., +1 for US)
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

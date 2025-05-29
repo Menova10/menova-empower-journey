@@ -8,7 +8,7 @@ export const symptoms = [
   { id: 'energy', name: 'Energy Level', color: '#FEC6A1', tip: 'Short 10-minute walks in nature can help boost energy levels naturally.' }, // Soft orange for energy
   { id: 'anxiety', name: 'Anxiety', color: '#FEF7CD', tip: 'Try the 5-4-3-2-1 grounding technique: acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you smell, and 1 you taste.' }, // Soft yellow for anxiety
   { id: 'brain_fog', name: 'Brain Fog', color: '#FFB74D', tip: 'Try doing one task at a time and taking short breaks to reset your focus.' }, // Amber for brain fog
-  { id: 'voice_assistant', name: 'Voice Assistant', color: '#FFD54F', tip: 'Use your voice assistant to set reminders for medications and appointments.' } // Yellow for voice assistant
+  { id: 'headache', name: 'Headache', color: '#E57373', tip: 'Try a cold compress on your forehead and staying hydrated throughout the day.' } // Red for headache
 ];
 
 // Source badges with styling
@@ -16,7 +16,9 @@ export const sourceBadges = {
   manual: { label: 'SYMPTOM TRACKER', class: 'bg-menova-green text-white' },
   daily_checkin: { label: 'DAILY CHECKIN', class: 'bg-menova-softpink text-gray-800' },
   chat: { label: 'CHAT', class: 'bg-[#d9b6d9] text-gray-800' },
-  voice: { label: 'VOICE', class: 'bg-menova-softpeach text-gray-800' },
+  voice_assistant: { label: 'VOICE', class: 'bg-menova-softpeach text-gray-800' },
+  voice_auto: { label: 'AUTO-DETECTED', class: 'bg-yellow-200 text-yellow-800' },
+  notes: { label: 'NOTES', class: 'bg-blue-100 text-blue-800' },
 };
 
 // Time period definitions
@@ -93,6 +95,5 @@ export const getSymptomColor = (symptomId: string): string => {
     symptomId === 'energy' ? '#FEC6A1' :       // Soft orange
     symptomId === 'anxiety' ? '#FEF7CD' :      // Soft yellow
     symptomId === 'brain_fog' ? '#FFB74D' :    // Amber
-    symptomId === 'voice_assistant' ? '#FFD54F' : // Yellow
     '#F97316';                                 // Default orange
 };

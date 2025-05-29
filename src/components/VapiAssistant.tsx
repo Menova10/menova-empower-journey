@@ -8,6 +8,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useLocation } from 'react-router-dom';
 import { symptoms } from '@/types/symptoms';
+import { detectSymptoms, createEnhancedSummary, createSymptomTitle, formatDetectedSymptoms } from '@/services/symptomDetectionService';
+import { audioRecorder } from '@/services/audioRecorderService';
+import { convertSpeechToText } from '@/services/openaiService';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -17,7 +20,13 @@ interface VapiAssistantProps {
 const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className }, ref) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'ai'; timestamp: Date }[]>([{
+  const [messages, setMessages] = useState<{ 
+    text: string; 
+    sender: 'user' | 'ai'; 
+    timestamp: Date; 
+    isSystemMessage?: boolean;
+    isEnhancedTranscription?: boolean;
+  }[]>([{
     text: "Hello! I'm MeNova, your companion through menopause. How are you feeling today?",
     sender: 'ai',
     timestamp: new Date(),
@@ -26,6 +35,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const [audioMuted, setAudioMuted] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [savingToTracker, setSavingToTracker] = useState(false);
+  const [dualTranscriptionActive, setDualTranscriptionActive] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -183,118 +193,134 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
         // If already listening, stop listening
         console.log("Stopping listening");
         vapiRef.current.stopListening && vapiRef.current.stopListening();
+        setUserSpeaking(false);
       } else {
         // Start listening
         console.log("Starting listening");
         vapiRef.current.startListening && vapiRef.current.startListening();
+        setUserSpeaking(true);
       }
     }
   };
 
-  const handleSaveToSymptomTracker = async () => {
-    try {
-      setSavingToTracker(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        navigate('/login');
-        return;
+  // Add this function to handle real-time symptom detection after user messages
+  const detectAndDisplaySymptoms = async (text: string) => {
+    const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(text);
+    
+    if (detectedSymptoms.size > 0) {
+      // Format the detected symptoms for display
+      const symptomNames = Array.from(detectedSymptoms).map(id => {
+        const symptom = symptoms.find(s => s.id === id);
+        return symptom ? symptom.name : id;
+      }).join(', ');
+      
+      // Check if intensity was explicitly mentioned
+      const intensityMentioned = text.match(/(\d)[\/\s]5|(\d)\s*out\s*of\s*5|level\s*(\d)|rating\s*(\d)|intensity\s*(\d)|severe|moderate|mild|(very\s+)(bad|strong|intense|high)/i);
+      
+      // Different message based on whether intensity was mentioned
+      let systemMessage;
+      if (intensityMentioned) {
+        systemMessage = {
+          text: `📋 I notice you're talking about ${symptomNames} with an intensity of ${intensity}/5. I'll add this to your symptom tracker.`,
+          sender: 'ai' as const,
+          timestamp: new Date(),
+          isSystemMessage: true
+        };
+      } else {
+        // Ask about intensity if not specified
+        systemMessage = {
+          text: `📋 I notice you mentioned ${symptomNames}. On a scale of 1-5, how would you rate the intensity? For now, I'll record it as ${intensity}/5, but you can tell me if it's different.`,
+          sender: 'ai' as const,
+          timestamp: new Date(),
+          isSystemMessage: true
+        };
       }
       
-      // Ensure we have a session ID
-      const sid = await ensureSession(session.user.id);
+      setMessages(prev => [...prev, systemMessage]);
       
-      // Create a summary of the conversation
-      const summary = messages.map(m => `${m.sender === 'user' ? 'You' : 'MeNova'}: ${m.text}`).join('\n');
+      // Automatically save the symptoms to the tracker
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Create summary
+          const summary = `Auto-detected from voice conversation: "${text}"`;
+          
+          // Create enhanced summary with detected symptom information
+          const enhancedSummary = createEnhancedSummary(summary, detectedSymptoms, intensity);
+          
+          // Save primary symptom
+          await supabase.from('symptom_tracking').insert({
+            user_id: session.user.id,
+            symptom: primarySymptom,
+            intensity: intensity,
+            notes: enhancedSummary,
+            source: 'voice_auto',
+            recorded_at: new Date().toISOString()
+          });
+          
+          // Save additional symptoms if detected
+          if (detectedSymptoms.size > 1) {
+            const additionalSymptoms = Array.from(detectedSymptoms).slice(1);
+            for (const symptomId of additionalSymptoms) {
+              await supabase.from('symptom_tracking').insert({
+                user_id: session.user.id,
+                symptom: symptomId,
+                intensity: intensity,
+                notes: enhancedSummary,
+                source: 'voice_auto',
+                recorded_at: new Date().toISOString()
+              });
+            }
+          }
+          
+          // Schedule a follow-up WhatsApp notification
+          try {
+            // Import the notification trigger service dynamically to avoid circular dependencies
+            const { notificationTrigger } = await import('@/services/notificationTriggerService');
+            
+            // Get symptom names for notification
+            const symptomNamesList = Array.from(detectedSymptoms).map(id => {
+              const symptom = symptoms.find(s => s.id === id);
+              return symptom ? `${symptom.name} (intensity: ${intensity}/5)` : null;
+            }).filter(Boolean);
+            
+            // Schedule the notification
+            const result = await notificationTrigger.scheduleFollowUpNotification(
+              session.user.id, 
+              'voice-chat',
+              symptomNamesList
+            );
+            
+            console.log('Auto-detection: WhatsApp follow-up scheduled for symptom detection');
+            
+            if (result.success) {
+              // Show a prominent notification about the WhatsApp follow-up
+              toast({
+                title: "WhatsApp Follow-up Scheduled",
+                description: `A follow-up message will be sent to ${result.phone} in 24 hours: "${result.message.substring(0, 100)}${result.message.length > 100 ? '...' : ''}"`,
+                variant: "default",
+                duration: 8000, // Display for 8 seconds for better visibility
+              });
+            }
+          } catch (notifyError) {
+            console.error("Error scheduling auto-detection follow-up:", notifyError);
+          }
+        }
+      } catch (error) {
+        console.error('Error auto-saving symptoms:', error);
+      }
       
-      // Analyze conversation to identify symptoms
-      // Define keywords for each symptom type
-      const symptomKeywords = {
-        hot_flashes: ['hot flash', 'hot flashes', 'sweating', 'heat', 'burning', 'flush', 'flushing', 'overheated'],
-        sleep: ['sleep', 'insomnia', 'tired', 'fatigue', 'rest', 'wake up', 'waking', 'night sweat', 'night sweats'],
-        mood: ['mood', 'irritable', 'anxiety', 'anxious', 'depressed', 'depression', 'sad', 'angry', 'emotional'],
-        energy: ['energy', 'tired', 'exhausted', 'fatigue', 'lethargy', 'motivation', 'vigor'],
-        brain_fog: ['brain fog', 'forgetful', 'memory', 'concentration', 'focus', 'confused', 'forget'],
-        anxiety: ['anxiety', 'anxious', 'worried', 'stress', 'stressed', 'panic', 'nervous']
+      return {
+        detectedSymptoms,
+        symptomNames,
+        intensity
       };
-      
-      // Go through user messages to identify symptoms
-      const userTexts = messages.filter(m => m.sender === 'user').map(m => m.text.toLowerCase());
-      const detectedSymptoms = new Set<string>();
-      let primarySymptom = 'voice_assistant'; // Default
-      let intensity = 3; // Default intensity
-      
-      // Check for each symptom type
-      Object.entries(symptomKeywords).forEach(([symptomId, keywords]) => {
-        for (const text of userTexts) {
-          if (keywords.some(keyword => text.includes(keyword))) {
-            detectedSymptoms.add(symptomId);
-          }
-        }
-      });
-      
-      // Check for intensity indicators
-      const intensityRegex = /(\d)[\/\s]5|(\d)\s*out\s*of\s*5|level\s*(\d)|rating\s*(\d)|intensity\s*(\d)/i;
-      for (const text of userTexts) {
-        const match = text.match(intensityRegex);
-        if (match) {
-          const foundIntensity = parseInt(match[1] || match[2] || match[3] || match[4] || match[5]);
-          if (foundIntensity >= 1 && foundIntensity <= 5) {
-            intensity = foundIntensity;
-            break;
-          }
-        }
-      }
-      
-      // If we've detected any symptoms, use the first one as primary
-      if (detectedSymptoms.size > 0) {
-        primarySymptom = Array.from(detectedSymptoms)[0];
-      }
-      
-      // Create a more descriptive title for the conversation
-      const conversationTitle = detectedSymptoms.size > 0 
-        ? `Voice conversation about ${Array.from(detectedSymptoms).map(s => {
-            const symptom = symptoms.find(sym => sym.id === s);
-            return symptom ? symptom.name.toLowerCase() : s;
-          }).join(', ')}`
-        : 'Voice assistant conversation';
-      
-      // Add detected symptom information to the summary
-      const enhancedSummary = `DETECTED SYMPTOMS: ${
-        detectedSymptoms.size > 0 
-          ? Array.from(detectedSymptoms).map(s => {
-              const symptom = symptoms.find(sym => sym.id === s);
-              return symptom ? symptom.name : s;
-            }).join(', ')
-          : 'None specifically identified'
-      }\nINTENSITY: ${intensity}/5\n\n${summary}`;
-      
-      // Save to symptom tracker
-      await supabase.from('symptom_tracking').insert({
-        user_id: session.user.id,
-        symptom: primarySymptom,
-        intensity: intensity,
-        notes: enhancedSummary,
-        source: 'voice_assistant',
-        recorded_at: new Date().toISOString()
-      });
-      
-      toast({
-        title: "Saved to Symptom Tracker",
-        description: `Conversation about ${primarySymptom === 'voice_assistant' ? 'general topics' : primarySymptom.replace('_', ' ')} has been added to your symptom tracker.`,
-      });
-    } catch (error) {
-      console.error('Error saving to symptom tracker:', error);
-      toast({
-        title: "Error",
-        description: "Could not save to symptom tracker. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSavingToTracker(false);
     }
+    
+    return null;
   };
 
-  // Add Vapi event listeners for transcript, response, and volume-level
+  // Update the transcript handler to work without parallel processing
   useEffect(() => {
     if (!sdkLoaded || !vapiRef.current) return;
     const vapi = vapiRef.current;
@@ -312,6 +338,12 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
         };
         setMessages(prev => [...prev, userMessage]);
         setUserSpeaking(false);
+        
+        // Detect symptoms in the user's message (handle async function)
+        const detectSymptoms = async () => {
+          await detectAndDisplaySymptoms(data.transcript);
+        };
+        detectSymptoms();
         
         // Save message if authenticated
         const saveUserMessage = async () => {
@@ -369,8 +401,141 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       vapi.off && vapi.off("transcript", transcriptHandler);
       vapi.off && vapi.off("response", responseHandler);
       vapi.off && vapi.off("volume-level", volumeHandler);
+      setUserSpeaking(false);
+      setDualTranscriptionActive(false);
     };
   }, [sdkLoaded, vapiRef]);
+
+  // Update the handleSaveToSymptomTracker function
+  const handleSaveToSymptomTracker = async () => {
+    try {
+      setSavingToTracker(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        navigate('/login');
+        return;
+      }
+      
+      // Ensure we have a session ID
+      const sid = await ensureSession(session.user.id);
+      
+      // Get user messages only
+      const userMessages = messages
+        .filter(m => m.sender === 'user')
+        .map(m => m.text);
+      
+      // If no user messages, show a message
+      if (userMessages.length === 0) {
+        toast({
+          title: "No conversation to save",
+          description: "Please have a conversation first before saving to the symptom tracker.",
+          variant: "destructive",
+        });
+        setSavingToTracker(false);
+        return;
+      }
+      
+      // Create a summary of the conversation
+      const summary = messages.map(m => {
+        if (m.isSystemMessage) return `System: ${m.text}`;
+        return `${m.sender === 'user' ? 'You' : 'MeNova'}: ${m.text}`;
+      }).join('\n');
+      
+      // Use symptom detection service to analyze the conversation
+      const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(userMessages);
+      
+      // Create enhanced summary with detected symptom information
+      const enhancedSummary = createEnhancedSummary(summary, detectedSymptoms, intensity);
+      
+      // Save to symptom tracker with a more specific source field
+      await supabase.from('symptom_tracking').insert({
+        user_id: session.user.id,
+        symptom: primarySymptom,
+        intensity: intensity,
+        notes: enhancedSummary,
+        source: 'voice_assistant',
+        recorded_at: new Date().toISOString()
+      });
+      
+      // If multiple symptoms were detected, add separate entries for each
+      if (detectedSymptoms.size > 1) {
+        const additionalSymptoms = Array.from(detectedSymptoms).slice(1);
+        for (const symptomId of additionalSymptoms) {
+          await supabase.from('symptom_tracking').insert({
+            user_id: session.user.id,
+            symptom: symptomId,
+            intensity: intensity,
+            notes: enhancedSummary,
+            source: 'voice_assistant',
+            recorded_at: new Date().toISOString()
+          });
+        }
+      }
+      
+      // Schedule a follow-up WhatsApp notification if symptoms were detected
+      if (detectedSymptoms.size > 0) {
+        try {
+          // Import the notification trigger service dynamically to avoid circular dependencies
+          const { notificationTrigger } = await import('@/services/notificationTriggerService');
+          
+          // Get symptom names for notification
+          const symptomNamesList = Array.from(detectedSymptoms).map(id => {
+            const symptom = symptoms.find(s => s.id === id);
+            return symptom ? `${symptom.name} (intensity: ${intensity}/5)` : null;
+          }).filter(Boolean);
+          
+          // Schedule the notification
+          const result = await notificationTrigger.scheduleFollowUpNotification(
+            session.user.id, 
+            'voice-chat',
+            symptomNamesList
+          );
+          
+          console.log('Voice assistant: WhatsApp follow-up scheduled:', result);
+          
+          if (result.success) {
+            // Show a prominent notification about the WhatsApp follow-up
+            toast({
+              title: "WhatsApp Follow-up Scheduled",
+              description: `A follow-up message will be sent to ${result.phone} in 24 hours: "${result.message.substring(0, 100)}${result.message.length > 100 ? '...' : ''}"`,
+              variant: "default",
+              duration: 8000, // Display for 8 seconds for better visibility
+            });
+          }
+        } catch (notifyError) {
+          console.error("Error scheduling voice assistant follow-up:", notifyError);
+        }
+      }
+      
+      // Add a confirmation message to the chat
+      const confirmationMessage = {
+        text: `✅ I've saved ${detectedSymptoms.size > 0 
+          ? `information about your ${formatDetectedSymptoms(detectedSymptoms)}` 
+          : 'our conversation'} to your symptom tracker.`,
+        sender: 'ai' as const,
+        timestamp: new Date(),
+        isSystemMessage: true
+      };
+      
+      setMessages(prev => [...prev, confirmationMessage]);
+      
+      toast({
+        title: "Saved to Symptom Tracker",
+        description: detectedSymptoms.size > 0 
+          ? `Recorded ${formatDetectedSymptoms(detectedSymptoms)} with intensity ${intensity}/5` 
+          : "Conversation saved to your symptom tracker.",
+      });
+    } catch (error) {
+      console.error('Error saving to symptom tracker:', error);
+      toast({
+        title: "Error",
+        description: "Could not save to symptom tracker. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingToTracker(false);
+    }
+  };
 
   // Expose methods to parent components
   useImperativeHandle(ref, () => ({
@@ -444,12 +609,29 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex items-start gap-2 mb-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.sender === 'ai' && (
-                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${isSpeaking && idx === messages.length - 1 && msg.sender === 'ai' ? 'animate-pulse' : ''}`}>
+                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${isSpeaking && idx === messages.length - 1 && msg.sender === 'ai' && !msg.isSystemMessage ? 'animate-pulse' : ''}`}>
                     <img src="/lovable-uploads/9f5f031b-af45-4b14-96fd-a87e2a176359.png" alt="MeNova" className="w-full h-full object-cover" />
                   </div>
                 )}
-                <div className={`p-3 rounded-lg max-w-[80%] ${msg.sender === 'user' ? 'bg-menova-green text-white' : 'bg-menova-lightgreen text-menova-text'}`}> 
-                  <div className="text-xs font-semibold mb-1">{msg.sender === 'user' ? 'You:' : 'MeNova:'}</div>
+                <div className={`p-3 rounded-lg max-w-[80%] ${
+                  msg.sender === 'user' 
+                    ? 'bg-menova-green text-white' 
+                    : msg.isSystemMessage 
+                      ? 'bg-yellow-100 text-gray-800 border border-yellow-300' 
+                      : 'bg-menova-lightgreen text-menova-text'
+                }`}> 
+                  <div className="text-xs font-semibold mb-1 flex justify-between items-center">
+                    <span>{
+                      msg.sender === 'user' 
+                        ? 'You:' 
+                        : msg.isSystemMessage 
+                          ? 'System:' 
+                          : 'MeNova:'
+                    }</span>
+                    {msg.isEnhancedTranscription && (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded text-[10px]">Enhanced</span>
+                    )}
+                  </div>
                   <p className="text-sm">{msg.text}</p>
                   <p className="text-xs opacity-60 mt-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
@@ -477,7 +659,11 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
             <Button 
               variant={userSpeaking ? "default" : "outline"}
               size="icon"
-              className={`rounded-full ${userSpeaking ? 'bg-menova-green text-white animate-pulse' : 'border-menova-green text-menova-green'}`}
+              className={`rounded-full ${
+                userSpeaking 
+                  ? 'bg-menova-green text-white animate-pulse' 
+                  : 'border-menova-green text-menova-green'
+              }`}
               onClick={handleMicClick}
               disabled={!sdkLoaded}
             >

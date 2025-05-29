@@ -4,13 +4,13 @@ import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { MessageCircle, User, ChevronDown, Apple, Brain, ActivitySquare, Settings, LogOut } from 'lucide-react';
+import { MessageCircle, User, ChevronDown, Apple, Brain, Settings, LogOut } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import WellnessDashboard from '@/components/WellnessDashboard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
-import ApiStatusTester from '@/components/ApiStatusTester';
+import PhoneNumberReminder from '@/components/PhoneNumberReminder.jsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +37,7 @@ const Welcome = () => {
   const [loading, setLoading] = useState(true);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
+  
   // Check if user is logged in
   useEffect(() => {
     const checkUser = async () => {
@@ -184,6 +184,9 @@ const Welcome = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
+        {/* Phone Number Reminder Alert */}
+        <PhoneNumberReminder />
+        
         {/* Welcome Section */}
         <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm bg-gradient-to-br from-white to-green-50">
           <div className="flex items-center gap-4 mb-4">
