@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -33,92 +32,78 @@ export const TodayProgressSection: React.FC<TodayProgressSectionProps> = ({
   }, []);
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 mb-6 border border-gray-100 transition-shadow hover:shadow-md">
-      <div className="flex justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">Today's Progress</h2>
-        <div className="flex items-center gap-2">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center relative">
+    <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 transition-all duration-300 hover:shadow-lg h-full">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">Today's Progress</h2>
+          <p className="text-lg text-gray-600">Your wellness journey at a glance</p>
+        </div>
+        <div className="mt-6 md:mt-0">
+          <div className="w-32 h-32 rounded-full flex items-center justify-center relative bg-menova-green/5">
             {/* Progress ring */}
-            <svg className="w-16 h-16 rotate-[-90deg]" viewBox="0 0 100 100">
+            <svg className="w-32 h-32 rotate-[-90deg]" viewBox="0 0 100 100">
               <circle 
                 cx="50" cy="50" r="45" 
                 fill="none" 
                 stroke="#f3f4f6" 
-                strokeWidth="10"
+                strokeWidth="8"
               />
               <circle 
                 cx="50" cy="50" r="45" 
                 fill="none" 
                 stroke="#4ade80" 
-                strokeWidth="10"
+                strokeWidth="8"
                 strokeDasharray={`${2 * Math.PI * 45 * progress/100} ${2 * Math.PI * 45 * (100-progress)/100}`}
                 strokeLinecap="round"
+                className="transition-all duration-500 ease-in-out"
               />
             </svg>
             {/* Center text */}
-            <div className="absolute inset-0 flex items-center justify-center text-lg font-bold text-gray-800">
-              {progress}%
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-3xl font-bold text-gray-800">{progress}%</span>
+              <span className="text-sm text-gray-500 mt-1">Complete</span>
             </div>
           </div>
         </div>
       </div>
       
-      <div className="space-y-1 mb-4">
-        <div className="flex justify-between text-sm text-gray-500">
-          <span>Progress</span>
-          <span>{completedGoals} of {totalGoals} goals</span>
-        </div>
-        <Progress 
-          value={progress} 
-          className="h-2 bg-gray-100" 
-        />
-      </div>
-
-      {/* Category Progress - Updated visualization */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {categories.slice(0, 3).map(category => {
-          const catData = categoryCounts[category.value] || { completed: 0, total: 0, percentage: 0 };
-          const IconComponent = categoryIcons[category.icon as keyof typeof categoryIcons];
-          const categoryColor = category.color.includes('orange') ? '#f97316' : 
-                               category.color.includes('teal') ? '#14b8a6' : 
-                               category.color.includes('red') ? '#ef4444' : '#4ade80';
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {Object.entries(categoryCounts).map(([category, count]) => {
+          const Icon = categoryIcons[category as keyof typeof categoryIcons];
+          const categoryColor = category === 'Apple' ? 'text-orange-500' : 
+                              category === 'Brain' ? 'text-teal-500' : 
+                              'text-purple-500';
+          const bgColor = category === 'Apple' ? 'bg-orange-50' : 
+                         category === 'Brain' ? 'bg-teal-50' : 
+                         'bg-purple-50';
+          const borderColor = category === 'Apple' ? 'border-orange-100' : 
+                            category === 'Brain' ? 'border-teal-100' : 
+                            'border-purple-100';
           
           return (
-            <div key={category.value} className="bg-white p-4 rounded-lg border border-gray-100 shadow-sm hover:shadow transition-all">
-              <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center relative`}>
-                  {/* Category progress ring */}
-                  <svg className="w-12 h-12 rotate-[-90deg]" viewBox="0 0 100 100">
-                    <circle 
-                      cx="50" cy="50" r="40" 
-                      fill="none" 
-                      stroke="#f3f4f6" 
-                      strokeWidth="12"
-                    />
-                    <circle 
-                      cx="50" cy="50" r="40" 
-                      fill="none" 
-                      stroke={categoryColor} 
-                      strokeWidth="12"
-                      strokeDasharray={`${2 * Math.PI * 40 * catData.percentage/100} ${2 * Math.PI * 40 * (100-catData.percentage)/100}`}
-                      strokeLinecap="round"
-                      opacity="0.8"
-                    />
-                  </svg>
-                  {/* Center icon */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {IconComponent && <IconComponent size={24} className="text-gray-700" />}
-                  </div>
+            <div 
+              key={category} 
+              className={`p-6 rounded-xl ${bgColor} border ${borderColor} transition-all duration-300 hover:shadow-md`}
+            >
+              <div className="flex items-center gap-4 mb-4">
+                {Icon && <Icon className={`${categoryColor} w-8 h-8`} />}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-800">{category}</h3>
+                  <p className="text-sm text-gray-600">
+                    {count.completed}/{count.total} Goals
+                  </p>
                 </div>
-                
-                <div className="flex-1">
-                  <div className="font-medium text-gray-800">{category.label}</div>
-                  <div className="text-xs text-gray-500 flex justify-between">
-                    <span>{catData.completed} of {catData.total || 0}</span>
-                    <span className="font-medium" style={{ color: categoryColor }}>
-                      {catData.percentage}%
-                    </span>
-                  </div>
+              </div>
+              <div className="mt-2">
+                <div className="h-3 bg-white rounded-full overflow-hidden shadow-inner">
+                  <div 
+                    className={`h-full ${
+                      category === 'Apple' ? 'bg-orange-500' : 
+                      category === 'Brain' ? 'bg-teal-500' : 
+                      'bg-purple-500'
+                    } transition-all duration-500 ease-in-out`}
+                    style={{ width: `${(count.completed / count.total) * 100}%` }}
+                  />
                 </div>
               </div>
             </div>
@@ -126,14 +111,14 @@ export const TodayProgressSection: React.FC<TodayProgressSectionProps> = ({
         })}
       </div>
       
-      <div className="mt-4 flex justify-center">
+      <div className="flex justify-center">
         <Button 
           onClick={forceRefreshWellnessGoals}
           variant="outline"
-          className="border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          className="border-menova-green text-menova-green hover:bg-menova-green/10 flex items-center gap-3 px-8 py-3 text-lg"
           disabled={loading}
         >
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={20} className={`${loading ? 'animate-spin' : ''} transition-all duration-300`} />
           Refresh Progress
         </Button>
       </div>
