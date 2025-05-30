@@ -591,109 +591,141 @@ const TodaysWellness = () => {
 
   return (
     <AuthBackground>
-      <div className="max-w-4xl mx-auto px-4 py-6 bg-white/70 backdrop-blur-sm rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-menova-text text-center mb-2">Wellness Progress</h1>
-        <p className="text-center text-gray-600 mb-6">Track your wellness journey</p>
-        
-        {/* Main View Tabs */}
-        <Tabs defaultValue="progress" value={mainViewTab} onValueChange={handleMainViewTabChange} className="w-full mb-6">
-          <TabsList className="grid grid-cols-2 mb-6 bg-white/80">
-            <TabsTrigger value="progress" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-              <BarChart2 size={16} />
-              <span>Progress</span>
-            </TabsTrigger>
-            <TabsTrigger value="add-goal" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-              <PlusCircle size={16} />
-              <span>Add Goal</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          {/* Progress View */}
-          <TabsContent value="progress" className="space-y-6">
-            {/* Period Tabs */}
-            <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid grid-cols-3 mb-6 bg-white/80">
-                <TabsTrigger value="daily" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-                  <CalendarDays size={16} />
-                  <span>Daily</span>
-                </TabsTrigger>
-                <TabsTrigger value="weekly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-                  <Calendar size={16} />
-                  <span>Weekly</span>
-                </TabsTrigger>
-                <TabsTrigger value="monthly" className="flex items-center gap-2 data-[state=active]:bg-menova-green/10 data-[state=active]:text-menova-green">
-                  <ChartBar size={16} />
-                  <span>Monthly</span>
-                </TabsTrigger>
-              </TabsList>
-              
-              {/* Daily View */}
-              <TabsContent value="daily" className="space-y-6">
-                <TodayProgressSection 
-                  progress={progress}
-                  completedGoals={completedGoals}
-                  totalGoals={totalGoals}
-                  categoryCounts={categoryCounts}
-                  forceRefreshWellnessGoals={forceRefreshWellnessGoals}
-                  loading={loading}
-                />
-                
-                <TodaysGoalsSection
-                  goals={goals}
-                  loading={loading}
-                  toggleGoalCompletion={toggleGoalCompletion}
-                />
+      <div className="w-full min-h-screen bg-gradient-to-b from-white to-green-50">
+        {/* Header Section */}
+        <div className="w-full bg-white shadow-sm border-b border-gray-100">
+          <div className="w-full px-4 py-6">
+            <div className="flex flex-col items-center">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-menova-green to-teal-600 bg-clip-text text-transparent">
+                Wellness Journey
+              </h1>
+              <p className="mt-2 text-gray-600">Track and achieve your daily wellness goals</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="w-full">
+          <div className="w-full px-4 py-8">
+            <Tabs defaultValue="progress" value={mainViewTab} onValueChange={handleMainViewTabChange} className="w-full">
+              {/* Navigation Tabs */}
+              <div className="bg-white border-b border-gray-100 mb-8">
+                <TabsList className="flex h-16 items-center space-x-8 px-4">
+                  <TabsTrigger 
+                    value="progress" 
+                    className="flex items-center gap-2 px-4 py-3 text-base data-[state=active]:text-menova-green data-[state=active]:border-b-2 data-[state=active]:border-menova-green rounded-none border-b-2 border-transparent transition-all"
+                  >
+                    <BarChart2 size={20} />
+                    <span>Progress Dashboard</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="add-goal" 
+                    className="flex items-center gap-2 px-4 py-3 text-base data-[state=active]:text-menova-green data-[state=active]:border-b-2 data-[state=active]:border-menova-green rounded-none border-b-2 border-transparent transition-all"
+                  >
+                    <PlusCircle size={20} />
+                    <span>Add New Goals</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="progress">
+                <div className="bg-white shadow-sm mb-8">
+                  <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
+                    <TabsList className="flex justify-center bg-gray-50/50 p-2 gap-1">
+                      <TabsTrigger 
+                        value="daily" 
+                        className="flex-1 flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-menova-green data-[state=active]:shadow-sm rounded-lg transition-all"
+                      >
+                        <CalendarDays size={18} />
+                        <span>Daily View</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="weekly" 
+                        className="flex-1 flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-menova-green data-[state=active]:shadow-sm rounded-lg transition-all"
+                      >
+                        <Calendar size={18} />
+                        <span>Weekly View</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="monthly" 
+                        className="flex-1 flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-menova-green data-[state=active]:shadow-sm rounded-lg transition-all"
+                      >
+                        <ChartBar size={18} />
+                        <span>Monthly View</span>
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <div className="p-6">
+                      <TabsContent value="daily">
+                        <div className="grid gap-6 lg:grid-cols-2">
+                          <TodayProgressSection 
+                            progress={progress}
+                            completedGoals={completedGoals}
+                            totalGoals={totalGoals}
+                            categoryCounts={categoryCounts}
+                            forceRefreshWellnessGoals={forceRefreshWellnessGoals}
+                            loading={loading}
+                          />
+                          <TodaysGoalsSection
+                            goals={goals}
+                            loading={loading}
+                            toggleGoalCompletion={toggleGoalCompletion}
+                          />
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="weekly">
+                        <WeeklyProgressView
+                          loading={loading}
+                          weeklyProgress={weeklyProgress}
+                          weeklyGoals={weeklyGoals}
+                        />
+                      </TabsContent>
+
+                      <TabsContent value="monthly">
+                        <MonthlyProgressView
+                          loading={loading}
+                          monthlyProgress={monthlyProgress}
+                        />
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </div>
               </TabsContent>
-              
-              {/* Weekly View */}
-              <TabsContent value="weekly">
-                <WeeklyProgressView
-                  loading={loading}
-                  weeklyProgress={weeklyProgress}
-                  weeklyGoals={weeklyGoals}
-                />
-              </TabsContent>
-              
-              {/* Monthly View */}
-              <TabsContent value="monthly">
-                <MonthlyProgressView
-                  loading={loading}
-                  monthlyProgress={monthlyProgress}
-                />
+
+              <TabsContent value="add-goal">
+                <div className="bg-white shadow-sm p-6">
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <AddGoalSection
+                      newGoal={newGoal}
+                      setNewGoal={setNewGoal}
+                      selectedCategory={selectedCategory}
+                      setSelectedCategory={setSelectedCategory}
+                      addGoal={addGoal}
+                    />
+                    <SuggestedGoalsSection
+                      suggestedGoals={suggestedGoals}
+                      loadingSuggestions={loadingSuggestions}
+                      refreshKey={refreshKey}
+                      refreshSuggestions={refreshSuggestions}
+                      addSuggestedGoal={addSuggestedGoal}
+                    />
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
-          </TabsContent>
-          
-          {/* Add Goal View */}
-          <TabsContent value="add-goal" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <AddGoalSection
-                newGoal={newGoal}
-                setNewGoal={setNewGoal}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                addGoal={addGoal}
-              />
-              
-              <SuggestedGoalsSection
-                suggestedGoals={suggestedGoals}
-                loadingSuggestions={loadingSuggestions}
-                refreshKey={refreshKey}
-                refreshSuggestions={refreshSuggestions}
-                addSuggestedGoal={addSuggestedGoal}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Goal completion modal */}
-        <GoalCompletionModal
-          completedGoal={completedGoal}
-          setCompletedGoal={setCompletedGoal}
-          openAssistant={openAssistant}
-        />
+          </div>
+        </div>
       </div>
+
+      {/* Goal Completion Modal */}
+      <GoalCompletionModal
+        completedGoal={completedGoal}
+        setCompletedGoal={setCompletedGoal}
+        openAssistant={openAssistant}
+      />
       
+      {/* Vapi Assistant */}
       <VapiAssistant ref={vapiAssistantRef} />
       <Toaster />
     </AuthBackground>
