@@ -22,8 +22,8 @@ interface SymptomRating {
 }
 
 interface DailyInsight {
-  quote: string;
-  author: string;
+  tip: string;
+  source: string;
   isLoading: boolean;
 }
 
@@ -43,8 +43,8 @@ const WellnessDashboard = () => {
   const [goals, setGoals] = useState<WellnessGoal[]>([]);
   const [symptoms, setSymptoms] = useState<SymptomRating[]>([]);
   const [insight, setInsight] = useState<DailyInsight>({ 
-    quote: "", 
-    author: "",
+    tip: "", 
+    source: "",
     isLoading: true 
   });
   const [loading, setLoading] = useState(true);
@@ -55,11 +55,11 @@ const WellnessDashboard = () => {
     ? Math.round((goals.reduce((acc, goal) => acc + goal.completed, 0) / goals.reduce((acc, goal) => acc + goal.total, 0)) * 100) 
     : 0;
 
-  // Fetch daily inspirational quote
+  // Fetch daily menopause tip
   useEffect(() => {
-    const fetchDailyQuote = async () => {
+    const fetchDailyTip = async () => {
       try {
-        const response = await supabase.functions.invoke('daily-quote');
+        const response = await supabase.functions.invoke('daily-menopause-tip');
         
         if (response.error) {
           throw new Error(response.error.message);
@@ -67,28 +67,28 @@ const WellnessDashboard = () => {
         
         if (response.data) {
           setInsight({
-            quote: response.data.q,
-            author: response.data.a,
+            tip: response.data.tip,
+            source: response.data.source || 'MeNova Health',
             isLoading: false
           });
         }
       } catch (error) {
-        console.error("Error fetching daily quote:", error);
-        // Set fallback quote if API fails
+        console.error("Error fetching daily tip:", error);
+        // Set fallback tip if API fails
         setInsight({
-          quote: "Your body and mind are in harmony. Reflect on this balance today.",
-          author: "MeNova",
+          tip: "Stay hydrated and keep cool. Regular water intake can help manage hot flashes and maintain overall well-being during menopause.",
+          source: "MeNova Health",
           isLoading: false
         });
         toast({
-          title: "Could not load daily quote",
-          description: "Using a fallback quote for today.",
+          title: "Could not load daily tip",
+          description: "Using a helpful tip from our database.",
           variant: "destructive",
         });
       }
     };
 
-    fetchDailyQuote();
+    fetchDailyTip();
   }, [toast]);
 
   // Format date for display
@@ -422,8 +422,8 @@ const WellnessDashboard = () => {
         
         {/* Today's Insight Card */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6 flex flex-col">
-          <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Insight</h3>
-          <p className="text-sm text-gray-600 mb-6">Daily wisdom for your journey</p>
+          <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Menopause Tip</h3>
+          <p className="text-sm text-gray-600 mb-6">Daily wisdom for your menopause journey</p>
           
           <div className="flex-1 flex flex-col items-center justify-center">
             {insight.isLoading ? (
@@ -433,10 +433,10 @@ const WellnessDashboard = () => {
                 <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto"></div>
               </div>
             ) : (
-              <blockquote className="text-center text-gray-700 italic mb-4">
-                <p className="mb-3">"{insight.quote}"</p>
-                <footer className="text-sm text-gray-500">— {insight.author}</footer>
-              </blockquote>
+              <div className="text-center">
+                <p className="text-gray-700 mb-4">{insight.tip}</p>
+                <footer className="text-sm text-gray-500">Source: {insight.source}</footer>
+              </div>
             )}
           </div>
         </div>

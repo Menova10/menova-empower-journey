@@ -189,7 +189,7 @@ const Welcome = () => {
         
         {/* Welcome Section */}
         <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm bg-gradient-to-br from-white to-green-50">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-1">
             <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-menova-green">
               <img
                 src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
@@ -197,7 +197,7 @@ const Welcome = () => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div>
+            <div className="space-y-0.5">
               <h1 className="text-2xl font-bold text-menova-text">
                 Welcome, {profile?.full_name || user?.email.split('@')[0]}!
               </h1>
@@ -205,30 +205,15 @@ const Welcome = () => {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <div>
               <p className="text-gray-600 leading-relaxed">
-                How are you feeling today, {profile?.full_name?.split(' ')[0] || user?.email.split('@')[0]}?
-              </p>
-              <p className="text-gray-600 leading-relaxed">
-                MeNova is here to support you every step of the way.
+                How are you feeling today, {profile?.full_name?.split(' ')[0] || user?.email.split('@')[0]}? MeNova is here to support you every step of the way.
               </p>
             </div>
             
             <div className="flex-shrink-0">
-              <button 
-                onClick={() => navigate('/chat')}
-                className="flex items-center gap-2 px-4 py-2 bg-menova-green text-white rounded-full hover:bg-menova-green/90 transition-colors duration-200 shadow-sm hover:shadow-md"
-              >
-                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
-                  <img
-                    src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                    alt="MeNova Character"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <span>Talk to MeNova</span>
-              </button>
+              <MeNovaChatButton variant="default" className="text-lg" />
             </div>
           </div>
         </section>
