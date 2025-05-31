@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
+import { useState, forwardRef, useImperativeHandle, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
@@ -17,16 +17,18 @@ interface VapiAssistantProps {
   className?: string;
 }
 
+interface Message {
+  text: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+  isSystemMessage?: boolean;
+  isEnhancedTranscription?: boolean;
+}
+
 const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className }, ref) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<{ 
-    text: string; 
-    sender: 'user' | 'ai'; 
-    timestamp: Date; 
-    isSystemMessage?: boolean;
-    isEnhancedTranscription?: boolean;
-  }[]>([{
+  const [messages, setMessages] = useState<Message[]>([{
     text: "Hello! I'm MeNova, your companion through menopause. How are you feeling today?",
     sender: 'ai',
     timestamp: new Date(),
@@ -42,6 +44,20 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const [volumeLevel, setVolumeLevel] = useState(0);
   const [userSpeaking, setUserSpeaking] = useState(false);
   const [autoStartTriggered, setAutoStartTriggered] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState('');
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [processedMessageIds] = useState(new Set<string>());
+  const [lastMessageKey, setLastMessageKey] = useState<string>('');
+  const messageCache = useRef(new Set<string>());
+  const [isWideView, setIsWideView] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
+  const hasInitialized = useRef(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const initialMessageSent = useRef(false);
+  const INITIAL_GREETING = "Hello! I'm MeNova, your companion through menopause. How are you feeling today?";
+  const messageQueue = useRef<{text: string, sender: 'user' | 'ai'}[]>([]);
+  const processingMessage = useRef(false);
 
   const {
     isSpeaking,
@@ -83,22 +99,32 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
 
   // Start/stop assistant on dialog open/close
   useEffect(() => {
-    if (open && sdkLoaded) {
-      console.log("Dialog open, starting assistant");
+    if (open && sdkLoaded && !isInitialized) {
+      console.log("🚀 Initializing assistant");
       startAssistant();
+      setIsInitialized(true);
+      initialMessageSent.current = false;
       
-      // If this is the first message, have the assistant start speaking
-      if (messages.length === 1 && messages[0].sender === 'ai' && vapiRef.current?.sendTextMessage) {
-        console.log("Auto-speaking initial greeting");
+      // Add initial greeting
+      setMessages([{
+        text: INITIAL_GREETING,
+        sender: 'ai',
+        timestamp: new Date()
+      }]);
+
+      // Have assistant speak the greeting
+      if (vapiRef.current?.sendTextMessage) {
         setTimeout(() => {
-          vapiRef.current.sendTextMessage(messages[0].text);
-        }, 500);
+          vapiRef.current.sendTextMessage(INITIAL_GREETING);
+        }, 1000);
       }
-    } else if (!open) {
-      console.log("Dialog closed, stopping assistant");
+    } else if (!open && isInitialized) {
+      console.log("🛑 Stopping assistant");
       stopAssistant();
+      setIsInitialized(false);
+      initialMessageSent.current = false;
     }
-  }, [open, sdkLoaded, startAssistant, stopAssistant, messages]);
+  }, [open, sdkLoaded, isInitialized, startAssistant, stopAssistant]);
 
   // Connect microphone button to Vapi's listening state
   useEffect(() => {
@@ -170,9 +196,14 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       console.error('Error saving message:', error);
     }
     
-    // Optionally send to Vapi for processing
+    // Send to Vapi for processing and ensure voice response
     if (vapiRef.current) {
-      vapiRef.current.sendTextMessage(message);
+      // Set speaking mode to ensure voice response
+      if (!audioMuted && vapiRef.current.unmute) {
+        vapiRef.current.unmute();
+      }
+      // Send the message for processing with voice response
+      vapiRef.current.sendTextMessage(message, { responseType: 'speech' });
     }
   };
 
@@ -320,91 +351,194 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     return null;
   };
 
-  // Update the transcript handler to work without parallel processing
+  // Process message queue
+  const processMessageQueue = useCallback(() => {
+    if (processingMessage.current || messageQueue.current.length === 0) return;
+    
+    processingMessage.current = true;
+    const { text, sender } = messageQueue.current[0];
+    
+    console.log('💬 Processing message:', { text, sender });
+    
+    setMessages(prev => {
+      // Check for duplicate
+      const isDuplicate = prev.slice(-3).some(msg => 
+        msg.sender === sender && msg.text === text
+      );
+      
+      if (isDuplicate) {
+        console.log('🔄 Skipping duplicate message');
+        messageQueue.current.shift();
+        processingMessage.current = false;
+        return prev;
+      }
+      
+      console.log('✅ Adding message to UI');
+      messageQueue.current.shift();
+      processingMessage.current = false;
+      
+      return [...prev, {
+        text,
+        sender,
+        timestamp: new Date()
+      }];
+    });
+
+    // Save to database in background
+    supabase.auth.getSession().then(({ data: { session }}) => {
+      if (session?.user) {
+        saveMessage(session.user.id, sender, text, new Date())
+          .catch(error => console.error('Error saving message:', error));
+      }
+    });
+  }, []);
+
+  // Process queue whenever it changes
   useEffect(() => {
-    if (!sdkLoaded || !vapiRef.current) return;
-    const vapi = vapiRef.current;
+    const interval = setInterval(processMessageQueue, 100);
+    return () => clearInterval(interval);
+  }, [processMessageQueue]);
 
-    console.log("Setting up Vapi event listeners");
+  useEffect(() => {
+    if (!vapiRef.current || !open) return;
 
-    // User speech transcript
-    const transcriptHandler = (data: any) => {
-      console.log("Transcript event:", data);
-      if (data.final) {
-        const userMessage = {
-          text: data.transcript,
-          sender: 'user' as const,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, userMessage]);
-        setUserSpeaking(false);
+    const handleMessage = (message: any) => {
+      console.log('🔍 Received message:', message);
+
+      const addMessageToUI = (text: string, sender: 'user' | 'ai', isSystemMessage = false) => {
+        if (!text?.trim()) return;
         
-        // Detect symptoms in the user's message (handle async function)
-        const detectSymptoms = async () => {
-          await detectAndDisplaySymptoms(data.transcript);
-        };
-        detectSymptoms();
+        const cleanedText = text.trim();
+
+        // Skip if this is the initial greeting and we've already shown it
+        if (cleanedText === INITIAL_GREETING && initialMessageSent.current) {
+          console.log('🔄 Skipping duplicate initial greeting');
+          return;
+        }
+
+        // Mark initial greeting as sent if this is it
+        if (cleanedText === INITIAL_GREETING) {
+          initialMessageSent.current = true;
+        }
         
-        // Save message if authenticated
-        const saveUserMessage = async () => {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-              await saveMessage(session.user.id, 'user', data.transcript, new Date());
-            }
-          } catch (error) {
-            console.error('Error saving transcript:', error);
+        console.log('✨ Adding message to UI:', { sender, text: cleanedText, isSystemMessage });
+
+        setMessages(prev => {
+          // Check for duplicate
+          const isDuplicate = prev.slice(-3).some(msg => 
+            msg.sender === sender && 
+            msg.text === cleanedText &&
+            msg.isSystemMessage === isSystemMessage
+          );
+          
+          if (isDuplicate) {
+            console.log('🔄 Skipping duplicate message');
+            return prev;
           }
-        };
-        saveUserMessage();
-      } else if (data.transcript) {
-        // If user is speaking but message isn't final yet, show they're speaking
-        setUserSpeaking(true);
+          
+          console.log('✅ Adding message to UI');
+          return [...prev, {
+            text: cleanedText,
+            sender,
+            timestamp: new Date(),
+            isSystemMessage
+          }];
+        });
+
+        // Only save non-system messages to database
+        if (!isSystemMessage) {
+          supabase.auth.getSession().then(({ data: { session }}) => {
+            if (session?.user) {
+              saveMessage(session.user.id, sender, cleanedText, new Date())
+                .catch(error => console.error('Error saving message:', error));
+            }
+          });
+        }
+      };
+
+      switch (message.type) {
+        case 'transcript':
+          if (message.role === 'user' && message.transcriptType === 'final' && message.transcript) {
+            console.log('👤 User transcript:', message.transcript);
+            addMessageToUI(message.transcript, 'user');
+            
+            // Process symptoms in background
+            supabase.auth.getSession().then(({ data: { session }}) => {
+              if (session?.user) {
+                detectAndDisplaySymptoms(message.transcript)
+                  .then(result => {
+                    if (result?.detectedSymptoms?.size > 0) {
+                      // Wait a short moment before showing system message
+                      setTimeout(() => {
+                        const systemMessage = result.symptomNames ? 
+                          `📋 I notice you're talking about ${result.symptomNames} with an intensity of ${result.intensity}/5. I'll add this to your symptom tracker.` :
+                          `📋 I notice you mentioned some symptoms. On a scale of 1-5, how would you rate the intensity?`;
+                        addMessageToUI(systemMessage, 'ai', true);
+                      }, 500);
+                    }
+                  })
+                  .catch(error => console.error('Error processing symptoms:', error));
+              }
+            });
+          }
+          else if (message.role === 'assistant' && message.transcriptType === 'final' && message.transcript) {
+            console.log('🤖 Assistant transcript:', message.transcript);
+            // Don't add if it looks like a system message
+            if (!message.transcript.includes('📋') && !message.transcript.includes('symptom')) {
+              addMessageToUI(message.transcript, 'ai');
+            }
+          }
+          break;
+
+        case 'model-output':
+          if (message.text?.trim()) {
+            console.log('🤖 Model output:', message.text);
+            // Don't add if it looks like a system message
+            if (!message.text.includes('📋') && !message.text.includes('symptom')) {
+              addMessageToUI(message.text, 'ai');
+            }
+          }
+          break;
+
+        case 'conversation-update':
+          if (message.messages?.length > 0) {
+            const lastMessage = message.messages[message.messages.length - 1];
+            if (lastMessage?.role === 'assistant' && lastMessage.content?.trim()) {
+              console.log('🤖 Assistant message:', lastMessage.content);
+              // Don't add if it looks like a system message
+              if (!lastMessage.content.includes('📋') && !lastMessage.content.includes('symptom')) {
+                addMessageToUI(lastMessage.content, 'ai');
+              }
+            }
+          }
+          break;
+
+        case 'error':
+          console.error('❌ Vapi error:', message);
+          toast({
+            title: "Voice Assistant Error",
+            description: message.error || "An error occurred",
+            variant: "destructive",
+          });
+          break;
       }
     };
-    vapi.on && vapi.on("transcript", transcriptHandler);
 
-    // Assistant response
-    const responseHandler = (data: any) => {
-      console.log("Response event:", data);
-      if (data.text) {
-        const aiMessage = {
-          text: data.text,
-          sender: 'ai' as const,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        
-        // Save message if authenticated
-        const saveAiMessage = async () => {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-              await saveMessage(session.user.id, 'ai', data.text, new Date());
-            }
-          } catch (error) {
-            console.error('Error saving AI response:', error);
-          }
-        };
-        saveAiMessage();
-      }
-    };
-    vapi.on && vapi.on("response", responseHandler);
-
-    // Volume level for waveform
-    const volumeHandler = (level: number) => {
-      setVolumeLevel(level);
-    };
-    vapi.on && vapi.on("volume-level", volumeHandler);
+    console.log('🎯 Setting up message handler');
+    vapiRef.current.on('message', handleMessage);
 
     return () => {
-      vapi.off && vapi.off("transcript", transcriptHandler);
-      vapi.off && vapi.off("response", responseHandler);
-      vapi.off && vapi.off("volume-level", volumeHandler);
-      setUserSpeaking(false);
-      setDualTranscriptionActive(false);
+      console.log('🧹 Cleaning up message handler');
+      if (vapiRef.current) {
+        vapiRef.current.off('message', handleMessage);
+      }
     };
-  }, [sdkLoaded, vapiRef]);
+  }, [open]);
+
+  // Debug log for messages updates
+  useEffect(() => {
+    console.log('📱 Messages state updated:', messages);
+  }, [messages]);
 
   // Update the handleSaveToSymptomTracker function
   const handleSaveToSymptomTracker = async () => {
@@ -442,7 +576,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       }).join('\n');
       
       // Use symptom detection service to analyze the conversation
-      const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(userMessages);
+      const { detectedSymptoms, primarySymptom, intensity } = detectSymptoms(userMessages.join(' '));
       
       // Create enhanced summary with detected symptom information
       const enhancedSummary = createEnhancedSummary(summary, detectedSymptoms, intensity);
@@ -564,11 +698,47 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md bg-menova-beige">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>Chat with MeNova</span>
+        <DialogContent className={`bg-menova-beige flex flex-col h-[80vh] p-4 gap-4 transition-all duration-200 ease-in-out ${
+          isWideView ? 'sm:max-w-4xl' : 'sm:max-w-xl'
+        }`}>
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle>Chat with MeNova</DialogTitle>
               <div className="flex space-x-2">
+                {/* Width toggle button */}
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className={`rounded-full ${isWideView ? 'bg-menova-green text-white' : 'text-menova-green'}`}
+                  onClick={() => setIsWideView(!isWideView)}
+                  title={isWideView ? "Switch to normal view" : "Switch to wide view"}
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="18" 
+                    height="18" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    {isWideView ? (
+                      <>
+                        <rect x="4" y="4" width="16" height="16" rx="2" />
+                        <path d="M9 4v16" />
+                        <path d="M15 4v16" />
+                      </>
+                    ) : (
+                      <>
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="M6 4v16" />
+                        <path d="M18 4v16" />
+                      </>
+                    )}
+                  </svg>
+                </Button>
                 {/* Audio toggle button */}
                 <Button 
                   size="icon"
@@ -580,7 +750,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
                   {audioMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
                 </Button>
               </div>
-            </DialogTitle>
+            </div>
             {!sdkLoaded && (
               <DialogDescription className="text-yellow-600">
                 Voice assistant is loading...
@@ -593,95 +763,106 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
             )}
           </DialogHeader>
 
-          {/* Message display area with animation when MeNova is speaking */}
-          <div className="flex flex-col space-y-3 max-h-[50vh] overflow-y-auto p-2 bg-white/80 rounded-md">
-            {/* Animated speech indicator */}
-            {isSpeaking && (
-              <div className="flex justify-center items-center py-2">
-                <div className="flex gap-1 items-center">
-                  <div className="h-2 w-2 bg-menova-green rounded-full animate-bounce"></div>
-                  <div className="h-2 w-2 bg-menova-green rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="h-2 w-2 bg-menova-green rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
-            )}
-
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex items-start gap-2 mb-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.sender === 'ai' && (
-                  <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${isSpeaking && idx === messages.length - 1 && msg.sender === 'ai' && !msg.isSystemMessage ? 'animate-pulse' : ''}`}>
-                    <img src="/lovable-uploads/9f5f031b-af45-4b14-96fd-a87e2a176359.png" alt="MeNova" className="w-full h-full object-cover" />
+          {/* Message display area */}
+          <div className={`flex-grow overflow-hidden bg-white/50 rounded-lg transition-all duration-200 ease-in-out ${
+            isWideView ? 'w-full' : 'w-full'
+          }`}>
+            <div className="h-full overflow-y-auto p-4 space-y-4">
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`flex items-start gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+                  {msg.sender === 'ai' && (
+                    <div className={`w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ${isSpeaking && idx === messages.length - 1 ? 'animate-pulse' : ''}`}>
+                      <img src="/lovable-uploads/9f5f031b-af45-4b14-96fd-a87e2a176359.png" alt="MeNova" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className={`rounded-lg px-4 py-2 max-w-[80%] shadow-sm ${
+                    msg.sender === 'user' 
+                      ? 'bg-blue-500 text-white ml-auto' 
+                      : msg.isSystemMessage
+                      ? 'bg-yellow-50 text-gray-800 border border-yellow-200'
+                      : 'bg-menova-lightgreen/20 text-menova-text border border-menova-green/20'
+                  }`}>
+                    <div className="text-xs font-semibold mb-1">
+                      {msg.sender === 'user' ? 'You' : msg.isSystemMessage ? 'System' : 'MeNova'}
+                    </div>
+                    <div className="text-sm break-words">{msg.text}</div>
+                    <p className="text-xs opacity-60 mt-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
-                )}
-                <div className={`p-3 rounded-lg max-w-[80%] ${
-                  msg.sender === 'user' 
-                    ? 'bg-menova-green text-white' 
-                    : msg.isSystemMessage 
-                      ? 'bg-yellow-100 text-gray-800 border border-yellow-300' 
-                      : 'bg-menova-lightgreen text-menova-text'
-                }`}> 
-                  <div className="text-xs font-semibold mb-1 flex justify-between items-center">
-                    <span>{
-                      msg.sender === 'user' 
-                        ? 'You:' 
-                        : msg.isSystemMessage 
-                          ? 'System:' 
-                          : 'MeNova:'
-                    }</span>
-                    {msg.isEnhancedTranscription && (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded text-[10px]">Enhanced</span>
-                    )}
-                  </div>
-                  <p className="text-sm">{msg.text}</p>
-                  <p className="text-xs opacity-60 mt-1">{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                  {msg.sender === 'user' && <div className="w-8 h-8"></div>}
                 </div>
-                {msg.sender === 'user' && <div className="w-8 h-8 ml-2"></div>}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+              ))}
+              
+              {/* Show interim transcript while transcribing */}
+              {isTranscribing && interimTranscript && (
+                <div className="flex justify-end items-start gap-2 mb-4">
+                  <div className="rounded-lg px-4 py-2 max-w-[80%] bg-blue-500/50 text-white italic shadow-sm">
+                    <div className="text-xs font-semibold mb-1">You (typing...)</div>
+                    <div className="text-sm break-words">{interimTranscript}</div>
+                  </div>
+                  <div className="w-8 h-8"></div>
+                </div>
+              )}
+              
+              {/* Speaking indicator */}
+              {isSpeaking && (
+                <div className="flex justify-center items-center py-2">
+                  <div className="flex gap-1 items-center">
+                    <div className="h-2 w-2 bg-menova-green rounded-full animate-bounce"></div>
+                    <div className="h-2 w-2 bg-menova-green rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="h-2 w-2 bg-menova-green rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
-          {/* Input area with microphone button */}
-          <div className="flex items-center gap-2 pt-2">
-            <input 
-              type="text" 
-              placeholder="Type your message..." 
-              className="flex-1 p-2 rounded-md border border-menova-green/30 focus:outline-none focus:ring-2 focus:ring-menova-green/50"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSendMessage();
-                }
-              }}
-            />
-            {/* Microphone button - now properly connected */}
+          {/* Input area - now with flex-shrink-0 to prevent shrinking */}
+          <div className="flex-shrink-0 space-y-2">
+            <div className="flex items-center gap-2 bg-white p-2 rounded-lg shadow-sm">
+              <input 
+                type="text" 
+                placeholder="Type a message or press the mic to speak..." 
+                className="flex-1 p-2 rounded-md border-2 border-menova-green/30 focus:outline-none focus:ring-2 focus:ring-menova-green/50 focus:border-transparent bg-white text-gray-800 placeholder-gray-400"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+              />
+              {/* Microphone button */}
+              <Button 
+                variant={userSpeaking ? "default" : "outline"}
+                size="icon"
+                className={`rounded-full ${
+                  userSpeaking 
+                    ? 'bg-menova-green text-white animate-pulse' 
+                    : 'border-2 border-menova-green text-menova-green hover:bg-menova-green/10'
+                }`}
+                onClick={handleMicClick}
+                disabled={!sdkLoaded}
+                title={userSpeaking ? "Stop speaking" : "Start speaking"}
+              >
+                {userSpeaking ? <MicOff size={18} /> : <Mic size={18} />}
+              </Button>
+              <Button 
+                className="bg-menova-green hover:bg-menova-green/90 rounded-full"
+                onClick={handleSendMessage}
+                disabled={!message.trim()}
+                title="Send message"
+              >
+                <Send size={18} />
+              </Button>
+            </div>
+            
             <Button 
-              variant={userSpeaking ? "default" : "outline"}
-              size="icon"
-              className={`rounded-full ${
-                userSpeaking 
-                  ? 'bg-menova-green text-white animate-pulse' 
-                  : 'border-menova-green text-menova-green'
-              }`}
-              onClick={handleMicClick}
-              disabled={!sdkLoaded}
-            >
-              {userSpeaking ? <MicOff size={18} /> : <Mic size={18} />}
-            </Button>
-            <Button 
-              className="bg-menova-green hover:bg-menova-green/90 rounded-full"
-              onClick={handleSendMessage}
-            >
-              <Send size={18} />
-            </Button>
-          </div>
-          
-          <div className="flex justify-center pt-2">
-            <Button 
-              className="bg-menova-green hover:bg-menova-green/90 w-full"
+              className="bg-menova-green hover:bg-menova-green/90 w-full rounded-lg"
               onClick={handleSaveToSymptomTracker}
-              disabled={savingToTracker}
+              disabled={savingToTracker || messages.length <= 1}
             >
               {savingToTracker ? 'Saving...' : 'Add Conversation to Symptom Tracker'}
             </Button>
