@@ -1,10 +1,10 @@
-
 export interface Goal {
   id: string;
   goal: string;
   completed: boolean;
   category: string;
   date?: string;
+  source?: string;
 }
 
 export interface SuggestedGoal {
