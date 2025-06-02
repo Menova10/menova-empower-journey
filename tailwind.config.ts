@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -98,12 +97,26 @@ export default {
 				'float': {
 					'0%, 100%': { transform: 'translateY(0)' },
 					'50%': { transform: 'translateY(-10px)' },
+				},
+				'ring-rotate': {
+					'0%': {
+						transform: 'rotate(0deg)',
+						opacity: '0.3'
+					},
+					'50%': {
+						opacity: '0.7'
+					},
+					'100%': {
+						transform: 'rotate(360deg)',
+						opacity: '0.3'
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'float': 'float 6s ease-in-out infinite',
+				'ring-rotate': 'ring-rotate 3s linear infinite'
 			},
 			backgroundImage: {
 				'menova-pattern': "url('/public/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png')",
