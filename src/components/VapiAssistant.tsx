@@ -11,6 +11,7 @@ import { symptoms } from '@/types/symptoms';
 import { detectSymptoms, createEnhancedSummary, createSymptomTitle, formatDetectedSymptoms } from '@/services/symptomDetectionService';
 import { audioRecorder } from '@/services/audioRecorderService';
 import { convertSpeechToText } from '@/services/openaiService';
+import { createGoalsFromSymptoms, getSymptomMotivationalMessage } from '@/services/symptomToGoalService';
 
 interface VapiAssistantProps {
   onSpeaking?: (speaking: boolean) => void;
@@ -28,11 +29,7 @@ interface Message {
 const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, className }, ref) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<Message[]>([{
-    text: "Hello! I'm MeNova, your companion through menopause. How are you feeling today?",
-    sender: 'ai',
-    timestamp: new Date(),
-  }]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -55,7 +52,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
   const hasInitialized = useRef(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const initialMessageSent = useRef(false);
-  const INITIAL_GREETING = "Hello! I'm MeNova, your companion through menopause. How are you feeling today?";
+  const INITIAL_GREETING = "Hello! I'm Mee-Nova, your companion through menopause. How are you feeling today?";
   const messageQueue = useRef<{text: string, sender: 'user' | 'ai'}[]>([]);
   const processingMessage = useRef(false);
 
@@ -97,15 +94,14 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     };
   }, []);
 
-  // Start/stop assistant on dialog open/close
+  // When voice chat is opened, make sure the assistant initializes
   useEffect(() => {
     if (open && sdkLoaded && !isInitialized) {
       console.log("🚀 Initializing assistant");
       startAssistant();
       setIsInitialized(true);
-      initialMessageSent.current = false;
       
-      // Add initial greeting
+      // Clear any old messages and start fresh
       setMessages([{
         text: INITIAL_GREETING,
         sender: 'ai',
@@ -123,6 +119,8 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
       stopAssistant();
       setIsInitialized(false);
       initialMessageSent.current = false;
+      // Clear messages when closing
+      setMessages([]);
     }
   }, [open, sdkLoaded, isInitialized, startAssistant, stopAssistant]);
 
@@ -351,6 +349,49 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     return null;
   };
 
+  // Add this function to handle real-time symptom-to-goal conversion
+  const processSymptomToGoals = async (text: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { createdGoals, symptomsDetected } = await createGoalsFromSymptoms(
+        session.user.id, 
+        text
+      );
+
+      if (createdGoals.length > 0) {
+        // Get motivational message
+        const motivationalMsg = getSymptomMotivationalMessage(symptomsDetected);
+        
+        // Create a system message about the created goals
+        const goalsList = createdGoals.map(goal => `• ${goal.goal}`).join('\n');
+        const systemMessage = {
+          text: `${motivationalMsg}\n\nI've added these supportive goals for you:\n${goalsList}\n\nYou can find them in your wellness progress and check them off as you complete them. 💚`,
+          sender: 'ai' as const,
+          timestamp: new Date(),
+          isSystemMessage: true
+        };
+        
+        setMessages(prev => [...prev, systemMessage]);
+        
+        // Show a toast notification
+        toast({
+          title: "Goals Added! 🌟",
+          description: `Created ${createdGoals.length} supportive goals based on what you shared.`,
+          duration: 6000,
+        });
+
+        // Trigger a refresh of the goals in the wellness page if it's open
+        window.dispatchEvent(new CustomEvent('goalsUpdated', { 
+          detail: { newGoals: createdGoals } 
+        }));
+      }
+    } catch (error) {
+      console.error('Error processing symptoms to goals:', error);
+    }
+  };
+
   // Process message queue
   const processMessageQueue = useCallback(() => {
     if (processingMessage.current || messageQueue.current.length === 0) return;
@@ -410,6 +451,12 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
         
         const cleanedText = text.trim();
 
+        // Skip system messages and duplicates
+        if (isSystemMessage || messages.some(m => m.text === cleanedText)) {
+          console.log('🔄 Skipping system message or duplicate:', cleanedText);
+          return;
+        }
+
         // Skip if this is the initial greeting and we've already shown it
         if (cleanedText === INITIAL_GREETING && initialMessageSent.current) {
           console.log('🔄 Skipping duplicate initial greeting');
@@ -421,14 +468,12 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
           initialMessageSent.current = true;
         }
         
-        console.log('✨ Adding message to UI:', { sender, text: cleanedText, isSystemMessage });
+        console.log('✨ Adding message to UI:', { sender, text: cleanedText });
 
         setMessages(prev => {
           // Check for duplicate
-          const isDuplicate = prev.slice(-3).some(msg => 
-            msg.sender === sender && 
-            msg.text === cleanedText &&
-            msg.isSystemMessage === isSystemMessage
+          const isDuplicate = prev.some(msg => 
+            msg.text === cleanedText
           );
           
           if (isDuplicate) {
@@ -440,20 +485,17 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
           return [...prev, {
             text: cleanedText,
             sender,
-            timestamp: new Date(),
-            isSystemMessage
+            timestamp: new Date()
           }];
         });
 
-        // Only save non-system messages to database
-        if (!isSystemMessage) {
-          supabase.auth.getSession().then(({ data: { session }}) => {
-            if (session?.user) {
-              saveMessage(session.user.id, sender, cleanedText, new Date())
-                .catch(error => console.error('Error saving message:', error));
-            }
-          });
-        }
+        // Save to database
+        supabase.auth.getSession().then(({ data: { session }}) => {
+          if (session?.user) {
+            saveMessage(session.user.id, sender, cleanedText, new Date())
+              .catch(error => console.error('Error saving message:', error));
+          }
+        });
       };
 
       switch (message.type) {
@@ -462,29 +504,13 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
             console.log('👤 User transcript:', message.transcript);
             addMessageToUI(message.transcript, 'user');
             
-            // Process symptoms in background
-            supabase.auth.getSession().then(({ data: { session }}) => {
-              if (session?.user) {
-                detectAndDisplaySymptoms(message.transcript)
-                  .then(result => {
-                    if (result?.detectedSymptoms?.size > 0) {
-                      // Wait a short moment before showing system message
-                      setTimeout(() => {
-                        const systemMessage = result.symptomNames ? 
-                          `📋 I notice you're talking about ${result.symptomNames} with an intensity of ${result.intensity}/5. I'll add this to your symptom tracker.` :
-                          `📋 I notice you mentioned some symptoms. On a scale of 1-5, how would you rate the intensity?`;
-                        addMessageToUI(systemMessage, 'ai', true);
-                      }, 500);
-                    }
-                  })
-                  .catch(error => console.error('Error processing symptoms:', error));
-              }
-            });
+            // Process symptoms to goals in background
+            processSymptomToGoals(message.transcript);
           }
           else if (message.role === 'assistant' && message.transcriptType === 'final' && message.transcript) {
             console.log('🤖 Assistant transcript:', message.transcript);
             // Don't add if it looks like a system message
-            if (!message.transcript.includes('📋') && !message.transcript.includes('symptom')) {
+            if (!message.transcript.includes('💙') && !message.transcript.includes('🌟') && !message.transcript.includes('💚')) {
               addMessageToUI(message.transcript, 'ai');
             }
           }
@@ -494,7 +520,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
           if (message.text?.trim()) {
             console.log('🤖 Model output:', message.text);
             // Don't add if it looks like a system message
-            if (!message.text.includes('📋') && !message.text.includes('symptom')) {
+            if (!message.text.includes('💙') && !message.text.includes('🌟') && !message.text.includes('💚')) {
               addMessageToUI(message.text, 'ai');
             }
           }
@@ -506,7 +532,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
             if (lastMessage?.role === 'assistant' && lastMessage.content?.trim()) {
               console.log('🤖 Assistant message:', lastMessage.content);
               // Don't add if it looks like a system message
-              if (!lastMessage.content.includes('📋') && !lastMessage.content.includes('symptom')) {
+              if (!lastMessage.content.includes('💙') && !lastMessage.content.includes('🌟') && !lastMessage.content.includes('💚')) {
                 addMessageToUI(lastMessage.content, 'ai');
               }
             }
@@ -673,12 +699,20 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
 
   // Expose methods to parent components
   useImperativeHandle(ref, () => ({
-    open: () => setOpen(true),
+    open: () => {
+      // Clear messages when opening externally
+      setMessages([]);
+      setOpen(true);
+    },
     close: () => setOpen(false),
     sendTextMessage: (text: string) => {
       if (vapiRef.current) {
         vapiRef.current.sendTextMessage && vapiRef.current.sendTextMessage(text);
       }
+    },
+    resetConversation: () => {
+      setMessages([]);
+      initialMessageSent.current = false;
     }
   }));
 

@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import twilio from 'twilio';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { WebSocketServer } from 'ws';
+import http from 'http';
 
 // Get current file directory (equivalent to __dirname in CommonJS)
 const __filename = fileURLToPath(import.meta.url);
@@ -440,6 +442,89 @@ app.post('/api/check-in-webhook', async (req, res) => {
   }
 });
 
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize WebSocket server
+const wss = new WebSocketServer({ server });
+
+// Store connected clients
+const clients = new Set();
+
+// WebSocket connection handler
+wss.on('connection', (ws) => {
+  clients.add(ws);
+  
+  ws.on('close', () => {
+    clients.delete(ws);
+  });
+});
+
+// Broadcast to all connected clients
+const broadcast = (data) => {
+  clients.forEach(client => {
+    if (client.readyState === 1) { // OPEN
+      client.send(JSON.stringify(data));
+    }
+  });
+};
+
+// Update Vapi Webhook endpoint to broadcast transcriptions
+app.post('/api/vapi-webhook', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+    
+    // Validate webhook payload
+    if (!type || !data) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid webhook payload'
+      });
+    }
+
+    // Handle different event types
+    switch (type) {
+      case 'transcript':
+        // Broadcast transcription to connected clients
+        broadcast({
+          type: 'transcript',
+          text: data.text,
+          isFinal: data.isFinal
+        });
+        break;
+        
+      case 'function_call':
+        // Handle function calls from the assistant
+        console.log('Received function call:', data.name);
+        break;
+        
+      case 'call_ended':
+        // Handle call end events
+        console.log('Call ended:', data.reason);
+        broadcast({
+          type: 'transcript_end',
+          text: data.finalTranscript
+        });
+        break;
+        
+      default:
+        console.log('Unhandled event type:', type);
+    }
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Webhook received'
+    });
+
+  } catch (error) {
+    console.error('Error in vapi-webhook:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Catch-all route for SPA in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
@@ -447,10 +532,11 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Start the server
+// Update server listen to use the HTTP server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
   console.log(`Visit http://localhost:${PORT}/api/test to verify the server is running`);
+  console.log(`WebSocket server is ready on ws://localhost:${PORT}`);
 }); 

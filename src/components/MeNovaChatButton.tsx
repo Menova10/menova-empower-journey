@@ -26,7 +26,12 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
   };
 
   const selectMode = (mode: 'text' | 'voice') => {
-    setSelectedMode(mode);
+    if (mode === 'voice' && vapiAssistantRef.current) {
+      // For voice mode, directly open the assistant dialog
+      vapiAssistantRef.current.open();
+    } else {
+      setSelectedMode(mode);
+    }
     setShowOptions(false);
   };
 
@@ -105,18 +110,7 @@ const MeNovaChatButton: React.FC<MeNovaChatButtonProps> = ({
 
       {/* Show the selected chat mode */}
       {selectedMode === 'text' && <MeNovaChatWindow onClose={closeChat} />}
-      {selectedMode === 'voice' && (
-        <Dialog open={true} onOpenChange={closeChat}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Voice Chat with MeNova</DialogTitle>
-            </DialogHeader>
-            <div className="flex justify-center py-4">
-              <VapiAssistant ref={vapiAssistantRef} />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <VapiAssistant ref={vapiAssistantRef} />
     </>
   );
 };
