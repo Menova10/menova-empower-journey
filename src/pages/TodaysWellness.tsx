@@ -38,7 +38,7 @@ import {
   fetchMonthlyGoals,
   fetchSuggestedGoals,
   addNewGoal as serviceAddNewGoal,
-  toggleGoalCompletion as serviceToggleGoalCompletion,
+  toggleGoalCompletionWithRefill,
   updateWellnessGoals,
   normalizeCategory
 } from '@/services/wellnessService';
@@ -410,7 +410,7 @@ const TodaysWellness = () => {
         return;
       }
       
-      await serviceToggleGoalCompletion(goalId, currentStatus);
+      await toggleGoalCompletionWithRefill(goalId, currentStatus);
       
       // Update local state
       setGoals(prevGoals => 
