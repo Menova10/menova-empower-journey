@@ -728,14 +728,14 @@ Date: ${new Date().toLocaleDateString()}`;
   return (
     <div className="min-h-screen flex flex-col bg-menova-beige bg-menova-pattern bg-cover">
       {/* Header with Navigation */}
-      <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-50">
+      <header className="bg-white border-b border-gray-200 py-3 sm:py-4 px-4 sm:px-6 lg:px-8 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
             <MeNovaLogo className="text-[#92D9A9]" />
             
             <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium">
-                Explore <ChevronDown className="h-4 w-4 ml-1" />
+              <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium text-sm sm:text-base">
+                Explore <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={() => navigate('/welcome')}>
@@ -757,14 +757,14 @@ Date: ${new Date().toLocaleDateString()}`;
           <div className="flex items-center">
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-50">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-6 w-6 sm:h-8 sm:w-8">
                   <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
                   <AvatarFallback>
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-[#92D9A9]">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
-                <ChevronDown className="h-4 w-4 text-[#92D9A9]" />
+                <span className="text-[#92D9A9] text-sm sm:text-base hidden sm:inline">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
+                <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 text-[#92D9A9]" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => navigate('/profile')}>
@@ -786,9 +786,9 @@ Date: ${new Date().toLocaleDateString()}`;
       </header>
       
       {/* Breadcrumb Navigation */}
-      <div className="bg-menova-beige/80 py-4 px-6 border-b border-menova-beige">
+      <div className="bg-menova-beige/80 py-3 sm:py-4 px-4 sm:px-6 lg:px-8 border-b border-menova-beige">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center text-sm">
+          <div className="flex items-center text-xs sm:text-sm">
             <Link to="/" className="text-[#92D9A9] hover:text-[#7bc492]">Home</Link>
             <span className="mx-2 text-gray-400">&gt;</span>
             <span className="text-gray-600">Community</span>
@@ -797,22 +797,15 @@ Date: ${new Date().toLocaleDateString()}`;
       </div>
       
       {/* Main Content */}
-      <main className="flex-1 flex flex-col space-y-8 px-6 py-8 max-w-6xl mx-auto w-full">
+      <main className="flex-1 flex flex-col space-y-6 sm:space-y-8 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-6xl mx-auto w-full">
         {/* Introduction Card */}
-        <section className="bg-white rounded-lg shadow-sm p-6">
+        <section className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-menova-green">
-              <img
-                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                alt="MeNova Avatar"
-                className="w-full h-full object-cover"
-              />
-            </div>
             <div>
-              <h1 className="text-2xl font-bold text-menova-green text-center md:text-left">
+              <h1 className="text-xl sm:text-2xl font-bold text-menova-green text-center md:text-left">
                 Connect with a Community
               </h1>
-              <p className="text-gray-600 text-center md:text-left">
+              <p className="text-sm sm:text-base text-gray-600 text-center md:text-left">
                 You're not alone. There are many safe and empowering communities for women on this journey. I've found a few you might like to explore.
               </p>
             </div>
@@ -821,38 +814,38 @@ Date: ${new Date().toLocaleDateString()}`;
 
         {/* Recommended Community Links */}
         <section>
-          <h2 className="text-xl font-semibold text-menova-text mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-menova-text mb-4">
             Explore Communities
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {communities.map((community, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-sm p-6 flex flex-col items-start hover:shadow-md transition-shadow cursor-pointer group"
+                className="bg-white rounded-lg shadow-sm p-4 sm:p-6 flex flex-col items-start hover:shadow-md transition-shadow cursor-pointer group"
                 onClick={() => handleCommunityNavigation(community.name, community.url)}
               >
                 <div className="flex items-center gap-3 mb-2 w-full">
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                     {CommunityLogos[community.name as keyof typeof CommunityLogos] || (
                       <div className="w-full h-full bg-menova-green flex items-center justify-center">
-                        <span className="text-white font-bold">{community.name[0]}</span>
+                        <span className="text-white font-bold text-xs sm:text-sm">{community.name[0]}</span>
                       </div>
                     )}
                   </div>
-                  <h3 className="text-lg font-medium text-menova-green">
+                  <h3 className="text-base sm:text-lg font-medium text-menova-green">
                     {community.name}
                   </h3>
                 </div>
-                <p className="text-gray-600 mb-4">
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
                   {community.description}
                 </p>
                 <Button 
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent triggering the parent div's click event
+                    e.stopPropagation();
                     handleCommunityNavigation(community.name, community.url);
                   }}
                   variant="outline"
-                  className="border-menova-green text-menova-green hover:bg-menova-green/10 rounded-full group-hover:bg-menova-green/5"
+                  className="border-menova-green text-menova-green hover:bg-menova-green/10 rounded-full group-hover:bg-menova-green/5 text-sm sm:text-base"
                 >
                   Take me there
                 </Button>
@@ -862,11 +855,11 @@ Date: ${new Date().toLocaleDateString()}`;
         </section>
 
         {/* Future Teaser Section */}
-        <section className="bg-menova-softpink/30 p-6 rounded-lg shadow-sm text-center">
-          <h2 className="text-xl font-semibold text-menova-text mb-4">
+        <section className="bg-menova-softpink/30 p-4 sm:p-6 rounded-lg shadow-sm text-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-menova-text mb-4">
             Your MeNova Community is Coming Soon
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-sm sm:text-base text-gray-600 mb-4">
             A private, voice-supported space just for you.
           </p>
           <div className="flex flex-col sm:flex-row justify-center items-center gap-2 max-w-md mx-auto">
@@ -875,12 +868,12 @@ Date: ${new Date().toLocaleDateString()}`;
               value={notifyEmail}
               onChange={(e) => setNotifyEmail(e.target.value)}
               placeholder="Enter your email"
-              className="w-full sm:flex-1 border border-menova-green rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-menova-green"
+              className="w-full sm:flex-1 border border-menova-green rounded-full px-3 sm:px-4 py-2 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-menova-green"
               aria-label="Email for notification"
             />
             <Button
               onClick={handleNotifySignUp}
-              className="w-full sm:w-auto bg-menova-green hover:bg-menova-green/90 text-white rounded-full mt-2 sm:mt-0"
+              className="w-full sm:w-auto bg-menova-green hover:bg-menova-green/90 text-white rounded-full mt-2 sm:mt-0 text-sm sm:text-base"
             >
               Notify Me
             </Button>
@@ -910,16 +903,6 @@ Date: ${new Date().toLocaleDateString()}`;
             </DialogHeader>
           </div>
           
-          <div className="flex justify-center -mt-10">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-              <img
-                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                alt="MeNova"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-          
           {/* Chat messages */}
           <div className="max-h-60 overflow-y-auto px-4 py-2 mt-2">
             {currentChatMessages.map((message, index) => (
@@ -929,15 +912,8 @@ Date: ${new Date().toLocaleDateString()}`;
               >
                 {message.sender === 'ai' && (
                   <div className="flex items-start">
-                    <div className="w-8 h-8 rounded-full overflow-hidden mr-2 mt-1 flex-shrink-0 border border-menova-green/30">
-                      <img
-                        src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                        alt="MeNova"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
                     <div 
-                      className="inline-block max-w-[75%] rounded-lg px-4 py-2 bg-menova-lightgreen text-menova-text"
+                      className="inline-block max-w-[75%] rounded-lg px-4 py-2 bg-menova-lightgreen text-menova-text ml-8"
                     >
                       <p>{message.text}</p>
                       <p className="text-xs opacity-70 mt-1">
@@ -1132,11 +1108,6 @@ Date: ${new Date().toLocaleDateString()}`;
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Floating Voice Assistant */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <VapiAssistant />
-      </div>
     </div>
   );
 };

@@ -319,6 +319,9 @@ const Welcome = () => {
           </div>
         </section>
       </main>
+
+      {/* Floating MeNova Chat Button */}
+      <MeNovaChatButton variant="floating" />
     </div>
   );
 };

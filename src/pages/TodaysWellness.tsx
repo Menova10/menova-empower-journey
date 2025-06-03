@@ -588,7 +588,7 @@ const TodaysWellness = () => {
             {/* Left: Title */}
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Your Wellness Dashboard
+                Wellness Progress
               </h1>
               <p className="text-gray-600">Track your menopause wellness journey</p>
             </div>
@@ -598,6 +598,7 @@ const TodaysWellness = () => {
               
               {/* Progress */}
               <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-white/20 text-center">
+                <div className="text-xs text-gray-600 mb-1">Today's Progress</div>
                 <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   {overallProgress}%
                 </div>
@@ -607,7 +608,7 @@ const TodaysWellness = () => {
                     style={{ width: `${overallProgress}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-gray-600">{goals.filter(g => g.completed).length}/{goals.length}</p>
+                <p className="text-xs text-gray-600">{goals.filter(g => g.completed).length} of {goals.length} goals</p>
               </div>
               
               {/* Fresh Goals */}

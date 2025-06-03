@@ -279,7 +279,7 @@ const WellnessDashboard = () => {
   return (
     <section>
       <h2 className="text-xl font-semibold text-menova-text mb-4">
-        Your Wellness Dashboard
+        Wellness Progress
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -291,7 +291,7 @@ const WellnessDashboard = () => {
           <div className="space-y-4">
             <div className="space-y-1">
               <div className="flex justify-between">
-                <span className="text-sm font-medium">Overall Progress</span>
+                <span className="text-sm font-medium">Today's Progress</span>
                 <span className="text-sm font-medium">{overallProgress}%</span>
               </div>
               <Progress value={overallProgress} className="h-2 bg-gray-100" />
@@ -300,8 +300,8 @@ const WellnessDashboard = () => {
             {goals.map((goal, index) => (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">{getCategoryLabel(goal.category)}</span>
-                  <span className="text-sm font-medium">{goal.completed}/{goal.total}</span>
+                  <span className="text-sm font-medium">{getCategoryLabel(goal.category)} Goals</span>
+                  <span className="text-sm font-medium">{goal.completed} of {goal.total} done</span>
                 </div>
                 <Progress 
                   value={(goal.completed / goal.total) * 100} 

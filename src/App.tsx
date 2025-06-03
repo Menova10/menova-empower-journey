@@ -16,16 +16,12 @@ import DailyCheckIn from './pages/DailyCheckIn';
 import TextChat from './pages/TextChat';
 import ApiStatus from './pages/ApiStatus';
 import WhatsAppDemoPage from './pages/whatsapp-demo';
-import MeNovaChatButton from './components/MeNovaChatButton';
 import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
 import './App.css';
 
 // This component contains all the routes
 const MainContent = () => {
-  const location = useLocation();
-  const isVoiceChatHidden = location.pathname === '/chat' || location.pathname === '/text-chat';
-  
   return (
     <div className="flex-1">
       <Routes>
@@ -47,13 +43,6 @@ const MainContent = () => {
         <Route path="/whatsapp-demo" element={<WhatsAppDemoPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      
-      {/* Global floating MeNovaChatButton that appears on all pages except the Chat and TextChat pages */}
-      {!isVoiceChatHidden && (
-        <div className="fixed bottom-6 right-6 z-40">
-          <MeNovaChatButton variant="floating" />
-        </div>
-      )}
     </div>
   );
 }
