@@ -116,8 +116,8 @@ const WellnessDashboard = () => {
       setMenopauseTip({
         tip: menopauseTips[tipIndex].tip,
         category: menopauseTips[tipIndex].category,
-        isLoading: false
-      });
+            isLoading: false
+          });
     }, 500); // Small delay to show loading state
   };
 
@@ -141,7 +141,7 @@ const WellnessDashboard = () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
-
+        
         // Fetch wellness goals
         const { data: goalsData, error: goalsError } = await supabase
           .from('wellness_goals')
@@ -158,9 +158,9 @@ const WellnessDashboard = () => {
           if (existingGoal) {
             existingGoal.total += 1;
             if (goal.completed) existingGoal.completed += 1;
-          } else {
+            } else {
             acc.push({
-              category: normalizedCategory,
+                category: normalizedCategory,
               completed: goal.completed ? 1 : 0,
               total: 1
             });

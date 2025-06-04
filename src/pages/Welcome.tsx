@@ -4,10 +4,9 @@ import MeNovaLogo from '@/components/MeNovaLogo';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
-import { MessageCircle, User, ChevronDown, Apple, Brain, Settings, LogOut } from 'lucide-react';
+import { MessageCircle, User, ChevronDown, Apple, Brain, Settings, LogOut, Lightbulb, Sparkles, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import WellnessDashboard from '@/components/WellnessDashboard';
-import DailyTipCard from '@/components/DailyTipCard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
@@ -20,6 +19,60 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useVapi } from '@/contexts/VapiContext';
 
+// Menopause tips data
+const menopauseTips = [
+  {
+    tip: "Start your day with a glass of cool water to help manage hot flashes and stay hydrated.",
+    category: "Hydration",
+    icon: "💧"
+  },
+  {
+    tip: "Regular exercise can help manage mood swings and improve sleep quality during menopause.",
+    category: "Exercise",
+    icon: "🏃‍♀️"
+  },
+  {
+    tip: "Include phytoestrogen-rich foods like soy, flaxseeds, and legumes in your diet to help balance hormones naturally.",
+    category: "Nutrition",
+    icon: "🌱"
+  },
+  {
+    tip: "Practice deep breathing exercises during hot flashes to help your body cool down faster.",
+    category: "Wellness",
+    icon: "🧘‍♀️"
+  },
+  {
+    tip: "Keep your bedroom cool and wear breathable fabrics to improve sleep quality during night sweats.",
+    category: "Sleep",
+    icon: "😴"
+  },
+  {
+    tip: "Calcium and Vitamin D supplements can help maintain bone health during menopause.",
+    category: "Supplements",
+    icon: "💊"
+  },
+  {
+    tip: "Stress management through meditation or yoga can significantly reduce menopause symptoms.",
+    category: "Mental Health",
+    icon: "🕯️"
+  },
+  {
+    tip: "Layer your clothing so you can easily adjust to temperature changes throughout the day.",
+    category: "Comfort",
+    icon: "👗"
+  },
+  {
+    tip: "Keep a symptom diary to identify patterns and triggers for your menopause symptoms.",
+    category: "Tracking",
+    icon: "📝"
+  },
+  {
+    tip: "Join a menopause support group or connect with other women going through similar experiences.",
+    category: "Support",
+    icon: "🤝"
+  }
+];
+
 // Helper function to normalize category names for consistency
 const normalizeCategory = (category: string): string => {
   // Convert to lowercase for consistency
@@ -31,6 +84,13 @@ const normalizeCategory = (category: string): string => {
   return lowerCategory;
 };
 
+interface MenopauseTip {
+  tip: string;
+  category: string;
+  icon: string;
+  isLoading: boolean;
+}
+
 const Welcome = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +99,12 @@ const Welcome = () => {
   const [loading, setLoading] = useState(true);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [menopauseTip, setMenopauseTip] = useState<MenopauseTip>({ 
+    tip: "", 
+    category: "", 
+    icon: "",
+    isLoading: true 
+  });
   const { startAssistant, stopAssistant, isSpeaking, speak, vapiRef, isListening } = useVapi();
   
   // Check if user is logged in
@@ -62,6 +128,11 @@ const Welcome = () => {
     
     checkUser();
   }, [navigate]);
+
+  // Initialize daily tip
+  useEffect(() => {
+    getDailyMenopauseTip();
+  }, []);
 
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
@@ -114,6 +185,39 @@ const Welcome = () => {
         speak("Hello! I'm MeNova, your companion through menopause. How are you feeling today?");
       }, 500);
     }
+  };
+
+  // Get daily menopause tip
+  const getDailyMenopauseTip = () => {
+    setMenopauseTip({ tip: "", category: "", icon: "", isLoading: true });
+    
+    // Use date to ensure same tip shows for the whole day
+    const today = new Date();
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+    const tipIndex = dayOfYear % menopauseTips.length;
+    
+    setTimeout(() => {
+      setMenopauseTip({
+        tip: menopauseTips[tipIndex].tip,
+        category: menopauseTips[tipIndex].category,
+        icon: menopauseTips[tipIndex].icon,
+        isLoading: false
+      });
+    }, 800); // Small delay to show loading state
+  };
+
+  const refreshTip = () => {
+    setMenopauseTip({ tip: "", category: "", icon: "", isLoading: true });
+    
+    setTimeout(() => {
+      const randomIndex = Math.floor(Math.random() * menopauseTips.length);
+      setMenopauseTip({
+        tip: menopauseTips[randomIndex].tip,
+        category: menopauseTips[randomIndex].category,
+        icon: menopauseTips[randomIndex].icon,
+        isLoading: false
+      });
+    }, 500);
   };
 
   if (loading) {
@@ -205,13 +309,54 @@ const Welcome = () => {
         {/* Welcome Section */}
         <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm bg-gradient-to-br from-white to-green-50">
           <div className="flex items-center justify-between gap-4">
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-menova-text mb-2">
                 Welcome, {profile?.full_name || user?.email.split('@')[0]}!
               </h1>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-600 leading-relaxed mb-4">
                 How are you feeling today, {profile?.full_name?.split(' ')[0] || user?.email.split('@')[0]}? MeNova is here to support you every step of the way.
               </p>
+              
+              {/* Today's Menopause Tip */}
+              <div className="bg-gradient-to-r from-menova-green/10 to-teal-50 rounded-lg p-4 border border-menova-green/20">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-1">
+                        <Sparkles className="h-4 w-4 text-menova-green" />
+                        <span className="text-sm font-semibold text-menova-green">Today's Wellness Nudge</span>
+                      </div>
+                      {!menopauseTip.isLoading && (
+                        <div className="flex items-center gap-1 bg-white/80 px-2 py-1 rounded-full">
+                          <span className="text-xs">{menopauseTip.icon}</span>
+                          <span className="text-xs text-gray-600 font-medium">{menopauseTip.category}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {menopauseTip.isLoading ? (
+                      <div className="space-y-2">
+                        <div className="h-4 bg-menova-green/20 rounded animate-pulse"></div>
+                        <div className="h-4 bg-menova-green/20 rounded animate-pulse w-3/4"></div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-700 leading-relaxed text-sm">
+                        {menopauseTip.tip}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={refreshTip}
+                    className="h-8 w-8 p-0 text-menova-green hover:bg-menova-green/10 flex-shrink-0"
+                    disabled={menopauseTip.isLoading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${menopauseTip.isLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-center relative">
@@ -260,9 +405,6 @@ const Welcome = () => {
             </div>
           </div>
         </section>
-
-        {/* Daily Tip Card */}
-        <DailyTipCard />
 
         {/* New Wellness Dashboard Section */}
         <WellnessDashboard />
