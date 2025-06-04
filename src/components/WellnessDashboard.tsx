@@ -21,9 +21,9 @@ interface SymptomRating {
   trend?: 'increasing' | 'decreasing' | 'stable';
 }
 
-interface DailyInsight {
+interface MenopauseTip {
   tip: string;
-  source: string;
+  category: string;
   isLoading: boolean;
 }
 
@@ -42,14 +42,84 @@ const WellnessDashboard = () => {
   const navigate = useNavigate();
   const [goals, setGoals] = useState<WellnessGoal[]>([]);
   const [symptoms, setSymptoms] = useState<SymptomRating[]>([]);
-  const [insight, setInsight] = useState<DailyInsight>({ 
-    tip: "", 
-    source: "",
-    isLoading: true 
-  });
   const [overallProgress, setOverallProgress] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [menopauseTip, setMenopauseTip] = useState<MenopauseTip>({
+    tip: "",
+    category: "",
+    isLoading: true
+  });
   const { toast } = useToast();
+
+  // Menopause tips collection
+  const menopauseTips = [
+    {
+      tip: "Stay hydrated! Drinking plenty of water can help reduce hot flashes and improve overall energy levels.",
+      category: "Hydration"
+    },
+    {
+      tip: "Regular exercise can help manage mood swings and improve sleep quality during menopause.",
+      category: "Exercise"
+    },
+    {
+      tip: "Include phytoestrogen-rich foods like soy, flaxseeds, and legumes in your diet to help balance hormones naturally.",
+      category: "Nutrition"
+    },
+    {
+      tip: "Practice deep breathing exercises during hot flashes to help your body cool down faster.",
+      category: "Wellness"
+    },
+    {
+      tip: "Keep your bedroom cool and wear breathable fabrics to improve sleep quality during night sweats.",
+      category: "Sleep"
+    },
+    {
+      tip: "Calcium and Vitamin D supplements can help maintain bone health during menopause.",
+      category: "Supplements"
+    },
+    {
+      tip: "Stress management through meditation or yoga can significantly reduce menopause symptoms.",
+      category: "Mental Health"
+    },
+    {
+      tip: "Layer your clothing so you can easily adjust to temperature changes throughout the day.",
+      category: "Comfort"
+    },
+    {
+      tip: "Keep a symptom diary to identify patterns and triggers for your menopause symptoms.",
+      category: "Tracking"
+    },
+    {
+      tip: "Don't hesitate to talk to your healthcare provider about hormone therapy options if symptoms are severe.",
+      category: "Medical"
+    },
+    {
+      tip: "Join a menopause support group or connect with other women going through similar experiences.",
+      category: "Support"
+    },
+    {
+      tip: "Limit caffeine and alcohol intake, as they can trigger hot flashes and disrupt sleep.",
+      category: "Lifestyle"
+    }
+  ];
+
+  // Get daily menopause tip
+  const getDailyMenopauseTip = () => {
+    setMenopauseTip({ tip: "", category: "", isLoading: true });
+    
+    // Use date to ensure same tip shows for the whole day
+    const today = new Date();
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
+    const tipIndex = dayOfYear % menopauseTips.length;
+    
+    setTimeout(() => {
+      setMenopauseTip({
+        tip: menopauseTips[tipIndex].tip,
+        category: menopauseTips[tipIndex].category,
+            isLoading: false
+          });
+    }, 500); // Small delay to show loading state
+  };
 
   // Calculate overall progress
   const calculateOverallProgress = (goals: WellnessGoal[]) => {
@@ -58,42 +128,6 @@ const WellnessDashboard = () => {
     return totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
   };
 
-  // Fetch daily menopause tip
-  useEffect(() => {
-    const fetchDailyTip = async () => {
-      try {
-        const response = await supabase.functions.invoke('daily-menopause-tip');
-        
-        if (response.error) {
-          throw new Error(response.error.message);
-        }
-        
-        if (response.data) {
-          setInsight({
-            tip: response.data.tip,
-            source: response.data.source || 'MeNova Health',
-            isLoading: false
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching daily tip:", error);
-        // Set fallback tip if API fails
-        setInsight({
-          tip: "Stay hydrated and keep cool. Regular water intake can help manage hot flashes and maintain overall well-being during menopause.",
-          source: "MeNova Health",
-          isLoading: false
-        });
-        toast({
-          title: "Could not load daily tip",
-          description: "Using a helpful tip from our database.",
-          variant: "destructive",
-        });
-      }
-    };
-
-    fetchDailyTip();
-  }, [toast]);
-
   // Format date for display
   const formatLastUpdated = (dateString: string) => {
     const date = new Date(dateString);
@@ -101,160 +135,96 @@ const WellnessDashboard = () => {
   };
 
   useEffect(() => {
+    getDailyMenopauseTip();
+
     const fetchWellnessData = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-
-        console.log("Fetching wellness goals...");
+        if (!session?.user) return;
         
-        // Fetch wellness goals directly from wellness_goals table
+        // Fetch wellness goals
         const { data: goalsData, error: goalsError } = await supabase
           .from('wellness_goals')
           .select('*')
           .eq('user_id', session.user.id);
 
-        if (goalsError) {
-          console.error("Error fetching wellness goals:", goalsError);
-          throw goalsError;
-        }
-        
-        console.log("Goals data:", goalsData);
-        
-        if (goalsData && goalsData.length > 0) {
-          // Process goals data to merge any duplicate categories
-          const normalizedGoals = new Map<string, WellnessGoal>();
-          
-          goalsData.forEach((goal: any) => {
-            const normalizedCategory = normalizeCategory(goal.category);
-            
-            if (normalizedGoals.has(normalizedCategory)) {
-              // If we already have this category, combine the values
-              const existingGoal = normalizedGoals.get(normalizedCategory)!;
-              normalizedGoals.set(normalizedCategory, {
-                category: normalizedCategory,
-                completed: existingGoal.completed + goal.completed,
-                total: existingGoal.total + goal.total
-              });
-            } else {
-              // Otherwise add it to our map
-              normalizedGoals.set(normalizedCategory, {
-                category: normalizedCategory,
-                completed: goal.completed,
-                total: goal.total
-              });
-            }
-          });
-          
-          // Convert map back to array
-          const processedGoals = Array.from(normalizedGoals.values());
-          setGoals(processedGoals);
-          setOverallProgress(calculateOverallProgress(processedGoals));
-          
-          // Log the normalized goals
-          console.log("Normalized goals:", processedGoals);
-        } else {
-          console.log("No wellness goals found, creating defaults...");
-          
-          // If no wellness_goals data, create and store default goals
-          const defaultGoals = [
-            { category: "nourish", completed: 0, total: 3, user_id: session.user.id },
-            { category: "center", completed: 0, total: 3, user_id: session.user.id },
-            { category: "play", completed: 0, total: 3, user_id: session.user.id }
-          ];
-          
-          // Insert default goals
-          const { error: insertError } = await supabase
-            .from('wellness_goals')
-            .insert(defaultGoals);
-          
-          if (insertError) {
-            console.error("Error inserting default wellness goals:", insertError);
-            throw insertError;
-          }
-          
-          // Use the default goals for display
-          const processedGoals = defaultGoals.map(g => ({
-            category: g.category,
-            completed: g.completed,
-            total: g.total
-          }));
-          setGoals(processedGoals);
-          setOverallProgress(calculateOverallProgress(processedGoals));
-        }
+        if (goalsError) throw goalsError;
 
-        // Fetch symptom data - IMPROVED to get the most recent entries for each symptom type
-        console.log("Fetching symptom data for user:", session.user.id);
-        const today = new Date();
-        const start = new Date();
-        start.setDate(today.getDate() - 30); // Increased to last 30 days for better trend visibility
-        
-        const { data: symptomData, error: symptomError } = await supabase
+        // Process goals data
+        const processedGoals = goalsData?.reduce((acc: WellnessGoal[], goal) => {
+          const normalizedCategory = normalizeCategory(goal.category);
+          const existingGoal = acc.find(g => g.category === normalizedCategory);
+          
+          if (existingGoal) {
+            existingGoal.total += 1;
+            if (goal.completed) existingGoal.completed += 1;
+            } else {
+            acc.push({
+                category: normalizedCategory,
+              completed: goal.completed ? 1 : 0,
+              total: 1
+            });
+          }
+          return acc;
+        }, []) || [];
+
+        setGoals(processedGoals);
+        setOverallProgress(calculateOverallProgress(processedGoals));
+
+        // Fetch symptom data for the last 14 days
+        const twoWeeksAgo = new Date();
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+
+        const { data: symptomsData, error: symptomsError } = await supabase
           .from('symptom_tracking')
           .select('*')
           .eq('user_id', session.user.id)
-          .gte('recorded_at', start.toISOString())
-          .order('recorded_at', { ascending: false }); // Changed to descending to get most recent first
+          .gte('recorded_at', twoWeeksAgo.toISOString())
+          .order('recorded_at', { ascending: false });
 
-        if (symptomError) throw symptomError;
+        if (symptomsError) throw symptomsError;
 
-        // Log the raw symptom data to help debugging
-        console.log("User symptoms data:", symptomData);
-        
-        if (symptomData && symptomData.length > 0) {
-          // Group symptoms by type and get the most recent entry for each
-          const latestSymptoms = new Map();
-          symptomData.forEach((entry: any) => {
-            if (!latestSymptoms.has(entry.symptom) || 
-                new Date(entry.recorded_at) > new Date(latestSymptoms.get(entry.symptom).recorded_at)) {
-              latestSymptoms.set(entry.symptom, entry);
-            }
-          });
+        // Process symptoms data
+        const symptomMap = new Map();
+        symptomsData?.forEach(symptom => {
+          if (!symptomMap.has(symptom.symptom)) {
+            symptomMap.set(symptom.symptom, {
+              symptom: symptom.symptom,
+              intensity: symptom.intensity,
+              lastUpdated: symptom.recorded_at,
+              values: [symptom.intensity],
+              dates: [symptom.recorded_at]
+            });
+          } else {
+            const existing = symptomMap.get(symptom.symptom);
+            existing.values.push(symptom.intensity);
+            existing.dates.push(symptom.recorded_at);
+          }
+        });
 
-          // Calculate trends using all data points
-          const chartDataPoints: ChartDataPoint[] = symptomData.reduce((points: ChartDataPoint[], entry: any) => {
-            const date = new Date(entry.recorded_at);
-            const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Calculate trends and format for display
+        const processedSymptoms = Array.from(symptomMap.values()).map(symptom => {
+          let trend = undefined;
+          if (symptom.values.length >= 3) {
+            const recent = symptom.values.slice(0, 3);
+            const older = symptom.values.slice(-3);
+            const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
+            const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
             
-            // Find if we already have a point for this date
-            let point = points.find(p => p.date === dateString);
-            
-            if (!point) {
-              point = { date: dateString, rawDate: date };
-              points.push(point);
-            }
-            
-            // Add symptom data to point
-            point[entry.symptom] = entry.intensity;
-            
-            return points;
-          }, []);
-          
-          // Sort by date
-          chartDataPoints.sort((a, b) => 
-            (a.rawDate?.getTime() || 0) - (b.rawDate?.getTime() || 0)
-          );
-          
-          // Calculate trends
-          const trends = calculateSymptomTrends(chartDataPoints);
-          console.log("Calculated symptom trends:", trends);
-          
-          // Create a Map to store the most recent entry for each symptom type
-          const displaySymptoms: SymptomRating[] = [
-            latestSymptoms.get('Hot Flashes') || { symptom: 'Hot Flashes', intensity: 0 },
-            latestSymptoms.get('Sleep Quality') || { symptom: 'Sleep Quality', intensity: 0 },
-            latestSymptoms.get('Mood') || { symptom: 'Mood', intensity: 0 }
-          ];
-          
-          setSymptoms(displaySymptoms);
-        } else {
-          // Provide default symptom data if none exists
-          setSymptoms([
-            { symptom: "Hot Flashes", intensity: 0 },
-            { symptom: "Sleep Quality", intensity: 0 },
-            { symptom: "Mood", intensity: 0 }
-          ]);
-        }
+            if (recentAvg > olderAvg + 0.5) trend = 'increasing';
+            else if (recentAvg < olderAvg - 0.5) trend = 'decreasing';
+            else trend = 'stable';
+          }
+
+          return {
+            symptom: symptom.symptom,
+            intensity: symptom.intensity,
+            lastUpdated: symptom.lastUpdated,
+            trend
+          };
+        });
+
+        setSymptoms(processedSymptoms.slice(0, 3)); // Show top 3 symptoms
       } catch (error) {
         console.error("Error fetching wellness data:", error);
       } finally {
@@ -427,13 +397,13 @@ const WellnessDashboard = () => {
           )}
         </div>
         
-        {/* Today's Insight Card */}
+        {/* Menopause Tip Card */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6 flex flex-col">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Menopause Tip</h3>
           <p className="text-sm text-gray-600 mb-6">Daily guidance for your menopause journey</p>
           
           <div className="flex-1 flex flex-col items-center justify-center">
-            {insight.isLoading ? (
+            {menopauseTip.isLoading ? (
               <div className="animate-pulse w-full">
                 <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
                 <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-2"></div>
@@ -442,10 +412,10 @@ const WellnessDashboard = () => {
             ) : (
               <div className="text-center">
                 <div className="bg-menova-green/10 rounded-full px-3 py-1 mb-4 inline-block">
-                  <span className="text-xs font-medium text-menova-green">Daily Wisdom</span>
+                  <span className="text-xs font-medium text-menova-green">{menopauseTip.category}</span>
                 </div>
-                <p className="text-gray-700 leading-relaxed mb-4">{insight.tip}</p>
-                <footer className="text-sm text-gray-500">Source: {insight.source}</footer>
+                <p className="text-gray-700 leading-relaxed mb-4">{menopauseTip.tip}</p>
+                <div className="text-sm text-gray-500">💡 MeNova Tip</div>
               </div>
             )}
           </div>
