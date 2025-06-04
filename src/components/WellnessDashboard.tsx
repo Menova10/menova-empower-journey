@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, Play, ExternalLink, Video } from 'lucide-react';
 import { calculateSymptomTrends } from "@/services/symptomService";
 import { ChartDataPoint } from '@/types/symptoms';
 
@@ -21,11 +21,22 @@ interface SymptomRating {
   trend?: 'increasing' | 'decreasing' | 'stable';
 }
 
-interface MenopauseTip {
-  tip: string;
-  category: string;
+interface YouTubeVideo {
+  id: string;
+  title: string;
+  thumbnail: string;
+  channelTitle: string;
+  url: string;
+}
+
+interface ResourcesData {
+  videos: YouTubeVideo[];
   isLoading: boolean;
 }
+
+// YouTube API configuration
+const YOUTUBE_API_KEY = 'AIzaSyAuADSwSw95dF4d57eVGHVLDU-OxDg9eos';
+const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3/search';
 
 // Standardize category names to prevent duplication
 const normalizeCategory = (category: string): string => {
@@ -44,81 +55,46 @@ const WellnessDashboard = () => {
   const [symptoms, setSymptoms] = useState<SymptomRating[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [menopauseTip, setMenopauseTip] = useState<MenopauseTip>({
-    tip: "",
-    category: "",
+  const [resourcesData, setResourcesData] = useState<ResourcesData>({
+    videos: [],
     isLoading: true
   });
   const { toast } = useToast();
 
-  // Menopause tips collection
-  const menopauseTips = [
-    {
-      tip: "Stay hydrated! Drinking plenty of water can help reduce hot flashes and improve overall energy levels.",
-      category: "Hydration"
-    },
-    {
-      tip: "Regular exercise can help manage mood swings and improve sleep quality during menopause.",
-      category: "Exercise"
-    },
-    {
-      tip: "Include phytoestrogen-rich foods like soy, flaxseeds, and legumes in your diet to help balance hormones naturally.",
-      category: "Nutrition"
-    },
-    {
-      tip: "Practice deep breathing exercises during hot flashes to help your body cool down faster.",
-      category: "Wellness"
-    },
-    {
-      tip: "Keep your bedroom cool and wear breathable fabrics to improve sleep quality during night sweats.",
-      category: "Sleep"
-    },
-    {
-      tip: "Calcium and Vitamin D supplements can help maintain bone health during menopause.",
-      category: "Supplements"
-    },
-    {
-      tip: "Stress management through meditation or yoga can significantly reduce menopause symptoms.",
-      category: "Mental Health"
-    },
-    {
-      tip: "Layer your clothing so you can easily adjust to temperature changes throughout the day.",
-      category: "Comfort"
-    },
-    {
-      tip: "Keep a symptom diary to identify patterns and triggers for your menopause symptoms.",
-      category: "Tracking"
-    },
-    {
-      tip: "Don't hesitate to talk to your healthcare provider about hormone therapy options if symptoms are severe.",
-      category: "Medical"
-    },
-    {
-      tip: "Join a menopause support group or connect with other women going through similar experiences.",
-      category: "Support"
-    },
-    {
-      tip: "Limit caffeine and alcohol intake, as they can trigger hot flashes and disrupt sleep.",
-      category: "Lifestyle"
-    }
-  ];
+  // Fetch top 5 menopause videos from YouTube
+  const fetchTopVideos = async () => {
+    setResourcesData({ videos: [], isLoading: true });
+    
+    try {
+      const response = await fetch(
+        `${YOUTUBE_API_BASE_URL}?part=snippet&type=video&maxResults=5&q=menopause%20tips%20wellness&key=${YOUTUBE_API_KEY}`
+      );
 
-  // Get daily menopause tip
-  const getDailyMenopauseTip = () => {
-    setMenopauseTip({ tip: "", category: "", isLoading: true });
-    
-    // Use date to ensure same tip shows for the whole day
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / 86400000);
-    const tipIndex = dayOfYear % menopauseTips.length;
-    
-    setTimeout(() => {
-      setMenopauseTip({
-        tip: menopauseTips[tipIndex].tip,
-        category: menopauseTips[tipIndex].category,
-            isLoading: false
-          });
-    }, 500); // Small delay to show loading state
+      if (!response.ok) {
+        throw new Error(`YouTube API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const videos: YouTubeVideo[] = data.items?.map((item: any) => ({
+        id: item.id.videoId,
+        title: item.snippet.title.length > 40 ? item.snippet.title.substring(0, 40) + '...' : item.snippet.title,
+        thumbnail: item.snippet.thumbnails.default?.url,
+        channelTitle: item.snippet.channelTitle,
+        url: `https://www.youtube.com/watch?v=${item.id.videoId}`
+      })) || [];
+
+      setResourcesData({
+        videos,
+        isLoading: false
+      });
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      setResourcesData({
+        videos: [],
+        isLoading: false
+      });
+    }
   };
 
   // Calculate overall progress
@@ -135,7 +111,7 @@ const WellnessDashboard = () => {
   };
 
   useEffect(() => {
-    getDailyMenopauseTip();
+    fetchTopVideos();
 
     const fetchWellnessData = async () => {
       try {
@@ -397,28 +373,55 @@ const WellnessDashboard = () => {
           )}
         </div>
         
-        {/* Menopause Tip Card */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 flex flex-col">
-          <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Menopause Tip</h3>
-          <p className="text-sm text-gray-600 mb-6">Daily guidance for your menopause journey</p>
+        {/* Resources Card */}
+        <div className="bg-white/90 rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-medium text-[#7d6285] mb-2">Resources</h3>
+          <p className="text-sm text-gray-600 mb-4">Top 5 videos on menopause</p>
           
-          <div className="flex-1 flex flex-col items-center justify-center">
-            {menopauseTip.isLoading ? (
-              <div className="animate-pulse w-full">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-2/3 mx-auto"></div>
-              </div>
-            ) : (
-              <div className="text-center">
-                <div className="bg-menova-green/10 rounded-full px-3 py-1 mb-4 inline-block">
-                  <span className="text-xs font-medium text-menova-green">{menopauseTip.category}</span>
+          {resourcesData.isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="animate-pulse">
+                  <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
+                  <div className="h-2 bg-gray-200 rounded w-2/3"></div>
                 </div>
-                <p className="text-gray-700 leading-relaxed mb-4">{menopauseTip.tip}</p>
-                <div className="text-sm text-gray-500">💡 MeNova Tip</div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {resourcesData.videos.map((video, index) => (
+                <div key={index} className="group">
+                  <div className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex-shrink-0 mt-1">
+                      <Video className="h-4 w-4 text-menova-green" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-gray-900 leading-tight mb-1">
+                        {video.title}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {video.channelTitle}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => window.open(video.url, '_blank')}
+                      className="flex-shrink-0 p-1 text-menova-green hover:bg-menova-green/10 rounded transition-colors"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              <Button 
+                variant="outline" 
+                className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 mt-4"
+                onClick={() => navigate('/resources')}
+              >
+                View All Resources
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </section>
