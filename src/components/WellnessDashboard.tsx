@@ -47,13 +47,16 @@ const WellnessDashboard = () => {
     source: "",
     isLoading: true 
   });
+  const [overallProgress, setOverallProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   // Calculate overall progress
-  const overallProgress = goals.length > 0 
-    ? Math.round((goals.reduce((acc, goal) => acc + goal.completed, 0) / goals.reduce((acc, goal) => acc + goal.total, 0)) * 100) 
-    : 0;
+  const calculateOverallProgress = (goals: WellnessGoal[]) => {
+    const totalGoals = goals.reduce((sum, goal) => sum + goal.total, 0);
+    const completedGoals = goals.reduce((sum, goal) => sum + goal.completed, 0);
+    return totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+  };
 
   // Fetch daily menopause tip
   useEffect(() => {
@@ -144,10 +147,12 @@ const WellnessDashboard = () => {
           });
           
           // Convert map back to array
-          setGoals(Array.from(normalizedGoals.values()));
+          const processedGoals = Array.from(normalizedGoals.values());
+          setGoals(processedGoals);
+          setOverallProgress(calculateOverallProgress(processedGoals));
           
           // Log the normalized goals
-          console.log("Normalized goals:", Array.from(normalizedGoals.values()));
+          console.log("Normalized goals:", processedGoals);
         } else {
           console.log("No wellness goals found, creating defaults...");
           
@@ -169,11 +174,13 @@ const WellnessDashboard = () => {
           }
           
           // Use the default goals for display
-          setGoals(defaultGoals.map(g => ({
+          const processedGoals = defaultGoals.map(g => ({
             category: g.category,
             completed: g.completed,
             total: g.total
-          })));
+          }));
+          setGoals(processedGoals);
+          setOverallProgress(calculateOverallProgress(processedGoals));
         }
 
         // Fetch symptom data - IMPROVED to get the most recent entries for each symptom type
@@ -302,7 +309,7 @@ const WellnessDashboard = () => {
   return (
     <section>
       <h2 className="text-xl font-semibold text-menova-text mb-4">
-        Your Wellness Dashboard
+        Wellness Progress
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -314,7 +321,7 @@ const WellnessDashboard = () => {
           <div className="space-y-4">
             <div className="space-y-1">
               <div className="flex justify-between">
-                <span className="text-sm font-medium">Overall Progress</span>
+                <span className="text-sm font-medium">Today's Progress</span>
                 <span className="text-sm font-medium">{overallProgress}%</span>
               </div>
               <Progress value={overallProgress} className="h-2 bg-gray-100" />
@@ -323,8 +330,8 @@ const WellnessDashboard = () => {
             {goals.map((goal, index) => (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium">{getCategoryLabel(goal.category)}</span>
-                  <span className="text-sm font-medium">{goal.completed}/{goal.total}</span>
+                  <span className="text-sm font-medium">{getCategoryLabel(goal.category)} Goals</span>
+                  <span className="text-sm font-medium">{goal.completed} of {goal.total} done</span>
                 </div>
                 <Progress 
                   value={(goal.completed / goal.total) * 100} 
@@ -423,7 +430,7 @@ const WellnessDashboard = () => {
         {/* Today's Insight Card */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6 flex flex-col">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Today's Menopause Tip</h3>
-          <p className="text-sm text-gray-600 mb-6">Daily wisdom for your menopause journey</p>
+          <p className="text-sm text-gray-600 mb-6">Daily guidance for your menopause journey</p>
           
           <div className="flex-1 flex flex-col items-center justify-center">
             {insight.isLoading ? (
@@ -434,7 +441,10 @@ const WellnessDashboard = () => {
               </div>
             ) : (
               <div className="text-center">
-                <p className="text-gray-700 mb-4">{insight.tip}</p>
+                <div className="bg-menova-green/10 rounded-full px-3 py-1 mb-4 inline-block">
+                  <span className="text-xs font-medium text-menova-green">Daily Wisdom</span>
+                </div>
+                <p className="text-gray-700 leading-relaxed mb-4">{insight.tip}</p>
                 <footer className="text-sm text-gray-500">Source: {insight.source}</footer>
               </div>
             )}

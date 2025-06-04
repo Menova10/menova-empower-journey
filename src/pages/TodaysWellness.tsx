@@ -1,734 +1,682 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Calendar, ChartBar, PlusCircle, BarChart2 } from 'lucide-react';
+import { Plus, Check, RefreshCw, Settings, MoreHorizontal, ChevronDown, User, LogOut } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Toaster } from '@/components/ui/toaster';
-import { useVapi } from '@/contexts/VapiContext';
-import VapiAssistant from '@/components/VapiAssistant';
-import AuthBackground from '@/components/AuthBackground';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import MeNovaLogo from '@/components/MeNovaLogo';
 
-// Import types
+// Import animations CSS
+import '@/styles/animations.css';
+
+// Import types and services
 import { 
   Goal, 
-  SuggestedGoal, 
-  CategoryProgress,
-  WeeklyProgress,
-  MonthlyProgress,
   categories,
-  motivationalMessages
+  normalizeCategory
 } from '@/types/wellness';
 
-// Import components
-import { TodayProgressSection } from '@/components/wellness/TodayProgressSection';
-import { AddGoalSection } from '@/components/wellness/AddGoalSection';
-import { SuggestedGoalsSection } from '@/components/wellness/SuggestedGoalsSection';
-import { TodaysGoalsSection } from '@/components/wellness/TodaysGoalsSection';
-import { WeeklyProgressView } from '@/components/wellness/WeeklyProgressView';
-import { MonthlyProgressView } from '@/components/wellness/MonthlyProgressView';
-import { GoalCompletionModal } from '@/components/wellness/GoalCompletionModal';
-
-// Import services
 import { 
   fetchTodaysGoals,
-  checkAndCreateDefaultGoals,
-  fetchWellnessGoalsProgress,
-  fetchWeeklyGoals,
-  fetchMonthlyGoals,
-  fetchSuggestedGoals,
-  addNewGoal as serviceAddNewGoal,
   toggleGoalCompletionWithRefill,
-  updateWellnessGoals,
-  normalizeCategory
+  getCategorySettings,
+  updateCategorySettings,
+  createInitialGoalsForAllCategories,
+  addNewGoalForCategory
 } from '@/services/wellnessService';
 
-// Helper functions
-import { 
-  format, 
-  startOfWeek, 
-  endOfWeek, 
-  addDays, 
-  startOfMonth, 
-  endOfMonth, 
-  differenceInDays 
-} from 'date-fns';
+// Category configuration
+const categoryConfig = {
+  nourish: {
+    title: 'Nourish',
+    icon: '🌱',
+    color: 'from-green-400 to-emerald-500',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+    description: 'Nutrition & Self-Care'
+  },
+  center: {
+    title: 'Center',
+    icon: '⊕',
+    color: 'from-purple-400 to-indigo-500',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    description: 'Mindfulness & Balance'
+  },
+  play: {
+    title: 'Play',
+    icon: '⭐',
+    color: 'from-pink-400 to-rose-500',
+    bgColor: 'bg-pink-50',
+    borderColor: 'border-pink-200',
+    description: 'Movement & Joy'
+  }
+};
+
+// Simple Goal Item Component
+const DashboardGoalItem = memo(({ goal, onToggle }: { 
+  goal: Goal; 
+  onToggle: (goalId: string, completed: boolean) => void;
+}) => {
+  const handleClick = () => onToggle(goal.id, goal.completed);
+
+  return (
+    <div 
+      className="flex items-start gap-3 p-3 bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-all duration-200 border border-gray-100"
+      onClick={handleClick}
+    >
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 mt-0.5 flex-shrink-0 ${
+        goal.completed 
+          ? 'bg-green-500 border-green-500' 
+          : 'border-gray-300 hover:border-green-400'
+      }`}>
+        {goal.completed && (
+          <Check size={12} className="text-white" />
+        )}
+      </div>
+      <p className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'} transition-all duration-200`}>
+        {goal.goal}
+      </p>
+    </div>
+  );
+});
+
+// Category Dashboard Card
+const CategoryCard = memo(({ 
+  category, 
+  goals, 
+  isEnabled, 
+  onToggleCategory, 
+  onGoalToggle,
+  onAddGoal,
+  loading 
+}: { 
+  category: keyof typeof categoryConfig;
+  goals: Goal[];
+  isEnabled: boolean;
+  onToggleCategory: (category: string, enabled: boolean) => void;
+  onGoalToggle: (goalId: string, completed: boolean) => void;
+  onAddGoal: (category: string) => void;
+  loading: boolean;
+}) => {
+  const config = categoryConfig[category];
+  const completedCount = goals.filter(g => g.completed).length;
+  const totalCount = goals.length;
+  const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+  return (
+    <div className={`${config.bgColor} rounded-2xl p-6 border-2 ${config.borderColor} shadow-sm hover:shadow-md transition-all duration-300 h-full`}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="text-4xl">{config.icon}</div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">{config.title}</h3>
+            <p className="text-sm text-gray-600">{config.description}</p>
+          </div>
+        </div>
+        <Switch
+          checked={isEnabled}
+          onCheckedChange={(checked) => onToggleCategory(category, checked)}
+        />
+      </div>
+
+      {!isEnabled ? (
+        <div className="text-center py-8 opacity-50">
+          <p className="text-gray-500">Category disabled</p>
+        </div>
+      ) : (
+        <>
+          {/* Progress */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">Progress</span>
+              <span className={`text-lg font-bold bg-gradient-to-r ${config.color} bg-clip-text text-transparent`}>
+                {progress}%
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`bg-gradient-to-r ${config.color} h-2 rounded-full transition-all duration-500`}
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+
+          {/* Goals List */}
+          <div className="space-y-2 mb-4 min-h-[200px] max-h-[300px] overflow-y-auto">
+            {loading ? (
+              // Loading skeletons
+              [1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-gray-100 rounded-lg animate-pulse">
+                  <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1 h-4 bg-gray-200 rounded"></div>
+                </div>
+              ))
+            ) : goals.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-3xl mb-2 opacity-50">{config.icon}</div>
+                <p className="text-sm mb-3">No goals yet</p>
+                <Button 
+                  onClick={() => onAddGoal(category)}
+                  size="sm"
+                  className={`bg-gradient-to-r ${config.color} text-white hover:opacity-90`}
+                >
+                  <Plus size={16} className="mr-2" />
+                  Generate Goals
+                </Button>
+              </div>
+            ) : (
+              goals.map((goal) => (
+                <DashboardGoalItem
+                  key={goal.id}
+                  goal={goal}
+                  onToggle={onGoalToggle}
+                />
+              ))
+            )}
+          </div>
+
+          {/* Footer */}
+          {goals.length > 0 && (
+            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+              <span className="text-xs text-gray-500">
+                {completedCount} of {totalCount} completed
+              </span>
+              <Button 
+                onClick={() => onAddGoal(category)}
+                variant="ghost" 
+                size="sm"
+                className="text-gray-600 hover:text-gray-900 h-8"
+              >
+                <Plus size={14} className="mr-1" />
+                New Goal
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+});
+
+// Settings Modal Component
+const SettingsModal = ({ 
+  settings, 
+  onUpdateSettings 
+}: { 
+  settings: Record<string, boolean>;
+  onUpdateSettings: (settings: Record<string, boolean>) => void;
+}) => {
+  const [localSettings, setLocalSettings] = useState(settings);
+
+  const handleSave = () => {
+    onUpdateSettings(localSettings);
+  };
+
+  return (
+    <DialogContent className="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Category Settings</DialogTitle>
+      </DialogHeader>
+      <div className="space-y-4 py-4">
+        {Object.entries(categoryConfig).map(([key, config]) => (
+          <div key={key} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">{config.icon}</div>
+              <div>
+                <p className="font-medium">{config.title}</p>
+                <p className="text-sm text-gray-600">{config.description}</p>
+              </div>
+            </div>
+            <Switch
+              checked={localSettings[key] || false}
+              onCheckedChange={(checked) => 
+                setLocalSettings(prev => ({ ...prev, [key]: checked }))
+              }
+            />
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button onClick={handleSave}>Save Changes</Button>
+      </div>
+    </DialogContent>
+  );
+};
 
 const TodaysWellness = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [newGoal, setNewGoal] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('nourish');
-  const [loading, setLoading] = useState(true);
-  const [suggestedGoals, setSuggestedGoals] = useState<SuggestedGoal[]>([]);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [completedGoal, setCompletedGoal] = useState<Goal | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0); // Used to trigger animation
-  const { speak } = useVapi();
-  const vapiAssistantRef = React.useRef<any>(null);
-  const [categoryCounts, setCategoryCounts] = useState<CategoryProgress>({});
-  const [weeklyProgress, setWeeklyProgress] = useState<WeeklyProgress>({});
-  const [monthlyProgress, setMonthlyProgress] = useState<MonthlyProgress>({});
-  const [activeTab, setActiveTab] = useState("daily");
-  const [weeklyGoals, setWeeklyGoals] = useState<Goal[]>([]);
-  const [monthlyGoals, setMonthlyGoals] = useState<Goal[]>([]);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  const [mainViewTab, setMainViewTab] = useState("progress"); // New state for main view tabs
   
-  // Use a ref to prevent scrolling issues
-  const contentRef = useRef<HTMLDivElement>(null);
+  // State management
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categorySettings, setCategorySettings] = useState(getCategorySettings());
+  const [userId, setUserId] = useState<string | null>(null);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
-  // Calculate progress with useMemo to prevent unnecessary recalculations
-  const { completedGoals, totalGoals, progress } = useMemo(() => {
-    const completed = goals.filter(g => g.completed).length;
-    const total = goals.length;
-    const prog = total > 0 ? Math.round((completed / total) * 100) : 0;
-    return { completedGoals: completed, totalGoals: total, progress: prog };
-  }, [goals]);
-
-  // Calculate and update category progress - using a more stable implementation
-  const calculateCategoryProgress = useCallback(() => {
-    const catCounts: CategoryProgress = {};
-    
-    // Initialize categories
-    categories.forEach(cat => {
-      catCounts[cat.value] = {
-        completed: 0,
-        total: 0,
-        percentage: 0
-      };
-    });
-    
-    // Calculate progress for each category
-    goals.forEach(goal => {
-      const category = normalizeCategory(goal.category);
-      if (category in catCounts) {
-        catCounts[category].total += 1;
-        if (goal.completed) {
-          catCounts[category].completed += 1;
-        }
-      }
-    });
-    
-    // Calculate percentages
-    Object.keys(catCounts).forEach(cat => {
-      const { completed, total } = catCounts[cat];
-      catCounts[cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-    });
-    
-    return catCounts;
-  }, [goals]);
-
-  // Memoize category counts to prevent unnecessary re-renders
-  const updateCategoryCounts = useCallback(() => {
-    const newCounts = calculateCategoryProgress();
-    setCategoryCounts(newCounts);
-    return newCounts;
-  }, [calculateCategoryProgress]);
-
-  // Fetch user's goals for today
-  const fetchGoals = useCallback(async () => {
-    if (!initialLoadComplete) {
-      try {
+  // Initialize user session and profile
+  useEffect(() => {
+    const initSession = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           navigate('/login');
           return;
         }
-
-        // Fetch today's goals
-        const fetchedGoals = await fetchTodaysGoals(session.user.id);
-        setGoals(fetchedGoals);
-        
-        // If we have no goals for today, check if we have wellness goals in the database
-        // and create some default goals based on that
-        if (fetchedGoals.length === 0) {
-          const defaultGoals = await checkAndCreateDefaultGoals(session.user.id);
-          if (defaultGoals.length > 0) {
-            setGoals(defaultGoals);
-            toast({
-              title: 'Daily goals created',
-              description: 'We\'ve created some default goals based on your wellness plan.',
-            });
-          }
-        }
-
-        // Also fetch weekly and monthly data when switching tabs
-        if (activeTab === 'weekly' || activeTab === 'all') {
-          const weeklyData = await fetchWeeklyGoals(session.user.id);
-          setWeeklyGoals(weeklyData);
-          processWeeklyData(weeklyData);
-        }
-
-        if (activeTab === 'monthly' || activeTab === 'all') {
-          const monthlyData = await fetchMonthlyGoals(session.user.id);
-          setMonthlyGoals(monthlyData);
-          processMonthlyData(monthlyData);
-        }
-        
-        // Check for existing progress in wellness_goals table
-        const progress = await fetchWellnessGoalsProgress(session.user.id);
-        if (progress) {
-          setCategoryCounts(progress);
-        } else {
-          // Fallback to calculation from goals
-          updateCategoryCounts();
-        }
-        
-      } catch (error) {
-        console.error('Error fetching goals:', error);
-        toast({
-          title: 'Error fetching goals',
-          description: 'Could not retrieve your goals. Please try again later.',
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-        setInitialLoadComplete(true);
-      }
-    } else {
-      // For subsequent fetches, especially when tabs change
+      setUser(session.user);
+      setUserId(session.user.id);
+      
+      // Fetch user profile
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          navigate('/login');
-          return;
-        }
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-        // Only fetch data for the active tab to reduce unnecessary API calls
-        if (activeTab === 'weekly') {
-          const weeklyData = await fetchWeeklyGoals(session.user.id);
-          setWeeklyGoals(weeklyData);
-          processWeeklyData(weeklyData);
-        } else if (activeTab === 'monthly') {
-          const monthlyData = await fetchMonthlyGoals(session.user.id);
-          setMonthlyGoals(monthlyData);
-          processMonthlyData(monthlyData);
+        if (!error && data) {
+          setProfile(data);
         }
       } catch (error) {
-        console.error('Error fetching tab data:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching profile:', error);
       }
-    }
-  }, [navigate, toast, activeTab, updateCategoryCounts, initialLoadComplete]);
+    };
+    initSession();
+  }, [navigate]);
 
-  // Process weekly data to calculate progress - keep logic the same but memoize better
-  const processWeeklyData = useCallback((weeklyData: Goal[]) => {
-    const weekProgress: WeeklyProgress = {};
-    const daysOfWeek = [];
-    let currentDay = startOfWeek(new Date());
-    const endDay = endOfWeek(new Date());
-    
-    while (currentDay <= endDay) {
-      const dayStr = format(currentDay, 'yyyy-MM-dd');
-      daysOfWeek.push(dayStr);
-      
-      weekProgress[dayStr] = {};
-      
-      // Initialize categories for this day
-      categories.forEach(cat => {
-        weekProgress[dayStr][cat.value] = {
-          completed: 0,
-          total: 0,
-          percentage: 0
-        };
-      });
-      
-      currentDay = addDays(currentDay, 1);
-    }
-    
-    // Populate with data
-    weeklyData.forEach(goal => {
-      const day = goal.date;
-      const category = normalizeCategory(goal.category);
-      
-      if (day in weekProgress && category in weekProgress[day]) {
-        weekProgress[day][category].total += 1;
-        if (goal.completed) {
-          weekProgress[day][category].completed += 1;
-        }
-      }
-    });
-    
-    // Calculate percentages
-    Object.keys(weekProgress).forEach(day => {
-      Object.keys(weekProgress[day]).forEach(cat => {
-        const { completed, total } = weekProgress[day][cat];
-        weekProgress[day][cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-      });
-    });
-    
-    setWeeklyProgress(weekProgress);
-  }, []);
-
-  // Process monthly data to calculate progress - keep logic the same but memoize better
-  const processMonthlyData = useCallback((monthlyData: Goal[]) => {
-    const monthProgress: MonthlyProgress = {};
-    const start = startOfMonth(new Date());
-    const end = endOfMonth(new Date());
-    const totalDays = differenceInDays(end, start) + 1;
-    const totalWeeks = Math.ceil(totalDays / 7);
-    
-    // Initialize weeks
-    for (let i = 0; i < totalWeeks; i++) {
-      const weekLabel = `Week ${i + 1}`;
-      monthProgress[weekLabel] = {};
-      
-      // Initialize categories for this week
-      categories.forEach(cat => {
-        monthProgress[weekLabel][cat.value] = {
-          completed: 0,
-          total: 0,
-          percentage: 0
-        };
-      });
-    }
-    
-    // Populate with data
-    monthlyData.forEach(goal => {
-      const goalDate = new Date(goal.date);
-      const dayOfMonth = goalDate.getDate();
-      const weekNum = Math.floor((dayOfMonth - 1) / 7);
-      const weekLabel = `Week ${weekNum + 1}`;
-      const category = normalizeCategory(goal.category);
-      
-      if (weekLabel in monthProgress && category in monthProgress[weekLabel]) {
-        monthProgress[weekLabel][category].total += 1;
-        if (goal.completed) {
-          monthProgress[weekLabel][category].completed += 1;
-        }
-      }
-    });
-    
-    // Calculate percentages
-    Object.keys(monthProgress).forEach(week => {
-      Object.keys(monthProgress[week]).forEach(cat => {
-        const { completed, total } = monthProgress[week][cat];
-        monthProgress[week][cat].percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-      });
-    });
-    
-    setMonthlyProgress(monthProgress);
-  }, []);
-
-  // Add a new goal
-  const addGoal = async () => {
-    if (!newGoal.trim()) return;
-    
+  // Handle logout
+  const handleLogout = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
-      }
+      await supabase.auth.signOut();
+      toast({
+        title: "Logged out",
+        description: "You've been successfully logged out.",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while logging out.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Load all goals
+  const loadGoals = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
       
-      const newGoalData = await serviceAddNewGoal(session.user.id, newGoal, selectedCategory);
+      const allGoals = await fetchTodaysGoals(userId);
+      setGoals(allGoals);
       
-      if (newGoalData) {
-        setGoals(prevGoals => [...prevGoals, newGoalData]);
-        setNewGoal('');
-        speak(`Added new goal: ${newGoal}`);
-        toast({
-          title: 'Goal added',
-          description: 'Your wellness goal has been added for today.',
-        });
+      if (allGoals.length === 0 && initialLoad) {
+        console.log('🚀 Creating initial goals with AI...');
+        const newGoals = await createInitialGoalsForAllCategories(userId, categorySettings);
+        setGoals(newGoals);
+        setInitialLoad(false);
         
-        // Update category progress and sync with wellness_goals table
-        const newCategoryCounts = updateCategoryCounts();
-        await updateWellnessGoals(session.user.id, newCategoryCounts);
+        if (newGoals.length > 0) {
+          toast({
+            title: 'Welcome! 🌟',
+            description: 'Your personalized wellness dashboard is ready!',
+          });
+        }
+      }
+      else if (allGoals.length > 0 && allGoals.some(goal => 
+        goal.goal.includes('Complete a') && goal.goal.includes('activity today')
+      )) {
+        toast({
+          title: 'Outdated Goals Detected 🔄',
+          description: 'Use the refresh button to get personalized AI goals.',
+          duration: 8000,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading goals:', error);
+      toast({
+        title: 'Error loading goals',
+        description: 'Could not load your goals. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, categorySettings, initialLoad, toast]);
+
+  // Load goals when user is ready
+  useEffect(() => {
+    if (userId) {
+      loadGoals();
+    }
+  }, [userId, loadGoals]);
+
+  // Handle goal completion
+  const handleGoalToggle = useCallback(async (goalId: string, completed: boolean) => {
+    if (!userId) return;
+
+    try {
+      setGoals(prev => prev.map(goal => 
+        goal.id === goalId ? { ...goal, completed: !completed } : goal
+      ));
+
+      await toggleGoalCompletionWithRefill(goalId, !completed);
+
+      if (!completed) {
+        toast({
+          title: 'Goal completed! 🎉',
+          description: 'Great job on your wellness journey!',
+        });
+      }
+
+    } catch (error) {
+      console.error('Error toggling goal:', error);
+      setGoals(prev => prev.map(goal => 
+        goal.id === goalId ? { ...goal, completed: completed } : goal
+      ));
+      toast({
+        title: 'Error updating goal',
+        description: 'Please try again.',
+        variant: 'destructive'
+      });
+    }
+  }, [userId, toast]);
+
+  // Handle category toggle
+  const handleCategoryToggle = useCallback((category: string, enabled: boolean) => {
+    const newSettings = { ...categorySettings, [category]: enabled };
+    setCategorySettings(newSettings);
+    updateCategorySettings(newSettings);
+  }, [categorySettings]);
+
+  // Handle adding new goal
+  const handleAddGoal = useCallback(async (category: string) => {
+    if (!userId) return;
+
+    try {
+      const newGoal = await addNewGoalForCategory(userId, category as 'nourish' | 'center' | 'play');
+      if (newGoal) {
+        setGoals(prev => [...prev, newGoal]);
+        toast({
+          title: 'New goal added! ✨',
+          description: `Fresh ${category} goal generated for you.`,
+        });
       }
     } catch (error) {
       console.error('Error adding goal:', error);
       toast({
         title: 'Error adding goal',
-        description: 'Could not add your goal. Please try again.',
-        variant: 'destructive',
+        description: 'Please try again.',
+        variant: 'destructive'
       });
     }
-  };
+  }, [userId, toast]);
 
-  // Add a suggested goal
-  const addSuggestedGoal = async (goal: SuggestedGoal) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
-      }
-      
-      // Check for duplicates before adding
-      const existingGoal = goals.find(g => g.goal.toLowerCase() === goal.text.toLowerCase());
-      if (existingGoal) {
-        toast({
-          title: 'Goal already exists',
-          description: 'This goal has already been added to your daily goals.',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      const newGoalData = await serviceAddNewGoal(session.user.id, goal.text, goal.category);
-      
-      if (newGoalData) {
-        setGoals(prevGoals => [...prevGoals, newGoalData]);
-        speak(`Added suggested goal: ${goal.text}`);
-        toast({
-          title: 'Suggested goal added',
-          description: 'The suggested goal has been added to your daily goals.',
-        });
-        
-        // Remove from suggestions
-        setSuggestedGoals(suggestedGoals.filter(g => g.text !== goal.text));
-        
-        // Update category progress and sync with wellness_goals table
-        const newCategoryCounts = updateCategoryCounts();
-        await updateWellnessGoals(session.user.id, newCategoryCounts);
-      }
-    } catch (error) {
-      console.error('Error adding suggested goal:', error);
-      toast({
-        title: 'Error adding goal',
-        description: 'Could not add the suggested goal. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
+  // Clear and regenerate all goals
+  const clearAndRegenerateGoals = useCallback(async () => {
+    if (!userId) return;
 
-  // Toggle goal completion status
-  const toggleGoalCompletion = async (goalId: string, currentStatus: boolean) => {
-    if (currentStatus === true) return; // Only allow completing goals, not uncompleting
-    
-    try {
-      const goalToUpdate = goals.find(g => g.id === goalId);
-      if (!goalToUpdate) return;
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
-      }
-      
-      await toggleGoalCompletionWithRefill(goalId, currentStatus);
-      
-      // Update local state
-      setGoals(prevGoals => 
-        prevGoals.map(g => 
-          g.id === goalId ? { ...g, completed: !currentStatus } : g
-        )
-      );
-      
-      // Update category progress and sync with wellness_goals table
-      const newCategoryCounts = updateCategoryCounts();
-      await updateWellnessGoals(session.user.id, newCategoryCounts);
-      
-      // If this is a newly completed goal, show the celebration
-      if (!currentStatus) {
-        setCompletedGoal(goalToUpdate);
-        speak(`Great job completing your goal: ${goalToUpdate.goal}`);
-        
-        toast({
-          title: 'Goal completed!',
-          description: 'Great job on completing your goal!',
-        });
-      }
-    } catch (error) {
-      console.error('Error updating goal:', error);
-      toast({
-        title: 'Error updating goal',
-        description: 'Could not update your goal. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Refresh suggested goals
-  const refreshSuggestions = () => {
-    fetchSuggestedGoalsHandler();
-    setRefreshKey(prevKey => prevKey + 1);
-  };
-
-  // Fetch suggested goals with fallback mechanism for API errors
-  const fetchSuggestedGoalsHandler = async () => {
-    try {
-      setLoadingSuggestions(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      
-      try {
-        const suggestions = await fetchSuggestedGoals(session.user.id);
-        setSuggestedGoals(suggestions);
-      } catch (error) {
-        console.error('Error fetching suggested goals:', error);
-        // Use fallback suggestions if API fails
-        setSuggestedGoals([
-          { text: "Drink 8 glasses of water today", category: "nourish" },
-          { text: "Take a 15-minute walk outside", category: "play" },
-          { text: "Practice deep breathing for 5 minutes", category: "center" },
-          { text: "Write down 3 things you're grateful for", category: "center" },
-          { text: "Eat a meal rich in calcium and vitamin D", category: "nourish" }
-        ]);
-      }
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  };
-
-  // Handle tab change - optimized to prevent unnecessary renders
-  const handleTabChange = useCallback((value: string) => {
-    if (value !== activeTab) {
-      setActiveTab(value);
-    }
-  }, [activeTab]);
-
-  // Handle main view tab change
-  const handleMainViewTabChange = useCallback((value: string) => {
-    if (value !== mainViewTab) {
-      setMainViewTab(value);
-    }
-  }, [mainViewTab]);
-
-  // Force refresh wellness goals from the database
-  const forceRefreshWellnessGoals = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
       
-      // Recalculate based on today's goals
       const today = new Date().toISOString().split('T')[0];
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('daily_goals')
-        .select('*')
-        .eq('user_id', session.user.id)
+        .delete()
+        .eq('user_id', userId)
         .eq('date', today);
       
       if (error) throw error;
       
-      if (data) {
-        setGoals(data);
-        
-        // Calculate progress for each category using the memoized function
-        const catCounts = calculateCategoryProgress();
-        setCategoryCounts(catCounts);
-        
-        // Update the database with our calculated values
-        await updateWellnessGoals(session.user.id, catCounts);
+      const newGoals = await createInitialGoalsForAllCategories(userId, categorySettings);
+      setGoals(newGoals);
         
         toast({
-          title: 'Progress updated',
-          description: 'Your wellness progress has been refreshed.',
+        title: 'Dashboard Refreshed! ✨',
+        description: 'Your new personalized goals are ready!',
         });
-      }
+      
     } catch (error) {
-      console.error('Error refreshing wellness goals:', error);
+      console.error('Error regenerating goals:', error);
       toast({
-        title: 'Error refreshing progress',
-        description: 'Could not refresh your progress. Please try again.',
-        variant: 'destructive',
+        title: 'Error refreshing dashboard',
+        description: 'Please try again.',
+        variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, categorySettings, toast]);
 
-  // Open the chat assistant
-  const openAssistant = () => {
-    if (vapiAssistantRef.current) {
-      vapiAssistantRef.current.open();
-    }
-  };
-
-  // Stabilize contentRef position after renders
-  useEffect(() => {
-    const savedPosition = contentRef.current?.scrollTop || 0;
+  // Calculate progress and categorize goals
+  const { overallProgress, categoryGoals } = useMemo(() => {
+    const completed = goals.filter(g => g.completed).length;
+    const total = goals.length;
+    const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
     
-    // Restore scroll position after render
-    return () => {
-      if (contentRef.current) {
-        contentRef.current.scrollTop = savedPosition;
+    const categoryBreakdown: Record<string, Goal[]> = {
+      nourish: [],
+      center: [],
+      play: []
+    };
+    
+    goals.forEach(goal => {
+      const category = normalizeCategory(goal.category);
+      if (categoryBreakdown[category]) {
+        categoryBreakdown[category].push(goal);
       }
-    };
-  }, [goals, activeTab]);
+    });
+    
+    return { overallProgress: progress, categoryGoals: categoryBreakdown };
+  }, [goals]);
 
-  // Initial data loading - with optimizations to prevent flickering
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      await fetchGoals();
-      await fetchSuggestedGoalsHandler();
-    };
-
-    fetchInitialData();
-  }, [fetchGoals]);
-
-  // Only update category progress when goals change - with debounce
-  useEffect(() => {
-    if (initialLoadComplete) {
-      const newCategoryCounts = updateCategoryCounts();
-      
-      // Sync with database whenever goals change
-      const syncWellnessGoals = async () => {
-        if (goals.length > 0) {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await updateWellnessGoals(session.user.id, newCategoryCounts);
-          }
-        }
-      };
-      
-      syncWellnessGoals();
-    }
-  }, [goals, updateCategoryCounts, initialLoadComplete]);
-
-  // Effect for fetching data when tab changes
-  useEffect(() => {
-    if (initialLoadComplete) {
-      fetchGoals();
-    }
-  }, [activeTab, fetchGoals, initialLoadComplete]);
+  // Show loading screen
+  if (loading && goals.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-bounce">😊</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Setting up your wellness dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <AuthBackground>
-      <div className="w-full min-h-screen bg-gradient-to-b from-white to-green-50">
-        {/* Header Section */}
-        <div className="w-full bg-white shadow-sm border-b border-gray-100">
-          <div className="w-full px-4 py-6">
-            <div className="flex flex-col items-center">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-menova-green to-teal-600 bg-clip-text text-transparent">
-                Wellness Journey
-              </h1>
-              <p className="mt-2 text-gray-600">Track and achieve your daily wellness goals</p>
-            </div>
+    <div 
+      className="min-h-screen flex flex-col bg-cover bg-center bg-no-repeat bg-fixed"
+      style={{ 
+        backgroundImage: "url('/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png')" 
+      }}
+    >
+      {/* Header with Navigation */}
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200 py-4 sticky top-0 z-50">
+        <div className="w-full flex justify-between items-center px-4">
+          <div className="flex items-center gap-8">
+            <MeNovaLogo className="text-[#92D9A9]" />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center text-[#92D9A9] hover:text-[#7bc492] font-medium">
+                Explore <ChevronDown className="h-4 w-4 ml-1" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => navigate('/welcome')}>
+                  Dashboard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/resources')}>
+                  Resources
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/community')}>
+                  Community
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/symptom-tracker')}>
+                  Symptom Tracker
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/todays-wellness')}>
+                  Today's Wellness
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          
+          <div className="flex items-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-50">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={`https://avatar.vercel.sh/${user?.email}.png`} alt={user?.email} />
+                  <AvatarFallback>
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[#92D9A9]">{profile?.full_name || user?.email?.split('@')[0] || "User"}</span>
+                <ChevronDown className="h-4 w-4 text-[#92D9A9]" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+      </header>
 
-        {/* Main Content */}
-        <div className="w-full">
-          <div className="w-full px-4 py-8">
-            <Tabs defaultValue="progress" value={mainViewTab} onValueChange={handleMainViewTabChange} className="w-full">
-              {/* Navigation Tabs */}
-              <div className="bg-white border-b border-gray-100 mb-8">
-                <TabsList className="flex h-16 items-center space-x-8 px-4">
-                  <TabsTrigger 
-                    value="progress" 
-                    className="flex items-center gap-2 px-4 py-3 text-base data-[state=active]:text-menova-green data-[state=active]:border-b-2 data-[state=active]:border-menova-green rounded-none border-b-2 border-transparent transition-all"
-                  >
-                    <BarChart2 size={20} />
-                    <span>Progress Dashboard</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="add-goal" 
-                    className="flex items-center gap-2 px-4 py-3 text-base data-[state=active]:text-menova-green data-[state=active]:border-b-2 data-[state=active]:border-menova-green rounded-none border-b-2 border-transparent transition-all"
-                  >
-                    <PlusCircle size={20} />
-                    <span>Add New Goals</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <TabsContent value="progress">
-                <div className="bg-white shadow-sm mb-8">
-                  <Tabs defaultValue="daily" value={activeTab} onValueChange={handleTabChange} className="w-full">
-                    <TabsList className="flex justify-center bg-gray-50/50 p-2 gap-1">
-                      <TabsTrigger 
-                        value="daily" 
-                        className="flex-1 flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-menova-green data-[state=active]:shadow-sm rounded-lg transition-all"
-                      >
-                        <CalendarDays size={18} />
-                        <span>Daily View</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="weekly" 
-                        className="flex-1 flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-menova-green data-[state=active]:shadow-sm rounded-lg transition-all"
-                      >
-                        <Calendar size={18} />
-                        <span>Weekly View</span>
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="monthly" 
-                        className="flex-1 flex items-center justify-center gap-2 py-3 data-[state=active]:bg-white data-[state=active]:text-menova-green data-[state=active]:shadow-sm rounded-lg transition-all"
-                      >
-                        <ChartBar size={18} />
-                        <span>Monthly View</span>
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <div className="p-6">
-                      <TabsContent value="daily">
-                        <div className="grid gap-6 lg:grid-cols-2">
-                          <TodayProgressSection 
-                            progress={progress}
-                            completedGoals={completedGoals}
-                            totalGoals={totalGoals}
-                            categoryCounts={categoryCounts}
-                            forceRefreshWellnessGoals={forceRefreshWellnessGoals}
-                            loading={loading}
-                          />
-                          <TodaysGoalsSection
-                            goals={goals}
-                            loading={loading}
-                            toggleGoalCompletion={toggleGoalCompletion}
-                          />
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="weekly">
-                        <WeeklyProgressView
-                          loading={loading}
-                          weeklyProgress={weeklyProgress}
-                          weeklyGoals={weeklyGoals}
-                        />
-                      </TabsContent>
-
-                      <TabsContent value="monthly">
-                        <MonthlyProgressView
-                          loading={loading}
-                          monthlyProgress={monthlyProgress}
-                        />
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="add-goal">
-                <div className="bg-white shadow-sm p-6">
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <AddGoalSection
-                      newGoal={newGoal}
-                      setNewGoal={setNewGoal}
-                      selectedCategory={selectedCategory}
-                      setSelectedCategory={setSelectedCategory}
-                      addGoal={addGoal}
-                    />
-                    <SuggestedGoalsSection
-                      suggestedGoals={suggestedGoals}
-                      loadingSuggestions={loadingSuggestions}
-                      refreshKey={refreshKey}
-                      refreshSuggestions={refreshSuggestions}
-                      addSuggestedGoal={addSuggestedGoal}
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white/60 backdrop-blur-sm py-4 border-b border-white/20">
+        <div className="w-full px-4">
+          <div className="flex items-center text-sm">
+            <Link to="/welcome" className="text-[#92D9A9] hover:text-[#7bc492]">Dashboard</Link>
+            <span className="mx-2 text-gray-400">&gt;</span>
+            <span className="text-gray-600">Today's Wellness</span>
           </div>
         </div>
       </div>
 
-      {/* Goal Completion Modal */}
-      <GoalCompletionModal
-        completedGoal={completedGoal}
-        setCompletedGoal={setCompletedGoal}
-        openAssistant={openAssistant}
-      />
+      {/* Main Content */}
+      <main className="flex-1">
+        <div className="w-full py-8 px-6">
+          
+          {/* Top Header Bar: Title Left + Controls Right */}
+          <div className="flex justify-between items-start mb-6">
+            
+            {/* Left: Title */}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Wellness Progress
+              </h1>
+              <p className="text-gray-600">Track your menopause wellness journey</p>
+            </div>
+            
+            {/* Right: Compact Controls */}
+            <div className="flex gap-3 items-center">
+              
+              {/* Progress */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm border border-white/20 text-center">
+                <div className="text-xs text-gray-600 mb-1">Today's Progress</div>
+                <div className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  {overallProgress}%
+                </div>
+                <div className="w-16 bg-gray-200 rounded-full h-1 mx-auto mb-1">
+                  <div 
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 h-1 rounded-full transition-all duration-500"
+                    style={{ width: `${overallProgress}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-600">{goals.filter(g => g.completed).length} of {goals.length} goals</p>
+              </div>
+              
+              {/* Fresh Goals */}
+              <Button 
+                onClick={clearAndRegenerateGoals}
+                disabled={loading}
+                size="sm"
+                className="text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <RefreshCw size={14} className="mr-1" />
+                Fresh Goals
+              </Button>
+              
+              {/* Settings */}
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-gray-600 border-gray-300 hover:bg-gray-50 bg-white/90">
+                    <Settings size={14} className="mr-1" />
+                    Settings
+                  </Button>
+                </DialogTrigger>
+                <SettingsModal 
+                  settings={categorySettings}
+                  onUpdateSettings={(settings) => {
+                    setCategorySettings(settings);
+                    updateCategorySettings(settings);
+                  }}
+                />
+              </Dialog>
+              
+              {/* Helper Tips */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-lg px-2 py-1 shadow-sm border border-white/20">
+                <p className="text-xs text-gray-600 text-center">
+                  💡 Click ✓ to complete, + for new goals
+                </p>
+              </div>
+              
+            </div>
+          </div>
+
+          {/* Main Layout: Dashboard Cards */}
+          <div className="flex gap-4">
+            
+            {/* Wellness Dashboard Cards */}
+            <div className="flex-1">
+              {/* Dashboard Grid */}
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                {Object.entries(categoryConfig).map(([category, config]) => (
+                  <CategoryCard
+                    key={category}
+                    category={category as keyof typeof categoryConfig}
+                    goals={categoryGoals[category] || []}
+                    isEnabled={categorySettings[category] || false}
+                    onToggleCategory={handleCategoryToggle}
+                    onGoalToggle={handleGoalToggle}
+                    onAddGoal={handleAddGoal}
+                    loading={false}
+                  />
+                ))}
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </main>
       
-      {/* Vapi Assistant */}
-      <VapiAssistant ref={vapiAssistantRef} />
       <Toaster />
-    </AuthBackground>
+    </div>
   );
 };
 

@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useVapi } from '@/contexts/VapiContext';
 
 // Helper function to normalize category names for consistency
 const normalizeCategory = (category: string): string => {
@@ -37,6 +38,7 @@ const Welcome = () => {
   const [loading, setLoading] = useState(true);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { startAssistant, stopAssistant, isSpeaking, speak, vapiRef, isListening } = useVapi();
   
   // Check if user is logged in
   useEffect(() => {
@@ -98,6 +100,18 @@ const Welcome = () => {
         description: "An error occurred while logging out.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleMeNovaClick = () => {
+    if (isSpeaking || isListening) {
+      stopAssistant();
+    } else {
+      startAssistant();
+      // Wait a short moment for the assistant to initialize
+      setTimeout(() => {
+        speak("Hello! I'm MeNova, your companion through menopause. How are you feeling today?");
+      }, 500);
     }
   };
 
@@ -189,31 +203,59 @@ const Welcome = () => {
         
         {/* Welcome Section */}
         <section className="bg-white/90 p-6 rounded-lg shadow-sm backdrop-blur-sm bg-gradient-to-br from-white to-green-50">
-          <div className="flex items-center gap-4 mb-1">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-menova-green">
-              <img
-                src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
-                alt="MeNova Character"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="space-y-0.5">
-              <h1 className="text-2xl font-bold text-menova-text">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-menova-text mb-2">
                 Welcome, {profile?.full_name || user?.email.split('@')[0]}!
               </h1>
-              <p className="text-gray-600">It's great to see you today</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <div>
               <p className="text-gray-600 leading-relaxed">
                 How are you feeling today, {profile?.full_name?.split(' ')[0] || user?.email.split('@')[0]}? MeNova is here to support you every step of the way.
               </p>
             </div>
-            
-            <div className="flex-shrink-0">
-              <MeNovaChatButton variant="default" className="text-lg" />
+
+            <div className="flex justify-center relative">
+              <div className="relative">
+                <div 
+                  onClick={handleMeNovaClick}
+                  className="rounded-full overflow-visible w-64 h-64 border-4 border-white shadow-lg cursor-pointer relative bg-white"
+                >
+                  <img
+                    src="/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png"
+                    alt="MeNova Assistant"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                  
+                  {/* Audio visualizer effect */}
+                  {(isSpeaking || isListening) && (
+                    <>
+                      {/* Rotating ring effect */}
+                      <div className="absolute -inset-4">
+                        <div className="absolute inset-0 border-4 border-menova-green/30 rounded-full animate-ring-rotate" 
+                             style={{ filter: 'blur(2px)' }} 
+                        />
+                        <div className="absolute inset-0 border-4 border-menova-green/30 rounded-full animate-ring-rotate" 
+                             style={{ 
+                               filter: 'blur(2px)',
+                               animationDelay: '1s'
+                             }} 
+                        />
+                        <div className="absolute inset-0 border-4 border-menova-green/30 rounded-full animate-ring-rotate" 
+                             style={{ 
+                               filter: 'blur(2px)',
+                               animationDelay: '2s'
+                             }} 
+                        />
+                      </div>
+                      {/* Subtle glow effect */}
+                      <div className="absolute -inset-1 rounded-full border-2 border-menova-green/20 shadow-[0_0_10px_rgba(146,217,169,0.3)]" />
+                    </>
+                  )}
+                </div>
+                <div className="absolute bottom-0 right-0 bg-white px-4 py-2 rounded-2xl text-menova-text shadow-md z-30">
+                  <p className="font-medium">{isSpeaking || isListening ? 'Click to Stop' : 'Talk to MeNova'}</p>
+                  <div className="absolute bottom-8 right-4 transform rotate-45 w-4 h-4 bg-white"></div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -277,6 +319,9 @@ const Welcome = () => {
           </div>
         </section>
       </main>
+
+      {/* Floating MeNova Chat Button */}
+      <MeNovaChatButton variant="floating" />
     </div>
   );
 };

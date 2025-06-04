@@ -8,6 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import http from 'http';
+import resourcesRouter from './src/server/api/resources.js';
 
 // Get current file directory (equivalent to __dirname in CommonJS)
 const __filename = fileURLToPath(import.meta.url);
@@ -525,6 +526,9 @@ app.post('/api/vapi-webhook', async (req, res) => {
   }
 });
 
+// Routes
+app.use('/api', resourcesRouter);
+
 // Catch-all route for SPA in production
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
@@ -533,7 +537,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Update server listen to use the HTTP server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode`);
