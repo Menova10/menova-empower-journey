@@ -7,6 +7,7 @@ import { toast } from '@/components/ui/use-toast';
 import { MessageCircle, User, ChevronDown, Apple, Brain, Settings, LogOut } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import WellnessDashboard from '@/components/WellnessDashboard';
+import DailyTipCard from '@/components/DailyTipCard';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { BreadcrumbTrail } from '@/components/BreadcrumbTrail';
 import MeNovaChatButton from '@/components/MeNovaChatButton';
@@ -259,6 +260,9 @@ const Welcome = () => {
             </div>
           </div>
         </section>
+
+        {/* Daily Tip Card */}
+        <DailyTipCard />
 
         {/* New Wellness Dashboard Section */}
         <WellnessDashboard />
