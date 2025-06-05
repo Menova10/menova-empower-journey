@@ -19,7 +19,7 @@ export default function VapiAssistant() {
         const Vapi = module.default
 
         // Get API key from environment variables - only check once
-        const apiKey = process.env.NEXT_PUBLIC_VAPI_API_KEY || ""
+        const apiKey = import.meta.env.VITE_VAPI_API_KEY || ""
 
         if (!apiKey) {
           setErrorMessage("API key is missing. Please check your environment variables.")

@@ -570,6 +570,7 @@ const VapiAssistant = forwardRef<any, VapiAssistantProps>(({ onSpeaking, classNa
     <>
       <Button
         onClick={handleAssistantClick}
+        data-vapi-button
         className={className || `rounded-full w-14 h-14 bg-menova-green text-white shadow-lg hover:bg-menova-green/90 ${isSpeaking ? 'animate-pulse' : ''} flex items-center justify-center p-0`}
       >
         <div className="rounded-full overflow-hidden w-12 h-12 border-2 border-white">
