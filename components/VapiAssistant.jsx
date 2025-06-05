@@ -128,62 +128,60 @@ export default function VapiAssistant() {
         {isConnected && (
           <div style={{ marginTop: "10px" }}>
             <p>{isSpeaking ? "Assistant is speaking" : "Assistant is listening"}</p>
-
-            {/* Simple volume indicator */}
             <div
               style={{
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                backgroundColor: isSpeaking ? "#00ff00" : "#ffff00",
+                margin: "10px auto",
                 display: "flex",
-                marginTop: "10px",
-                marginBottom: "10px",
-                gap: "3px",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "20px",
+                transform: `scale(${1 + volumeLevel / 100})`,
+                transition: "transform 0.1s ease",
               }}
             >
-              {Array.from({ length: 10 }, (_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: "15px",
-                    height: "15px",
-                    backgroundColor: i / 10 < volumeLevel ? "#3ef07c" : "#444",
-                    borderRadius: "2px",
-                  }}
-                />
-              ))}
+              🎤
             </div>
           </div>
         )}
+
+        {errorMessage && (
+          <div
+            style={{
+              backgroundColor: "#ff4444",
+              color: "white",
+              padding: "10px",
+              borderRadius: "5px",
+              marginTop: "10px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ margin: 0, fontSize: "14px" }}>{errorMessage}</p>
+          </div>
+        )}
+
+        {!isApiKeyValid && (
+          <div
+            style={{
+              backgroundColor: "#ff6b35",
+              color: "white",
+              padding: "15px",
+              borderRadius: "8px",
+              marginTop: "15px",
+              textAlign: "center",
+              maxWidth: "400px",
+            }}
+          >
+            <p style={{ margin: "0 0 10px 0", fontWeight: "bold" }}>Configuration Required</p>
+            <p style={{ margin: 0, fontSize: "14px" }}>
+              Please add your Vapi API key to the environment variables and restart the application.
+            </p>
+          </div>
+        )}
       </div>
-
-      {errorMessage && (
-        <div
-          style={{
-            backgroundColor: "#f03e3e",
-            padding: "15px",
-            borderRadius: "5px",
-            marginBottom: "20px",
-            maxWidth: "400px",
-            textAlign: "center",
-          }}
-        >
-          <p>{errorMessage}</p>
-
-          {errorMessage.includes("payment") && (
-            <a
-              href="https://dashboard.vapi.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                marginTop: "10px",
-                color: "white",
-                textDecoration: "underline",
-              }}
-            >
-              Go to Vapi Dashboard
-            </a>
-          )}
-        </div>
-      )}
 
       <button
         onClick={isConnected ? endCall : startCall}
