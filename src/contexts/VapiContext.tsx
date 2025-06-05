@@ -46,7 +46,7 @@ interface VapiOptions {
 }
 
 // The VapiProvider component
-export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -303,9 +303,11 @@ Always maintain a supportive and non-judgmental tone.`
   return <VapiContext.Provider value={value}>{children}</VapiContext.Provider>;
 };
 
-// Custom hook to use the Vapi context - moved to end for Fast Refresh compatibility
-export function useVapi(): VapiContextType {
+// Custom hook to use the Vapi context - using const declaration for Fast Refresh compatibility
+const useVapi = (): VapiContextType => {
   const context = useContext(VapiContext);
   if (!context) throw new Error('useVapi must be used within a VapiProvider');
   return context;
-}
+};
+
+export { VapiProvider, useVapi };
