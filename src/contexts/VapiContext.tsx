@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { toast } from '@/components/ui/use-toast';
 
 // Define the interface for the Vapi context
@@ -15,13 +15,6 @@ type VapiContextType = {
 
 // Create the context with undefined as initial value
 const VapiContext = createContext<VapiContextType | undefined>(undefined);
-
-// Custom hook to use the Vapi context
-export const useVapi = (): VapiContextType => {
-  const context = useContext(VapiContext);
-  if (!context) throw new Error('useVapi must be used within a VapiProvider');
-  return context;
-};
 
 // Wrap Vapi import in a function to load it only when needed and in browser environment
 const loadVapi = async () => {
@@ -180,7 +173,7 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const startAssistant = async () => {
+  const startAssistant = useCallback(async () => {
     if (!vapiRef.current) {
       console.error("Cannot start assistant: Vapi not initialized");
       return;
@@ -278,23 +271,23 @@ Always maintain a supportive and non-judgmental tone.`
         variant: "destructive",
       });
     }
-  };
+  }, []);
 
-  const stopAssistant = () => {
+  const stopAssistant = useCallback(() => {
     if (vapiRef.current) {
       console.log("Stopping Vapi assistant");
       vapiRef.current?.stop();
     }
-  };
+  }, []);
 
-  const speak = (text: string) => {
+  const speak = useCallback((text: string) => {
     if (!vapiRef.current) {
       console.error("Cannot speak: Vapi not initialized");
       return;
     }
     console.log("Speaking text:", text);
     vapiRef.current?.speak(text);
-  };
+  }, []);
 
   const value = {
     isSpeaking,
@@ -309,3 +302,10 @@ Always maintain a supportive and non-judgmental tone.`
 
   return <VapiContext.Provider value={value}>{children}</VapiContext.Provider>;
 };
+
+// Custom hook to use the Vapi context - moved to end for Fast Refresh compatibility
+export function useVapi(): VapiContextType {
+  const context = useContext(VapiContext);
+  if (!context) throw new Error('useVapi must be used within a VapiProvider');
+  return context;
+}
