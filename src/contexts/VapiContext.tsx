@@ -127,7 +127,20 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log(`Received ${message.isFinal ? 'final' : 'interim'} transcript:`, message.text);
             } else if (message.type === 'model-output') {
               console.log("Received model output:", message.text);
+            } else if (message.type === 'voice-input') {
+              console.log("Voice input:", message);
+            } else if (message.type === 'function-call') {
+              console.log("Function call:", message);
             }
+          });
+
+          // Audio-specific event listeners
+          vapiRef.current.on("volume-level", (level: number) => {
+            console.log("Volume level:", level);
+          });
+          
+          vapiRef.current.on("speech-update", (update: any) => {
+            console.log("Speech update:", update);
           });
           
           // Error handling
@@ -226,8 +239,8 @@ Always maintain a supportive and non-judgmental tone.`
           ]
         },
         voice: {
-          provider: "playht",
-          voiceId: "jennifer"
+          provider: "11labs",
+          voiceId: "burt"
         },
         firstMessageMode: "assistant-speaks-first",
         backgroundDenoisingEnabled: true,
@@ -276,29 +289,11 @@ Always maintain a supportive and non-judgmental tone.`
 
   const speak = (text: string) => {
     if (!vapiRef.current) {
-      console.warn("Cannot speak: Vapi not initialized");
+      console.error("Cannot speak: Vapi not initialized");
       return;
     }
-    
-    try {
-      console.log("Speaking text:", text);
-      // Check if the speak method exists before calling it
-      if (typeof vapiRef.current.speak === 'function') {
-        vapiRef.current.speak(text);
-      } else {
-        console.warn("Speak method not available on Vapi instance");
-        // Try alternative method if speak is not available
-        if (typeof vapiRef.current.say === 'function') {
-          vapiRef.current.say(text);
-        } else if (typeof vapiRef.current.sendTextMessage === 'function') {
-          vapiRef.current.sendTextMessage(text);
-        } else {
-          console.error("No speech method available on Vapi instance");
-        }
-      }
-    } catch (error) {
-      console.error("Error in speak function:", error);
-    }
+    console.log("Speaking text:", text);
+    vapiRef.current?.speak(text);
   };
 
   const value = {

@@ -176,33 +176,10 @@ const Welcome = () => {
   };
 
   const handleMeNovaClick = () => {
-    try {
-      if (isSpeaking || isListening) {
-        stopAssistant();
-      } else {
-        // Check if Vapi is properly loaded before starting
-        if (sdkLoaded) {
-          startAssistant();
-          // Wait a short moment for the assistant to initialize
-          setTimeout(() => {
-            speak("Hello! I'm MeNova, your companion through menopause. How are you feeling today?");
-          }, 500);
-        } else {
-          // Fallback: Just show a message if Vapi is not loaded
-          toast({
-            title: "Voice Assistant Not Available",
-            description: "The voice assistant is loading. Please try the 'Talk to MeNova' button below instead.",
-            variant: "default"
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Error in handleMeNovaClick:", error);
-      toast({
-        title: "Voice Assistant Error", 
-        description: "There was an issue with the voice assistant. Please try the chat button below.",
-        variant: "destructive"
-      });
+    if (isSpeaking || isListening) {
+      stopAssistant();
+    } else {
+      startAssistant();
     }
   };
 
