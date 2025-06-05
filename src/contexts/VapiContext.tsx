@@ -233,7 +233,7 @@ Always maintain a supportive and non-judgmental tone.`
         },
         voice: {
           provider: "11labs",
-          voiceId: "burt"
+          voiceId: "rachel"
         },
         firstMessageMode: "assistant-speaks-first",
         backgroundDenoisingEnabled: true,
