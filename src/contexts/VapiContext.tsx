@@ -46,7 +46,7 @@ interface VapiOptions {
 }
 
 // The VapiProvider component
-const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -198,7 +198,7 @@ const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       // Configure assistant options
       const assistantConfig = {
         name: "MeNova Assistant",
-        firstMessage: "Hi there! I'm Mee-Nova, your companion through menopause. How are you feeling today?",
+        firstMessage: "Hello! I'm MeNova, your caring companion through the menopause journey. I'm here to listen and support you. How are you feeling today?",
         transcriber: {
           provider: "deepgram",
           model: "nova-2",
@@ -233,7 +233,7 @@ Always maintain a supportive and non-judgmental tone.`
         },
         voice: {
           provider: "11labs",
-          voiceId: "rachel"
+          voiceId: "Rachel"
         },
         firstMessageMode: "assistant-speaks-first",
         backgroundDenoisingEnabled: true,
@@ -303,11 +303,9 @@ Always maintain a supportive and non-judgmental tone.`
   return <VapiContext.Provider value={value}>{children}</VapiContext.Provider>;
 };
 
-// Custom hook to use the Vapi context - using const declaration for Fast Refresh compatibility
-const useVapi = (): VapiContextType => {
+// Custom hook to use the Vapi context - moved to end for Fast Refresh compatibility
+export function useVapi(): VapiContextType {
   const context = useContext(VapiContext);
   if (!context) throw new Error('useVapi must be used within a VapiProvider');
   return context;
-};
-
-export { VapiProvider, useVapi };
+}
