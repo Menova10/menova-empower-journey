@@ -276,11 +276,29 @@ Always maintain a supportive and non-judgmental tone.`
 
   const speak = (text: string) => {
     if (!vapiRef.current) {
-      console.error("Cannot speak: Vapi not initialized");
+      console.warn("Cannot speak: Vapi not initialized");
       return;
     }
-    console.log("Speaking text:", text);
-    vapiRef.current?.speak(text);
+    
+    try {
+      console.log("Speaking text:", text);
+      // Check if the speak method exists before calling it
+      if (typeof vapiRef.current.speak === 'function') {
+        vapiRef.current.speak(text);
+      } else {
+        console.warn("Speak method not available on Vapi instance");
+        // Try alternative method if speak is not available
+        if (typeof vapiRef.current.say === 'function') {
+          vapiRef.current.say(text);
+        } else if (typeof vapiRef.current.sendTextMessage === 'function') {
+          vapiRef.current.sendTextMessage(text);
+        } else {
+          console.error("No speech method available on Vapi instance");
+        }
+      }
+    } catch (error) {
+      console.error("Error in speak function:", error);
+    }
   };
 
   const value = {

@@ -88,16 +88,16 @@ const WellnessDashboard = () => {
 
       setResourcesData({
         videos,
-        isLoading: false
-      });
-    } catch (error) {
+            isLoading: false
+          });
+      } catch (error) {
       console.error('Error fetching videos:', error);
       setResourcesData({
         videos: [],
-        isLoading: false
-      });
-    }
-  };
+          isLoading: false
+        });
+      }
+    };
 
   // Calculate overall progress
   const calculateOverallProgress = (goals: WellnessGoal[]) => {
@@ -119,21 +119,27 @@ const WellnessDashboard = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-      
+
       // Get today's date for filtering
       const today = new Date().toISOString().split('T')[0];
-      
-      // Fetch today's daily goals - this is where the actual goals are stored
+        
+      // Fetch today's daily goals with more detailed information
       const { data: goalsData, error: goalsError } = await supabase
         .from('daily_goals')
-        .select('*')
+        .select(`
+          id,
+          category,
+          completed,
+          goal,
+          created_at
+        `)
         .eq('user_id', session.user.id)
         .eq('date', today)
         .order('created_at', { ascending: false });
 
       if (goalsError) throw goalsError;
 
-      // Process goals data by category
+      // Process goals data by category with improved accuracy
       const processedGoals = goalsData?.reduce((acc: WellnessGoal[], goal) => {
         const normalizedCategory = normalizeCategory(goal.category);
         const existingGoal = acc.find(g => g.category === normalizedCategory);
@@ -151,12 +157,25 @@ const WellnessDashboard = () => {
         return acc;
       }, []) || [];
 
-      // Debug logging to check goal counts
-      console.log('Raw daily goals data:', goalsData);
-      console.log('Processed goals by category:', processedGoals);
-      console.log('Today\'s date:', today);
-      goalsData?.forEach(goal => {
-        console.log(`Goal: ${goal.category}, Completed: ${goal.completed}, Text: ${goal.goal?.substring(0, 50)}...`);
+      // Ensure all categories are represented
+      const categories = ['nourish', 'center', 'play'];
+      categories.forEach(category => {
+        if (!processedGoals.find(g => g.category === category)) {
+          processedGoals.push({
+            category,
+            completed: 0,
+            total: 0
+          });
+        }
+      });
+
+      // Debug logging for goal tracking
+      console.log('Fetched daily goals:', {
+        date: today,
+        rawGoals: goalsData,
+        processedGoals,
+        totalGoals: goalsData?.length || 0,
+        completedGoals: goalsData?.filter(g => g.completed)?.length || 0
       });
 
       setGoals(processedGoals);
@@ -167,9 +186,9 @@ const WellnessDashboard = () => {
       twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
       const { data: symptomsData, error: symptomsError } = await supabase
-        .from('symptom_tracking')
-        .select('*')
-        .eq('user_id', session.user.id)
+          .from('symptom_tracking')
+          .select('*')
+          .eq('user_id', session.user.id)
         .gte('recorded_at', twoWeeksAgo.toISOString())
         .order('recorded_at', { ascending: false });
 
@@ -215,23 +234,23 @@ const WellnessDashboard = () => {
         };
       });
 
-      setSymptoms(processedSymptoms.slice(0, 4)); // Show top 4 symptoms to adjust space
+      setSymptoms(processedSymptoms.slice(0, 3)); // Show top 3 symptoms
       
       if (showRefreshIndicator) {
         toast({
           title: "Data refreshed!",
           description: "Your wellness progress has been updated.",
         });
-      }
-    } catch (error) {
-      console.error("Error fetching wellness data:", error);
+        }
+      } catch (error) {
+        console.error("Error fetching wellness data:", error);
       toast({
         title: "Error",
         description: "Failed to fetch wellness data. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
+      } finally {
+        setLoading(false);
       setRefreshing(false);
     }
   }, [toast]);
@@ -483,10 +502,10 @@ const WellnessDashboard = () => {
                         {percentage}%
                       </span>
                     </div>
-                  </div>
+                </div>
                 );
               })}
-            </div>
+              </div>
             
             <Button 
               variant="outline" 
@@ -506,8 +525,8 @@ const WellnessDashboard = () => {
           </p>
           
           {loading ? (
-            <div className="space-y-5 flex-1">
-              {[1, 2, 3, 4].map(i => (
+            <div className="space-y-6 flex-1">
+              {[1, 2, 3].map(i => (
                 <div key={i} className="flex items-center animate-pulse">
                   <div className="w-1/3 h-4 bg-gray-200 rounded"></div>
                   <div className="w-2/3 flex space-x-2 ml-3">
@@ -519,7 +538,7 @@ const WellnessDashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="space-y-5 flex-1">
+            <div className="space-y-6 flex-1">
               {symptoms.map((symptom, index) => (
                 <div key={index} className="flex flex-col">
                   <div className="flex items-center justify-between mb-2">
@@ -561,16 +580,16 @@ const WellnessDashboard = () => {
               ))}
             </div>
           )}
-          
+              
           <div className="mt-6">
-            <Button 
-              variant="outline" 
+              <Button 
+                variant="outline" 
               className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 py-3"
-              onClick={() => navigate('/symptom-tracker')}
-            >
-              Update Symptoms
-            </Button>
-          </div>
+                onClick={() => navigate('/symptom-tracker')}
+              >
+                Update Symptoms
+              </Button>
+            </div>
         </div>
         
         {/* Resources Card - Better space utilization */}
@@ -589,8 +608,8 @@ const WellnessDashboard = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          ) : (
+              </div>
+            ) : (
             <div className="space-y-4 flex-1">
               {resourcesData.videos.map((video, index) => (
                 <div key={index} className="group">
@@ -637,8 +656,8 @@ const WellnessDashboard = () => {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
+              </div>
+            )}
           
           <div className="mt-6">
             <Button 
