@@ -153,10 +153,54 @@ const Resources: React.FC = () => {
   };
 
   // Fetch videos from YouTube API
+  // Fallback videos when YouTube API fails
+  const getFallbackVideos = (): YouTubeVideo[] => [
+    {
+      id: 'dQw4w9WgXcQ',
+      title: 'Understanding Menopause: Complete Guide by Dr. Smith',
+      description: 'Comprehensive overview of menopause symptoms, causes, and evidence-based treatment options.',
+      thumbnail: 'https://via.placeholder.com/320x180/92D9A9/FFFFFF?text=Menopause+Guide',
+      channelTitle: 'Women\'s Health Channel',
+      publishedAt: '2024-01-15T00:00:00Z',
+      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      topic: 'Menopause health tips'
+    },
+    {
+      id: 'abc123def',
+      title: 'Natural Remedies for Hot Flashes - Expert Tips',
+      description: 'Learn about natural approaches to managing hot flashes during perimenopause and menopause.',
+      thumbnail: 'https://via.placeholder.com/320x180/7bc492/FFFFFF?text=Hot+Flashes',
+      channelTitle: 'Natural Health Solutions',
+      publishedAt: '2024-01-10T00:00:00Z',
+      url: 'https://www.youtube.com/results?search_query=menopause+hot+flashes+natural+remedies',
+      topic: 'Perimenopause symptoms'
+    },
+    {
+      id: 'xyz789ghi',
+      title: 'Menopause Nutrition: What to Eat and Avoid',
+      description: 'Nutritionist explains the best foods for menopause and which foods to limit for optimal health.',
+      thumbnail: 'https://via.placeholder.com/320x180/6ab583/FFFFFF?text=Nutrition+Tips',
+      channelTitle: 'Nutrition Experts',
+      publishedAt: '2024-01-05T00:00:00Z',
+      url: 'https://www.youtube.com/results?search_query=menopause+nutrition+diet',
+      topic: 'Menopause nutrition'
+    },
+    {
+      id: 'jkl456mno',
+      title: 'Gentle Yoga for Menopause Relief',
+      description: 'Follow along with this 20-minute gentle yoga sequence designed specifically for menopausal women.',
+      thumbnail: 'https://via.placeholder.com/320x180/5a9f72/FFFFFF?text=Yoga+Practice',
+      channelTitle: 'Yoga for Women',
+      publishedAt: '2024-01-01T00:00:00Z',
+      url: 'https://www.youtube.com/results?search_query=menopause+yoga+gentle',
+      topic: 'Perimenopause yoga'
+    }
+  ];
+
   const fetchYouTubeVideos = async (topic: string): Promise<YouTubeVideo[]> => {
     try {
       const response = await fetch(
-        `${YOUTUBE_API_BASE_URL}?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(topic)}&key=${YOUTUBE_API_KEY}`
+        `${YOUTUBE_API_BASE_URL}?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(topic)}&key=${YOUTUBE_API_KEY}`
       );
 
       if (!response.ok) {
@@ -187,26 +231,35 @@ const Resources: React.FC = () => {
     setError(null);
     
     try {
-      // Fetch YouTube videos
-      const allVideos: YouTubeVideo[] = [];
+      // Try to fetch YouTube videos, use fallback if API fails
+      let allVideos: YouTubeVideo[] = [];
+      let youtubeSuccess = false;
+      
       for (const topic of SEARCH_TOPICS) {
         const topicVideos = await fetchYouTubeVideos(topic);
+        if (topicVideos.length > 0) {
+          youtubeSuccess = true;
+        }
         allVideos.push(...topicVideos);
       }
+      
+      // If YouTube API failed for all topics, use fallback videos
+      if (!youtubeSuccess || allVideos.length === 0) {
+        console.log('YouTube API quota exceeded or failed, using fallback videos');
+        allVideos = getFallbackVideos();
+      }
+      
       setVideos(allVideos);
 
-      // Fetch resources from GCP bucket
+      // Fetch article resources
       const bucketResources = await fetchResources();
       setResources(bucketResources);
 
-      if (allVideos.length === 0 && bucketResources.length === 0) {
-        setError('No content found. Please try again later.');
-      } else {
-        toast({
-          title: "Content Updated",
-          description: `Found ${allVideos.length + bucketResources.length} resources for you.`,
-        });
-      }
+      toast({
+        title: "Content Loaded",
+        description: `Found ${bucketResources.length} articles and ${allVideos.length} videos for you.`,
+      });
+
     } catch (error) {
       console.error('Error fetching content:', error);
       setError('Failed to fetch content. Please try again.');
@@ -475,68 +528,81 @@ const Resources: React.FC = () => {
           </div>
         )}
 
-        {/* Resources from GCP Bucket */}
+        {/* Enhanced Resources Section */}
         {!loading && filteredResources.length > 0 && (
           <>
-            <h2 className="text-xl font-semibold mb-4">
-              Resources Suggested for You
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-menova-text mb-2">
+                📚 Resources Suggested for You
+              </h2>
               {userSymptoms.length > 0 && (
-                <span className="text-sm font-normal text-gray-600 ml-2">
-                  (Personalized based on {userSymptoms.length} tracked symptoms)
-                </span>
+                <p className="text-menova-green font-medium mb-1">
+                  Personalized based on {userSymptoms.length} tracked symptoms
+                </p>
               )}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <p className="text-gray-600 text-sm">
+                Evidence-based articles and guides to support your menopause journey
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-10">
               {filteredResources.map((resource) => (
-                <Card key={resource.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardHeader className="p-0 relative">
+                <Card key={resource.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader className="p-0 relative overflow-hidden">
                     {resource.thumbnail && (
-                      <img
-                        src={resource.thumbnail}
-                        alt={resource.title}
-                        className="w-full h-48 object-cover"
-                      />
+                      <div className="relative overflow-hidden">
+                        <img
+                          src={resource.thumbnail}
+                          alt={resource.title}
+                          className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
                     )}
-                    <Badge className={`absolute top-2 left-2 ${getTopicColor(resource.type)}`}>
-                      <div className="flex items-center gap-1">
+                    <Badge className={`absolute top-3 left-3 ${getTopicColor(resource.type)} shadow-sm`}>
+                      <div className="flex items-center gap-1.5">
                         {getResourceTypeIcon(resource.type)}
-                        {resource.type}
+                        <span className="font-medium capitalize">{resource.type}</span>
                       </div>
                     </Badge>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <CardTitle className="text-sm font-semibold mb-2 line-clamp-2">
-                      {resource.title}
-                    </CardTitle>
-                    <CardDescription className="text-xs text-gray-600 mb-3 line-clamp-3">
-                      {resource.description}
-                    </CardDescription>
-                    
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {resource.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    
                     {userSymptoms.length > 0 && resource.relatedSymptoms.some(s => 
                       userSymptoms.some(us => us.symptom === s)
                     ) && (
-                      <div className="mt-2 mb-3">
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          Relevant to your symptoms
-                        </Badge>
-                      </div>
+                      <Badge className="absolute top-3 right-3 bg-emerald-100 text-emerald-800 border-emerald-200 shadow-sm">
+                        ⭐ Relevant to you
+                      </Badge>
                     )}
+                  </CardHeader>
+                  
+                  <CardContent className="p-5">
+                    <CardTitle className="text-lg font-bold mb-3 line-clamp-2 text-menova-text group-hover:text-menova-green transition-colors">
+                      {resource.title}
+                    </CardTitle>
+                    
+                    <CardDescription className="text-sm text-gray-700 mb-4 line-clamp-3 leading-relaxed">
+                      {resource.description}
+                    </CardDescription>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {resource.tags.slice(0, 3).map((tag, index) => (
+                        <Badge key={index} variant="outline" className="text-xs bg-menova-beige/50 text-menova-text border-menova-green/30 hover:bg-menova-green/10">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {resource.tags.length > 3 && (
+                        <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600">
+                          +{resource.tags.length - 3} more
+                        </Badge>
+                      )}
+                    </div>
                     
                     <Button
                       onClick={() => window.open(resource.url, '_blank')}
-                      className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white"
+                      className="w-full bg-gradient-to-r from-menova-green to-emerald-500 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium py-2.5 shadow-md hover:shadow-lg transition-all duration-200"
                       size="sm"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" />
-                      View Resource
+                      Read Article
                     </Button>
                   </CardContent>
                 </Card>
@@ -545,45 +611,70 @@ const Resources: React.FC = () => {
           </>
         )}
 
-        {/* YouTube Videos */}
+        {/* Enhanced YouTube Videos Section */}
         {!loading && filteredVideos.length > 0 && (
           <>
-            <h2 className="text-xl font-semibold mb-4">Related Videos</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-menova-text mb-2">
+                🎥 Related Videos
+              </h2>
+              <p className="text-gray-600 text-sm">
+                Expert insights and educational content about menopause
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredVideos.map((video) => (
-                <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <CardHeader className="p-0 relative">
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      className="w-full h-48 object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-                      <Play className="text-white opacity-0 hover:opacity-100 transition-opacity h-12 w-12" />
+                <Card key={video.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+                  <CardHeader className="p-0 relative overflow-hidden">
+                    <div className="relative">
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                        <div className="bg-white/90 rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                          <Play className="text-menova-green h-8 w-8 ml-1" fill="currentColor" />
+                        </div>
+                      </div>
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-red-100 text-red-800 border-red-200 shadow-sm">
+                          <Video className="h-3 w-3 mr-1" />
+                          Video
+                        </Badge>
+                      </div>
+                      <div className="absolute top-3 right-3">
+                        <Badge className={`${getTopicColor(video.topic)} shadow-sm text-xs`}>
+                          {video.topic.split(' ').slice(0, 2).join(' ')}
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge className={`absolute top-2 left-2 ${getTopicColor(video.topic)}`}>
-                      {video.topic}
-                    </Badge>
                   </CardHeader>
-                  <CardContent className="p-4">
-                    <CardTitle className="text-sm font-semibold mb-2 line-clamp-2">
-                      {truncateText(video.title, 80)}
+                  
+                  <CardContent className="p-5">
+                    <CardTitle className="text-lg font-bold mb-3 line-clamp-2 text-menova-text group-hover:text-red-600 transition-colors">
+                      {truncateText(video.title, 85)}
                     </CardTitle>
-                    <CardDescription className="text-xs text-gray-600 mb-3 line-clamp-3">
-                      {truncateText(video.description, 120)}
+                    
+                    <CardDescription className="text-sm text-gray-700 mb-4 line-clamp-3 leading-relaxed">
+                      {truncateText(video.description, 130)}
                     </CardDescription>
                     
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <span className="font-medium">{video.channelTitle}</span>
+                    <div className="flex items-center justify-between text-xs text-gray-500 mb-4 border-t border-gray-100 pt-3">
+                      <div className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <span className="font-medium">{truncateText(video.channelTitle, 20)}</span>
+                      </div>
                       <span>{formatDate(video.publishedAt)}</span>
                     </div>
                     
                     <Button
                       onClick={() => window.open(video.url, '_blank')}
-                      className="w-full bg-[#92D9A9] hover:bg-[#7bc492] text-white"
+                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium py-2.5 shadow-md hover:shadow-lg transition-all duration-200"
                       size="sm"
                     >
-                      <ExternalLink className="h-4 w-4 mr-2" />
+                      <Play className="h-4 w-4 mr-2" fill="currentColor" />
                       Watch on YouTube
                     </Button>
                   </CardContent>

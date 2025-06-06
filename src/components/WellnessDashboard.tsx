@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownRight, Minus, Play, ExternalLink, Video, RefreshCw } from 'lucide-react';
 import { calculateSymptomTrends } from "@/services/symptomService";
 import { ChartDataPoint } from '@/types/symptoms';
+import SimpleYouTubeVideos from './SimpleYouTubeVideos';
 
 interface WellnessGoal {
   category: string;
@@ -21,22 +22,9 @@ interface SymptomRating {
   trend?: 'increasing' | 'decreasing' | 'stable';
 }
 
-interface YouTubeVideo {
-  id: string;
-  title: string;
-  thumbnail: string;
-  channelTitle: string;
-  url: string;
-}
+// Removed YouTube API interfaces - using simple component instead
 
-interface ResourcesData {
-  videos: YouTubeVideo[];
-  isLoading: boolean;
-}
-
-// YouTube API configuration
-const YOUTUBE_API_KEY = 'AIzaSyAuADSwSw95dF4d57eVGHVLDU-OxDg9eos';
-const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3/search';
+// Simplified dashboard - no API calls needed
 
 // Standardize category names to prevent duplication
 const normalizeCategory = (category: string): string => {
@@ -57,47 +45,9 @@ const WellnessDashboard = () => {
   const [overallProgress, setOverallProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [resourcesData, setResourcesData] = useState<ResourcesData>({
-    videos: [],
-    isLoading: true
-  });
   const { toast } = useToast();
 
-  // Fetch top 3 menopause videos from YouTube with thumbnails
-  const fetchTopVideos = async () => {
-    setResourcesData({ videos: [], isLoading: true });
-    
-    try {
-      const response = await fetch(
-        `${YOUTUBE_API_BASE_URL}?part=snippet&type=video&maxResults=3&q=menopause%20tips%20wellness&key=${YOUTUBE_API_KEY}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`YouTube API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      const videos: YouTubeVideo[] = data.items?.map((item: any) => ({
-        id: item.id.videoId,
-        title: item.snippet.title.length > 35 ? item.snippet.title.substring(0, 35) + '...' : item.snippet.title,
-        thumbnail: item.snippet.thumbnails.medium?.url || item.snippet.thumbnails.default?.url,
-        channelTitle: item.snippet.channelTitle.length > 20 ? item.snippet.channelTitle.substring(0, 20) + '...' : item.snippet.channelTitle,
-        url: `https://www.youtube.com/watch?v=${item.id.videoId}`
-      })) || [];
-
-      setResourcesData({
-        videos,
-            isLoading: false
-          });
-      } catch (error) {
-      console.error('Error fetching videos:', error);
-      setResourcesData({
-        videos: [],
-          isLoading: false
-        });
-      }
-    };
+  // YouTube videos now handled by SimpleYouTubeVideos component - no API calls needed
 
   // Calculate overall progress
   const calculateOverallProgress = (goals: WellnessGoal[]) => {
@@ -234,7 +184,7 @@ const WellnessDashboard = () => {
         };
       });
 
-      setSymptoms(processedSymptoms.slice(0, 4)); // Show top 4 symptoms
+      setSymptoms(processedSymptoms.slice(0, 3)); // Show top 3 symptoms
       
       if (showRefreshIndicator) {
         toast({
@@ -261,9 +211,10 @@ const WellnessDashboard = () => {
   };
 
   useEffect(() => {
-    fetchTopVideos();
     fetchWellnessData();
   }, [fetchWellnessData]);
+
+  // Videos now handled by SimpleYouTubeVideos component - no useEffect needed
 
   // Re-fetch data when returning to this route
   useEffect(() => {
@@ -373,7 +324,7 @@ const WellnessDashboard = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Today's Wellness Card - ENHANCED with Dynamic Circular Progress */}
-        <div className="bg-white/90 rounded-lg shadow-sm p-6 h-full flex flex-col">
+        <div className="bg-white/90 rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-medium text-[#7d6285]">Today's Wellness</h3>
             <Button
@@ -386,9 +337,9 @@ const WellnessDashboard = () => {
               <RefreshCw className={`h-4 w-4 text-menova-green ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
-          <p className="text-sm text-gray-600 mb-6">Daily summary from your wellness plan</p>
+          <p className="text-sm text-gray-600 mb-4">Daily summary from your wellness plan</p>
           
-          <div className="flex flex-col items-center space-y-4 flex-1">
+          <div className="flex flex-col items-center space-y-4">
             {/* Circular Progress Visualization - More Compact */}
             <div className="relative w-32 h-32">
               {/* Main circular progress */}
@@ -478,7 +429,7 @@ const WellnessDashboard = () => {
             </div>
             
             {/* Goal Legend with Progress - More Compact */}
-            <div className="w-full space-y-2 flex-1">
+            <div className="w-full space-y-2">
               {goals.map((goal, index) => {
                 const colors = ['text-amber-600', 'text-violet-600', 'text-red-600'];
                 const bgColors = ['bg-amber-50', 'bg-violet-50', 'bg-red-50'];
@@ -506,10 +457,7 @@ const WellnessDashboard = () => {
                 );
               })}
               </div>
-          </div>
-          
-          {/* Button pushed to bottom */}
-          <div className="mt-6">
+            
             <Button 
               variant="outline" 
               onClick={handleAskAboutProgress}
@@ -528,32 +476,32 @@ const WellnessDashboard = () => {
           </p>
           
           {loading ? (
-            <div className="space-y-4 flex-1">
-              {[1, 2, 3, 4].map(i => (
+            <div className="space-y-6 flex-1">
+              {[1, 2, 3].map(i => (
                 <div key={i} className="flex items-center animate-pulse">
                   <div className="w-1/3 h-4 bg-gray-200 rounded"></div>
                   <div className="w-2/3 flex space-x-2 ml-3">
                     {[1, 2, 3, 4, 5].map(j => (
-                      <div key={j} className="h-4 w-4 rounded-full bg-gray-200"></div>
+                      <div key={j} className="h-5 w-5 rounded-full bg-gray-200"></div>
                     ))}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="space-y-4 flex-1">
+            <div className="space-y-6 flex-1">
               {symptoms.map((symptom, index) => (
                 <div key={index} className="flex flex-col">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="text-sm font-medium flex items-center gap-2">
                       <span className="truncate max-w-[100px]">{symptom.symptom}</span>
                       {getTrendIcon(symptom.trend)}
                     </div>
-                    <div className="flex space-x-1">
+                    <div className="flex space-x-2">
                       {[1, 2, 3, 4, 5].map((rating) => (
                         <div 
                           key={rating} 
-                          className={`h-4 w-4 rounded-full ${
+                          className={`h-5 w-5 rounded-full ${
                             rating <= symptom.intensity
                               ? getSymptomColor(symptom.symptom)
                               : "bg-gray-200"
@@ -583,89 +531,31 @@ const WellnessDashboard = () => {
               ))}
             </div>
           )}
-          
+              
           <div className="mt-6">
-            <Button 
-              variant="outline" 
-              className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 py-2"
-              onClick={() => navigate('/symptom-tracker')}
-            >
-              Update Symptoms
-            </Button>
-          </div>
+              <Button 
+                variant="outline" 
+              className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 py-3"
+                onClick={() => navigate('/symptom-tracker')}
+              >
+                Update Symptoms
+              </Button>
+            </div>
         </div>
         
-        {/* Resources Card - Better space utilization */}
+        {/* Resources Card - Simple and Reliable */}
         <div className="bg-white/90 rounded-lg shadow-sm p-6 h-full flex flex-col">
           <h3 className="text-lg font-medium text-[#7d6285] mb-2">Resources</h3>
-          <p className="text-sm text-gray-600 mb-6">Top menopause videos</p>
+          <p className="text-sm text-gray-600 mb-6">Helpful menopause videos</p>
           
-          {resourcesData.isLoading ? (
-            <div className="space-y-3 flex-1">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="animate-pulse flex gap-3">
-                  <div className="w-16 h-12 bg-gray-200 rounded flex-shrink-0"></div>
-                  <div className="flex-1">
-                    <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
-                    <div className="h-2 bg-gray-200 rounded w-2/3"></div>
-                  </div>
-                </div>
-              ))}
-              </div>
-            ) : (
-            <div className="space-y-3 flex-1">
-              {resourcesData.videos.map((video, index) => (
-                <div key={index} className="group">
-                  <div 
-                    className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer border border-transparent hover:border-menova-green/20"
-                    onClick={() => window.open(video.url, '_blank')}
-                  >
-                    {/* Video Thumbnail - Compact */}
-                    <div className="relative flex-shrink-0">
-                      <img 
-                        src={video.thumbnail} 
-                        alt={video.title}
-                        className="w-14 h-10 object-cover rounded bg-gray-200"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          target.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                      {/* Fallback thumbnail */}
-                      <div className="hidden w-14 h-10 bg-gray-200 rounded flex items-center justify-center">
-                        <Video className="h-5 w-5 text-gray-400" />
-                      </div>
-                      {/* Play button overlay */}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Play className="h-3 w-3 text-white fill-white" />
-                      </div>
-                    </div>
-                    
-                    {/* Video Info - Compact */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 leading-tight mb-1 group-hover:text-menova-green transition-colors line-clamp-2">
-                        {video.title}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {video.channelTitle}
-                      </p>
-                    </div>
-                    
-                    {/* External link indicator */}
-                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ExternalLink className="h-4 w-4 text-menova-green" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              </div>
-            )}
+          <div className="flex-1">
+            <SimpleYouTubeVideos maxVideos={3} />
+          </div>
           
           <div className="mt-6">
             <Button 
               variant="outline" 
-              className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 py-2"
+              className="w-full border-menova-green text-menova-green hover:bg-menova-green/10 py-3"
               onClick={() => navigate('/resources')}
             >
               View All Resources
