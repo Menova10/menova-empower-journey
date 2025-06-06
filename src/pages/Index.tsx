@@ -39,22 +39,23 @@ const Index = () => {
 
   // Handle bird chirping audio
   useEffect(() => {
+    // Temporarily disabled audio until file is added
     // Create audio element for bird chirping
-    const audio = new Audio('/assets/bird-chirping.mp3');
-    audio.loop = true;
-    birdAudioRef.current = audio;
+    // const audio = new Audio('/assets/bird-chirping.mp3');
+    // audio.loop = true;
+    // birdAudioRef.current = audio;
     
     // Play audio when component mounts
-    const playAudio = () => {
-      audio.play().catch(error => {
-        console.log("Audio play failed:", error);
-      });
-    };
+    // const playAudio = () => {
+    //   audio.play().catch(error => {
+    //     console.log("Audio play failed:", error);
+    //   });
+    // };
     
     // Only play if user is not authenticated
-    if (!isAuthenticated && !loading) {
-      playAudio();
-    }
+    // if (!isAuthenticated && !loading) {
+    //   playAudio();
+    // }
     
     // Cleanup function to stop audio when component unmounts
     return () => {

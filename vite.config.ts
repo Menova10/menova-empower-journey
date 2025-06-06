@@ -19,4 +19,18 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Ensure environment variables are available in production
+    'process.env.NODE_ENV': JSON.stringify(mode),
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          vapi: ['@vapi-ai/web'],
+        },
+      },
+    },
+  },
 }));

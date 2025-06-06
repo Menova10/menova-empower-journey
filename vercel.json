@@ -1,0 +1,33 @@
+{
+  "build": {
+    "env": {
+      "VITE_VAPI_API_KEY": "@vite_vapi_api_key",
+      "VITE_VAPI_ASSISTANT_ID": "@vite_vapi_assistant_id",
+      "VITE_OPENAI_API_KEY": "@vite_openai_api_key"
+    }
+  },
+  "functions": {
+    "app.js": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+} 
