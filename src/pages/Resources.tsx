@@ -19,7 +19,7 @@ import { Resource } from '@/types/resources';
 import { fetchResources } from '@/lib/resources';
 
 // YouTube API configuration
-const YOUTUBE_API_KEY = 'AIzaSyAuADSwSw95dF4d57eVGHVLDU-OxDg9eos';
+const YOUTUBE_API_KEY = 'AIzaSyDlxyM7u1gZwGa6ddgqI4MxjhDWCAD_ocA';
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3/search';
 
 // Search topics for menopause-related content

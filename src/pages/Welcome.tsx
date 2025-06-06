@@ -477,6 +477,139 @@ const Welcome = () => {
             </Card>
           </div>
         </section>
+
+        {/* Featured Videos Section */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-menova-text">
+              🎥 Featured Videos for You
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/resources')}
+              className="border-menova-green text-menova-green hover:bg-menova-green/10"
+            >
+              View All Videos
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Video 1 - Menopause Guide */}
+            <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+              <CardHeader className="p-0 relative overflow-hidden">
+                <div className="relative">
+                  <img
+                    src="https://via.placeholder.com/320x180/92D9A9/FFFFFF?text=Menopause+Guide"
+                    alt="Understanding Menopause Complete Guide"
+                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                    <div className="bg-white/90 rounded-full p-2 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                      <MessageCircle className="text-menova-green h-6 w-6" />
+                    </div>
+                  </div>
+                  <div className="absolute top-2 left-2">
+                    <span className="bg-red-100 text-red-800 border-red-200 px-2 py-1 rounded text-xs font-medium">
+                      📹 Video
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                <CardTitle className="text-sm font-bold mb-2 line-clamp-2 text-menova-text group-hover:text-red-600 transition-colors">
+                  Understanding Menopause: Complete Guide
+                </CardTitle>
+                <CardDescription className="text-xs text-gray-700 mb-3 line-clamp-2">
+                  Comprehensive overview of menopause symptoms, causes, and evidence-based treatment options.
+                </CardDescription>
+                <Button
+                  onClick={() => window.open('https://www.youtube.com/results?search_query=understanding+menopause+complete+guide', '_blank')}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2"
+                  size="sm"
+                >
+                  ▶ Watch Now
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Video 2 - Hot Flashes */}
+            <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+              <CardHeader className="p-0 relative overflow-hidden">
+                <div className="relative">
+                  <img
+                    src="https://via.placeholder.com/320x180/7bc492/FFFFFF?text=Hot+Flashes"
+                    alt="Natural Remedies for Hot Flashes"
+                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                    <div className="bg-white/90 rounded-full p-2 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                      <MessageCircle className="text-menova-green h-6 w-6" />
+                    </div>
+                  </div>
+                  <div className="absolute top-2 left-2">
+                    <span className="bg-red-100 text-red-800 border-red-200 px-2 py-1 rounded text-xs font-medium">
+                      📹 Video
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                <CardTitle className="text-sm font-bold mb-2 line-clamp-2 text-menova-text group-hover:text-red-600 transition-colors">
+                  Natural Remedies for Hot Flashes
+                </CardTitle>
+                <CardDescription className="text-xs text-gray-700 mb-3 line-clamp-2">
+                  Learn effective natural approaches to managing hot flashes during perimenopause and menopause.
+                </CardDescription>
+                <Button
+                  onClick={() => window.open('https://www.youtube.com/results?search_query=menopause+hot+flashes+natural+remedies', '_blank')}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2"
+                  size="sm"
+                >
+                  ▶ Watch Now
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Video 3 - Yoga */}
+            <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
+              <CardHeader className="p-0 relative overflow-hidden">
+                <div className="relative">
+                  <img
+                    src="https://via.placeholder.com/320x180/5a9f72/FFFFFF?text=Yoga+Practice"
+                    alt="Gentle Yoga for Menopause Relief"
+                    className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                    <div className="bg-white/90 rounded-full p-2 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                      <MessageCircle className="text-menova-green h-6 w-6" />
+                    </div>
+                  </div>
+                  <div className="absolute top-2 left-2">
+                    <span className="bg-red-100 text-red-800 border-red-200 px-2 py-1 rounded text-xs font-medium">
+                      📹 Video
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3">
+                <CardTitle className="text-sm font-bold mb-2 line-clamp-2 text-menova-text group-hover:text-red-600 transition-colors">
+                  Gentle Yoga for Menopause Relief
+                </CardTitle>
+                <CardDescription className="text-xs text-gray-700 mb-3 line-clamp-2">
+                  Follow along with this gentle yoga sequence designed specifically for menopausal women.
+                </CardDescription>
+                <Button
+                  onClick={() => window.open('https://www.youtube.com/results?search_query=menopause+yoga+gentle', '_blank')}
+                  className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white text-xs py-2"
+                  size="sm"
+                >
+                  ▶ Watch Now
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
       </main>
 
       {/* Floating MeNova Chat Button */}
