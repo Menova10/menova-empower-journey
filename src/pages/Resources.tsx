@@ -157,19 +157,19 @@ const Resources: React.FC = () => {
   const getFallbackVideos = (): YouTubeVideo[] => [
     {
       id: 'dQw4w9WgXcQ',
-      title: 'Understanding Menopause: Complete Guide by Dr. Smith',
+      title: 'Understanding Menopause: Complete Guide',
       description: 'Comprehensive overview of menopause symptoms, causes, and evidence-based treatment options.',
-      thumbnail: 'https://via.placeholder.com/320x180/92D9A9/FFFFFF?text=Menopause+Guide',
+      thumbnail: '/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png',
       channelTitle: 'Women\'s Health Channel',
       publishedAt: '2024-01-15T00:00:00Z',
-      url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      url: 'https://www.youtube.com/results?search_query=understanding+menopause+complete+guide',
       topic: 'Menopause health tips'
     },
     {
       id: 'abc123def',
-      title: 'Natural Remedies for Hot Flashes - Expert Tips',
+      title: 'Natural Remedies for Hot Flashes',
       description: 'Learn about natural approaches to managing hot flashes during perimenopause and menopause.',
-      thumbnail: 'https://via.placeholder.com/320x180/7bc492/FFFFFF?text=Hot+Flashes',
+      thumbnail: '/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png',
       channelTitle: 'Natural Health Solutions',
       publishedAt: '2024-01-10T00:00:00Z',
       url: 'https://www.youtube.com/results?search_query=menopause+hot+flashes+natural+remedies',
@@ -177,19 +177,9 @@ const Resources: React.FC = () => {
     },
     {
       id: 'xyz789ghi',
-      title: 'Menopause Nutrition: What to Eat and Avoid',
-      description: 'Nutritionist explains the best foods for menopause and which foods to limit for optimal health.',
-      thumbnail: 'https://via.placeholder.com/320x180/6ab583/FFFFFF?text=Nutrition+Tips',
-      channelTitle: 'Nutrition Experts',
-      publishedAt: '2024-01-05T00:00:00Z',
-      url: 'https://www.youtube.com/results?search_query=menopause+nutrition+diet',
-      topic: 'Menopause nutrition'
-    },
-    {
-      id: 'jkl456mno',
       title: 'Gentle Yoga for Menopause Relief',
-      description: 'Follow along with this 20-minute gentle yoga sequence designed specifically for menopausal women.',
-      thumbnail: 'https://via.placeholder.com/320x180/5a9f72/FFFFFF?text=Yoga+Practice',
+      description: 'Follow along with this gentle yoga sequence designed specifically for menopausal women.',
+      thumbnail: '/lovable-uploads/9f5f031b-af45-4b14-96fd-a87e2a176359.png',
       channelTitle: 'Yoga for Women',
       publishedAt: '2024-01-01T00:00:00Z',
       url: 'https://www.youtube.com/results?search_query=menopause+yoga+gentle',
@@ -549,14 +539,22 @@ const Resources: React.FC = () => {
               {filteredResources.map((resource) => (
                 <Card key={resource.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white/80 backdrop-blur-sm">
                   <CardHeader className="p-0 relative overflow-hidden">
-                    {resource.thumbnail && (
+                    {resource.thumbnail ? (
                       <div className="relative overflow-hidden">
                         <img
                           src={resource.thumbnail}
                           alt={resource.title}
                           className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = '/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png';
+                          }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      </div>
+                    ) : (
+                      <div className="w-full h-52 bg-gradient-to-br from-menova-green to-emerald-500 flex items-center justify-center">
+                        <span className="text-white text-4xl">📚</span>
                       </div>
                     )}
                     <Badge className={`absolute top-3 left-3 ${getTopicColor(resource.type)} shadow-sm`}>
@@ -632,6 +630,10 @@ const Resources: React.FC = () => {
                         src={video.thumbnail}
                         alt={video.title}
                         className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = '/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png';
+                        }}
                       />
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                         <div className="bg-white/90 rounded-full p-3 transform scale-75 group-hover:scale-100 transition-transform duration-300">

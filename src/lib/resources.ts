@@ -10,7 +10,7 @@ const MOCK_RESOURCES: Resource[] = [
     url: 'https://www.menopause.org/for-women/menopause-faqs-understanding-the-symptoms',
     tags: ['menopause', 'health', 'guide'],
     relatedSymptoms: ['hot flashes', 'mood changes', 'sleep problems'],
-    thumbnail: 'https://via.placeholder.com/400x200/92D9A9/FFFFFF?text=Menopause+Guide',
+    thumbnail: '/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -22,7 +22,7 @@ const MOCK_RESOURCES: Resource[] = [
     url: 'https://www.mayoclinic.org/diseases-conditions/hot-flashes/diagnosis-treatment/drc-20352790',
     tags: ['hot flashes', 'natural remedies', 'wellness'],
     relatedSymptoms: ['hot flashes', 'night sweats'],
-    thumbnail: 'https://via.placeholder.com/400x200/7bc492/FFFFFF?text=Hot+Flashes',
+    thumbnail: '/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -34,7 +34,7 @@ const MOCK_RESOURCES: Resource[] = [
     url: 'https://www.healthline.com/health/menopause/diet',
     tags: ['nutrition', 'diet', 'health'],
     relatedSymptoms: ['weight gain', 'energy levels'],
-    thumbnail: 'https://via.placeholder.com/400x200/6ab583/FFFFFF?text=Nutrition+Guide',
+    thumbnail: '/lovable-uploads/9f5f031b-af45-4b14-96fd-a87e2a176359.png',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -46,7 +46,7 @@ const MOCK_RESOURCES: Resource[] = [
     url: 'https://www.womenshealth.gov/menopause/menopause-and-your-health/staying-healthy-after-menopause',
     tags: ['exercise', 'fitness', 'wellness'],
     relatedSymptoms: ['joint pain', 'mood changes', 'weight gain'],
-    thumbnail: 'https://via.placeholder.com/400x200/5a9f72/FFFFFF?text=Exercise+Guide',
+    thumbnail: '/lovable-uploads/687720ee-5470-46ea-95c1-c506999c0b94.png',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -58,7 +58,7 @@ const MOCK_RESOURCES: Resource[] = [
     url: 'https://www.sleepfoundation.org/women-sleep/menopause-and-sleep',
     tags: ['sleep', 'insomnia', 'wellness'],
     relatedSymptoms: ['sleep problems', 'night sweats', 'anxiety'],
-    thumbnail: 'https://via.placeholder.com/400x200/4a8f61/FFFFFF?text=Sleep+Solutions',
+    thumbnail: '/lovable-uploads/14905dcb-7154-41d0-92c2-f134f2aa1117.png',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   }
