@@ -64,6 +64,12 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const apiKey = import.meta.env.VITE_VAPI_API_KEY;
     const assistantId = import.meta.env.VITE_VAPI_ASSISTANT_ID;
 
+    console.log("Environment check:", { 
+      hasApiKey: !!apiKey, 
+      hasAssistantId: !!assistantId,
+      apiKeyLength: apiKey?.length 
+    });
+
     if (!apiKey) {
       const errorMsg = "Vapi API key not found in environment variables";
       console.error(errorMsg);
@@ -84,10 +90,11 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw new Error("Failed to load Vapi SDK");
         }
 
-        console.log("Initializing Vapi SDK with API key");
+        console.log("Initializing Vapi SDK with API key:", apiKey?.substring(0, 8) + "...");
         
         // Initialize Vapi with API key
         vapiRef.current = new Vapi(apiKey);
+        console.log("Vapi instance created successfully");
         
         // Set up event listeners for tracking state
         if (vapiRef.current) {
@@ -139,13 +146,27 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Error handling
           vapiRef.current.on("error", (err: any) => {
             console.error("Vapi error:", err);
-            const errorMessage = err?.message || "An error occurred with the voice assistant";
-            setError(errorMessage);
-            toast({
-              title: "Voice Assistant Error",
-              description: errorMessage,
-              variant: "destructive",
-            });
+            console.error("Full error object:", JSON.stringify(err, null, 2));
+            
+            // Check for specific error types
+            if (err?.message?.includes("Meeting has ended")) {
+              console.error("Meeting ended error - possibly assistant configuration issue");
+              const errorMessage = "Assistant configuration issue. Please check your Vapi dashboard.";
+              setError(errorMessage);
+              toast({
+                title: "Voice Assistant Configuration Error",
+                description: errorMessage,
+                variant: "destructive",
+              });
+            } else {
+              const errorMessage = err?.message || "An error occurred with the voice assistant";
+              setError(errorMessage);
+              toast({
+                title: "Voice Assistant Error",
+                description: errorMessage,
+                variant: "destructive",
+              });
+            }
           });
         }
         
@@ -176,6 +197,11 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const startAssistant = useCallback(async () => {
     if (!vapiRef.current) {
       console.error("Cannot start assistant: Vapi not initialized");
+      toast({
+        title: "Voice Assistant Error",
+        description: "Voice assistant is not initialized. Please refresh the page.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -192,84 +218,74 @@ export const VapiProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
+    // Check for microphone permissions
     try {
-      console.log("Starting Vapi assistant with config:");
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Microphone permission granted");
+    } catch (error) {
+      console.error("Microphone permission denied:", error);
+      toast({
+        title: "Microphone Access Required",
+        description: "Please allow microphone access to use the voice assistant.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log("Starting Vapi assistant with assistant ID:", assistantId);
       
-      // Configure assistant options
-      const assistantConfig = {
-        name: "MeNova Assistant",
-        firstMessage: "Hello! I'm MeNova, your caring companion through the menopause journey. I'm here to listen and support you. How are you feeling today?",
-        transcriber: {
-          provider: "deepgram",
-          model: "nova-2",
-          language: "en-US",
-        },
-        model: {
-          provider: "openai",
-          model: "gpt-4",
-          messages: [
-            {
-              role: "system",
-              content: `You are MeNova (pronounced "Mee-Nova"), an empathetic AI assistant helping women through their menopause journey.
-
-Your role is to:
-1. Provide emotional support and understanding
-2. Help track symptoms and wellness progress
-3. Offer evidence-based information about menopause
-4. Guide users through coping strategies and lifestyle changes
-
-Keep your responses:
-- Warm and empathetic
-- Clear and concise (this is a voice conversation)
-- Natural and conversational (use phrases like "Hmm...", "I understand", "Let me think...")
-- Focused on the user's immediate needs and feelings
-
-Important: Always pronounce your name as "Mee-Nova" (two distinct syllables: "Mee" and "Nova").
-
-If the user shares symptoms or experiences, acknowledge them with empathy before providing guidance.
-Always maintain a supportive and non-judgmental tone.`
-            }
-          ]
-        },
-        voice: {
-          provider: "11labs",
-          voiceId: "Rachel"
-        },
-        firstMessageMode: "assistant-speaks-first",
-        backgroundDenoisingEnabled: true,
-        startSpeakingPlan: {
-          waitSeconds: 0.4,
-          smartEndpointingEnabled: true,
-          transcriptionEndpointingPlan: {
-            onPunctuationSeconds: 0.1,
-            onNoPunctuationSeconds: 1.5,
-            onNumberSeconds: 0.5
-          }
-        }
-      };
+      // Use the pre-configured assistant ID instead of custom config
+      await vapiRef.current.start(assistantId);
       
+      console.log("Assistant started successfully!");
+    } catch (e) {
+      console.error("Error starting assistant:", e);
+      console.error("Full error details:", JSON.stringify(e, null, 2));
+      
+      // If using assistant ID fails, try with a basic configuration
+      console.log("Trying fallback configuration...");
       try {
-        console.log("Starting Vapi assistant with config:", assistantConfig);
-        await vapiRef.current.start(assistantConfig);
-      } catch (e) {
-        console.error("Error starting assistant:", e);
+        const fallbackConfig = {
+          transcriber: {
+            provider: "deepgram",
+            model: "nova-2",
+            language: "en-US",
+          },
+          model: {
+            provider: "openai",
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: "You are MeNova, a helpful assistant for women's health and menopause support. Keep responses brief and supportive."
+              }
+            ]
+          },
+          voice: {
+            provider: "playht",
+            voiceId: "jennifer"
+          }
+        };
+        
+        await vapiRef.current.start(fallbackConfig);
+        console.log("Fallback configuration worked!");
+        
+        toast({
+          title: "Voice Assistant Started",
+          description: "Using fallback configuration. Some features may be limited.",
+          variant: "default",
+        });
+      } catch (fallbackError) {
+        console.error("Fallback configuration also failed:", fallbackError);
         const errorMessage = e instanceof Error ? e.message : "Could not start voice assistant";
         setError(errorMessage);
         toast({
           title: "Voice Assistant Error",
-          description: errorMessage,
+          description: "Both primary and fallback configurations failed. Please check your internet connection and try again.",
           variant: "destructive",
         });
       }
-    } catch (e) {
-      console.error("Error starting assistant:", e);
-      const errorMessage = e instanceof Error ? e.message : "Could not start voice assistant";
-      setError(errorMessage);
-      toast({
-        title: "Voice Assistant Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
     }
   }, []);
 

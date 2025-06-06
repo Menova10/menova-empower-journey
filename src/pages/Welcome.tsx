@@ -176,9 +176,23 @@ const Welcome = () => {
   };
 
   const handleMeNovaClick = () => {
+    console.log("MeNova avatar clicked!", { isSpeaking, isListening, sdkLoaded });
+    
+    if (!sdkLoaded) {
+      console.error("SDK not loaded yet");
+      toast({
+        title: "Voice Assistant Not Ready",
+        description: "Please wait a moment for the voice assistant to initialize.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (isSpeaking || isListening) {
+      console.log("Stopping assistant...");
       stopAssistant();
     } else {
+      console.log("Starting assistant...");
       startAssistant();
     }
   };
@@ -394,7 +408,10 @@ const Welcome = () => {
                   )}
                 </div>
                 <div className="absolute bottom-0 right-0 bg-white px-4 py-2 rounded-2xl text-menova-text shadow-md z-30">
-                  <p className="font-medium">{isSpeaking || isListening ? 'Click to Stop' : 'Talk to MeNova'}</p>
+                  <p className="font-medium">
+                    {!sdkLoaded ? 'Initializing...' : 
+                     (isSpeaking || isListening ? 'Click to Stop' : 'Talk to MeNova')}
+                  </p>
                   <div className="absolute bottom-8 right-4 transform rotate-45 w-4 h-4 bg-white"></div>
                 </div>
               </div>

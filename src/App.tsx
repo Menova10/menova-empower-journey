@@ -16,6 +16,8 @@ import DailyCheckIn from './pages/DailyCheckIn';
 import TextChat from './pages/TextChat';
 import ApiStatus from './pages/ApiStatus';
 import WhatsAppDemoPage from './pages/whatsapp-demo';
+import VoiceTest from './pages/VoiceTest';
+import EnvTest from './pages/EnvTest';
 import { VapiProvider } from './contexts/VapiContext';
 import { Toaster } from './components/ui/toaster';
 import './App.css';
@@ -41,6 +43,8 @@ const MainContent = () => {
         <Route path="/check-in" element={<DailyCheckIn />} />
         <Route path="/api-status" element={<ApiStatus />} />
         <Route path="/whatsapp-demo" element={<WhatsAppDemoPage />} />
+        <Route path="/voice-test" element={<VoiceTest />} />
+        <Route path="/env-test" element={<EnvTest />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
